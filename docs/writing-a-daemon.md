@@ -56,6 +56,11 @@ Find work in {{inputs.source}} via `{{inputs.access}}` matching {{inputs.filter}
 For each item: <do the work>. Record what you handled so the next run skips it.
 ```
 
+Every rendered skill also gets `references/learning.md` appended — a protocol for
+reading this project's Claude memory at the start of a run (to skip known false
+positives) and writing lessons at the end (so the next run is smarter). Set
+`learning = false` in `[daemon]` to opt a daemon out.
+
 ## Activate
 
 ```bash

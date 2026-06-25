@@ -264,6 +264,10 @@ def render_skill(cfg: Config, slug: str) -> str:
         ref = cfg.profiles_dir() / source / "reference.md"
         if ref.exists():
             text += f"\n\n---\n\n{ref.read_text()}"
+    if d.get("learning", True):
+        learning = cfg.install_root / "references" / "learning.md"
+        if learning.exists():
+            text += f"\n\n---\n\n{learning.read_text()}"
     for key, val in d["inputs"].items():
         rendered = ", ".join(str(x) for x in val) if isinstance(val, list) else str(val)
         text = text.replace(f"{{{{inputs.{key}}}}}", rendered)

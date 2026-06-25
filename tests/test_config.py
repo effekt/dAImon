@@ -146,6 +146,24 @@ class ConfigTest(unittest.TestCase):
         self.assertIn("Repo me/alpha filter is:open.", out)
         self.assertNotIn("{{inputs", out)
 
+    def test_render_skill_appends_learning_protocol(self):
+        write(self.root / "references" / "learning.md", "LEARNING PROTOCOL BODY\n")
+        out = config.render_skill(self.cfg, "alpha")
+        self.assertIn("LEARNING PROTOCOL BODY", out)
+
+    def test_render_skill_learning_opt_out(self):
+        write(self.root / "references" / "learning.md", "LEARNING PROTOCOL BODY\n")
+        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            learning = false
+            [inputs]
+            repo = "me/alpha"
+        """)
+        out = config.render_skill(config.Config.load(), "alpha")
+        self.assertNotIn("LEARNING PROTOCOL BODY", out)
+
     def test_render_plist_contains_label_and_slug(self):
         xml = config.render_plist(self.cfg, "alpha")
         self.assertIn("<string>com.testns.alpha</string>", xml)
