@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# dAImon command dispatcher.
+set -uo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  dir="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  case "$SOURCE" in /*) ;; *) SOURCE="$dir/$SOURCE" ;; esac
+done
+ROOT="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"
+LIB="$ROOT/lib"
+CMD="${1:-help}"; shift || true
+
+usage() {
+  cat <<EOF
+dAImon — agent daemon pipeline
+
+usage: daimon <command> [args]
+
+  run <slug>         gated run (throttle/inbox/discovery), then launch
+  launch <slug>      launch the agent now, bypassing gates
+  watchdog           sweep orphan sessions, leaked MCP servers, old logs
+  new                scaffold a new daemon (opens /daimon-builder in Claude)
+  sync               compile registrations + regenerate plists
+  daemons            list discovered daemons
+  state <slug>       show a daemon's work-tracking record (--clear to reset)
+  models <backend>   list available models (claude|codex)
+  config <args...>   pass through to the config core (validate|get|daemon|...)
+  validate           validate configuration
+  doctor             preflight: tools, auth, hooks, skills, config
+  status             show launchd + running-session state
+  kill <slug|all>    hard-kill a daemon's run
+  ps <slug|all>      show a daemon's process tree
+  tui                open the control panel
+  install            install plists, hooks, and the TUI venv
+EOF
+}
+
+case "$CMD" in
+  run)       exec bash "$LIB/run.sh" "$@" ;;
+  launch)    exec bash "$LIB/launch.sh" "$@" ;;
+  watchdog)  exec bash "$LIB/watchdog.sh" "$@" ;;
+  new)       exec claude "/daimon-builder" ;;
+  sync)      exec python3 -m daimon.sync "$@" ;;
+  daemons)   exec python3 "$LIB/config.py" daemons ;;
+  state)     exec bash "$LIB/state-show.sh" "$@" ;;
+  models)    exec python3 "$LIB/models.py" "$@" ;;
+  config)    exec python3 "$LIB/config.py" "$@" ;;
+  validate)  exec python3 "$LIB/config.py" validate ;;
+  doctor)    exec bash "$LIB/doctor.sh" ;;
+  status)    exec bash "$LIB/status.sh" "$@" ;;
+  kill)      exec bash "$LIB/kill.sh" "$@" ;;
+  ps)        exec bash "$LIB/ps.sh" "$@" ;;
+  tui)       exec "$ROOT/bin/daimonctl" "$@" ;;
+  install)   exec "$ROOT/bin/daimon-install" "$@" ;;
+  help|-h|--help) usage ;;
+  *)         echo "unknown command: $CMD" >&2; usage; exit 2 ;;
+esac

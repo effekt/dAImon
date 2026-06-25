@@ -1,0 +1,10 @@
+[daemon]
+backend = "claude"
+source = "shortcut"
+schedule = { interval = 1800 }
+command = "/story-reviewer"
+stuck_after = 1800
+
+[inputs]
+repos = []
+

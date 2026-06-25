@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+tui/.venv/
+.DS_Store
+config/daimon.toml
+*.local.toml
+daemons/*/daemon.local.toml
+profiles/*/profile.local.toml

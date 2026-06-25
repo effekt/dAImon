@@ -1,0 +1,16 @@
+[profile]
+tool = "shortcut"
+description = "Shortcut stories via the Shortcut REST API"
+
+[defaults]
+workspace = "your-workspace"
+team = ""
+owner = ""
+triage_state = "To Do"
+in_progress_state = "In Development"
+done_state = "Done"
+ready_label = "ai-ready"
+assist_label = "ai-assist"
+human_label = "ai-human"
+priority_label = "ai-priority"
+skip_label = "no-ai"

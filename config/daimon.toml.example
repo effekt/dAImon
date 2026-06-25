@@ -1,0 +1,31 @@
+# dAImon global config. Copy to ~/.config/daimon/daimon.toml (or set $DAIMON_CONFIG).
+# Field reference: docs/configuration.md. Validate with `daimon config validate`.
+
+[core]
+install_root = "~/dev/dAImon"
+state_dir = "~/.local/state/daimon"
+namespace = "daimon"
+timezone = "UTC"
+log_retention_days = 14
+log_max_mb = 10
+log_keep = 3
+
+[defaults]
+backend = "claude"
+model = "opus"
+danger = true
+stuck_after = 2700
+ready_timeout = 20
+
+[throttle]
+exempt = ["review-prs"]
+moderate_mod = 2
+severe_mod = 4
+severe_critical = ["reply-to-comments"]
+
+[budget]
+hourly_cap = 12
+defer_at_pct = 80
+
+[daemons]
+disabled = []

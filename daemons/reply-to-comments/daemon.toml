@@ -1,0 +1,9 @@
+[daemon]
+backend = "both"
+model = { claude = "opus", codex = "gpt-5-codex" }
+schedule = { minutes = [17, 47] }
+command = "/reply-to-comments"
+stuck_after = 600
+
+[inputs]
+bot_marker = "🤖"

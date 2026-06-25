@@ -1,0 +1,35 @@
+{
+  "Stop": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_SENTINEL\" ] && touch \"$DAIMON_SENTINEL\"; [ -n \"$DAIMON_WAIT\" ] && rm -f \"$DAIMON_WAIT\"; true" } ] }
+  ],
+  "StopFailure": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_SENTINEL\" ] && touch \"$DAIMON_SENTINEL\"; [ -n \"$DAIMON_WAIT\" ] && rm -f \"$DAIMON_WAIT\"; true" } ] }
+  ],
+  "PreToolUse": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_HEARTBEAT\" ] && touch \"$DAIMON_HEARTBEAT\"; [ -n \"$DAIMON_WAIT\" ] && rm -f \"$DAIMON_WAIT\"; true" } ] }
+  ],
+  "PostToolUse": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_HEARTBEAT\" ] && touch \"$DAIMON_HEARTBEAT\"; [ -n \"$DAIMON_WAIT\" ] && rm -f \"$DAIMON_WAIT\"; true" } ] }
+  ],
+  "UserPromptSubmit": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_HEARTBEAT\" ] && touch \"$DAIMON_HEARTBEAT\"; [ -n \"$DAIMON_WAIT\" ] && rm -f \"$DAIMON_WAIT\"; true" } ] }
+  ],
+  "SubagentStart": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_HEARTBEAT\" ] && touch \"$DAIMON_HEARTBEAT\"; true" } ] }
+  ],
+  "SubagentStop": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_HEARTBEAT\" ] && touch \"$DAIMON_HEARTBEAT\"; true" } ] }
+  ],
+  "PreCompact": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_HEARTBEAT\" ] && touch \"$DAIMON_HEARTBEAT\"; true" } ] }
+  ],
+  "PostCompact": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_HEARTBEAT\" ] && touch \"$DAIMON_HEARTBEAT\"; true" } ] }
+  ],
+  "MessageDisplay": [
+    { "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_HEARTBEAT\" ] && touch \"$DAIMON_HEARTBEAT\"; true" } ] }
+  ],
+  "Notification": [
+    { "matcher": "idle_prompt|permission_prompt|elicitation_dialog", "hooks": [ { "type": "command", "command": "[ -n \"$DAIMON_WAIT\" ] && touch \"$DAIMON_WAIT\"; true" } ] }
+  ]
+}

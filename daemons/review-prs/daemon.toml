@@ -1,0 +1,8 @@
+[daemon]
+backend = "claude"
+schedule = { interval = 1200 }
+command = "/review-prs"
+stuck_after = 1800
+
+[inputs]
+filter = "review-requested:@me"

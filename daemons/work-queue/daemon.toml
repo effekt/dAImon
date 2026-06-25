@@ -1,0 +1,11 @@
+[daemon]
+backend = "claude"
+source = "shortcut"
+schedule = { minutes = [8, 38] }
+command = "/work-queue"
+stuck_after = 2700
+
+[inputs]
+repos = []
+base = "main"
+max_open_prs = 2

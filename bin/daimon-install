@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Bootstrap dAImon on this machine: config, state dirs, TUI venv, agent hooks,
+# management skills, then compile + generate plists. Pass --load to also load the
+# launchd jobs (off by default so nothing starts before you've reviewed config).
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOAD=0; [ "${1:-}" = "--load" ] && LOAD=1
+
+CONFIG_DIR="$HOME/.config/daimon"
+CONFIG="$CONFIG_DIR/daimon.toml"
+if [ ! -f "$CONFIG" ]; then
+  mkdir -p "$CONFIG_DIR"
+  cp "$ROOT/config/daimon.toml.example" "$CONFIG"
+  echo "created $CONFIG — review it, then re-run install"
+fi
+
+eval "$(python3 "$ROOT/lib/config.py" paths)"
+mkdir -p "$DAIMON_STATE_DIR/logs/transcripts" "$DAIMON_STATE_DIR/queues" "$DAIMON_STATE_DIR/runtime"
+echo "state: $DAIMON_STATE_DIR"
+
+if [ -f "$ROOT/tui/requirements.txt" ]; then
+  python3 -m venv "$ROOT/tui/.venv"
+  "$ROOT/tui/.venv/bin/pip" install -q -r "$ROOT/tui/requirements.txt" && echo "tui venv ready"
+fi
+
+python3 "$ROOT/lib/install_hooks.py" "$HOME/.claude/settings.json" "$ROOT/config/hooks/claude-hooks.json"
+
+mkdir -p "$HOME/.claude/skills"
+for s in "$ROOT"/skills/*/; do
+  name="$(basename "$s")"
+  ln -sfn "$s" "$HOME/.claude/skills/$name"
+done
+echo "management skills linked into ~/.claude/skills"
+
+mkdir -p "$HOME/.local/bin"
+ln -sf "$ROOT/bin/daimon" "$HOME/.local/bin/daimon"
+ln -sf "$ROOT/bin/daimonctl" "$HOME/.local/bin/daimonctl"
+echo "linked daimon + daimonctl into ~/.local/bin (ensure it is on your PATH)"
+
+PYTHONPATH="$ROOT" python3 -m daimon.sync
+
+if [ "$LOAD" -eq 1 ]; then
+  for slug in $(python3 "$ROOT/lib/config.py" daemons) watchdog; do
+    plist="$HOME/Library/LaunchAgents/com.${DAIMON_NS}.${slug}.plist"
+    [ -f "$plist" ] && launchctl bootstrap "gui/$(id -u)" "$plist" 2>/dev/null && echo "loaded $slug"
+  done
+else
+  echo "plists generated (not loaded). Run 'daimon install --load' to schedule, or load individually."
+fi
+echo "done."
