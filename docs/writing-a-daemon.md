@@ -11,6 +11,7 @@ backend = "claude"                 # claude | codex | both
 working_dir = "~/code/my-repo"     # the repo the agent runs inside
 schedule = { interval = 1800 }     # or { minutes = [8,38] } / { daily = "13:02" }
 command = "/my-daemon"             # slash-command typed into the session
+required_inputs = ["repo", "filter"]  # asserted non-empty before discover runs
 # model / danger / stuck_after override [defaults] when set
 
 [inputs]                           # task variables, your own keys
@@ -22,8 +23,14 @@ filter = "label:needs-triage"
 
 ## 2. `discover.sh`
 
-The gate: exit `0` to launch the agent this fire, non-zero to skip. Inputs arrive
-as `DAIMON_INPUT_*`. Keep it cheap.
+The gate. Inputs arrive as `DAIMON_INPUT_*`. Keep it cheap. Exit codes are read as:
+
+- `0` — work found; launch the agent this fire.
+- `1` with no stderr — nothing to do; skip until the next run.
+- any stderr output, or exit `≥2` — the gate itself errored. `run.sh` logs this as
+  `discover_error` rather than silently treating it as "no work", so a broken gate
+  surfaces instead of disabling the daemon invisibly. List the inputs the gate
+  depends on in `required_inputs` so a missing one is caught before this runs.
 
 ```bash
 #!/usr/bin/env bash

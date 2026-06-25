@@ -32,6 +32,7 @@ pane_heartbeat() {  # session heartbeat — touch heartbeat whenever the pane ch
 
 run_one_backend() {
   local be="$1"
+  # shellcheck source=/dev/null
   source "$DAIMON_INSTALL_ROOT/backends/$be.sh"
   local model session
   model="$(cfg model "$SLUG" "$be")"
@@ -96,13 +97,13 @@ run_one_backend() {
   if [ "$mode" = "idle" ]; then pane_heartbeat "$session" "$HEARTBEAT" & HBPID=$!; fi
 
   while true; do
-    if [ "$mode" = "hook" ] && [ -f "$SENTINEL" ]; then log_event "$SLUG" done "sentinel backend=$be" >> "$OPLOG"; break; fi
-    tmux has-session -t "$session" 2>/dev/null || { log_event "$SLUG" done "session ended backend=$be" >> "$OPLOG"; break; }
+    if [ "$mode" = "hook" ] && [ -f "$SENTINEL" ]; then log_event "$SLUG" "done" "sentinel backend=$be" >> "$OPLOG"; break; fi
+    tmux has-session -t "$session" 2>/dev/null || { log_event "$SLUG" "done" "session ended backend=$be" >> "$OPLOG"; break; }
     local hb_mtime hb_age
     hb_mtime=$(stat -f %m "$HEARTBEAT" 2>/dev/null || now_epoch)
     hb_age=$(( $(now_epoch) - hb_mtime ))
     if [ "$hb_age" -ge "$STUCK_AFTER" ]; then
-      if [ "$mode" = "idle" ]; then log_event "$SLUG" done "idle ${hb_age}s backend=$be" >> "$OPLOG"
+      if [ "$mode" = "idle" ]; then log_event "$SLUG" "done" "idle ${hb_age}s backend=$be" >> "$OPLOG"
       else log_event "$SLUG" stuck "no activity ${hb_age}s backend=$be" >> "$OPLOG"; fi
       break
     fi

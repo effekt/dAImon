@@ -3,6 +3,7 @@ backend = "claude"
 schedule = { interval = 1200 }
 command = "/review-prs"
 stuck_after = 1800
+required_inputs = ["filter"]
 
 [inputs]
 filter = "review-requested:@me"

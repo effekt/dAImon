@@ -32,6 +32,7 @@ class DaemonSpec:
     danger: bool | None = None
     stuck_after: int | None = None
     inputs: dict = field(default_factory=dict)
+    required_inputs: list = field(default_factory=list)
     prompt: str | None = None
 
 
@@ -42,14 +43,16 @@ class Daimon:
     def daemon(self, slug: str, *, backend: str = "claude", schedule="30m",
                command: str | None = None, working_dir: str | None = None,
                model=None, danger: bool | None = None, stuck_after: int | None = None,
-               inputs: dict | None = None, prompt: str | None = None):
+               inputs: dict | None = None, required_inputs: list | None = None,
+               prompt: str | None = None):
         def deco(fn: Callable) -> Callable:
             self.specs[slug] = DaemonSpec(
                 slug=slug, fn=fn, backend=backend,
                 schedule=parse_schedule(schedule),
                 command=command or f"/{slug}",
                 working_dir=working_dir, model=model, danger=danger,
-                stuck_after=stuck_after, inputs=inputs or {}, prompt=prompt,
+                stuck_after=stuck_after, inputs=inputs or {},
+                required_inputs=required_inputs or [], prompt=prompt,
             )
             return fn
         return deco

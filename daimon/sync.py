@@ -42,6 +42,8 @@ def spec_to_toml(spec) -> str:
         daemon["danger"] = spec.danger
     if spec.stuck_after is not None:
         daemon["stuck_after"] = spec.stuck_after
+    if spec.required_inputs:
+        daemon["required_inputs"] = spec.required_inputs
     return toml_emit.dump_sections({"daemon": daemon, "inputs": spec.inputs})
 
 

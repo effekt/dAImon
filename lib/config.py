@@ -141,6 +141,8 @@ class Config:
         merged["slug"] = slug
         wd = merged.get("working_dir")
         merged["working_dir"] = str(expand(wd)) if wd else str(self.install_root)
+        ri = merged.get("required_inputs", [])
+        merged["required_inputs"] = list(ri) if isinstance(ri, list) else [ri]
         return merged
 
     def backends(self, slug: str) -> list[str]:
@@ -268,6 +270,19 @@ def render_skill(cfg: Config, slug: str) -> str:
     return text
 
 
+def _is_empty(value) -> bool:
+    if value is None or value == [] or value == {}:
+        return True
+    return isinstance(value, str) and value.strip() == ""
+
+
+def _required_input_errors(cfg: Config, slug: str) -> list[str]:
+    merged = cfg.daemon(slug)
+    inputs = merged["inputs"]
+    return [f"{slug}: required input '{key}' is missing or empty"
+            for key in merged["required_inputs"] if _is_empty(inputs.get(key))]
+
+
 def validate(cfg: Config) -> list[str]:
     errors: list[str] = []
     if cfg.source is None:
@@ -299,6 +314,8 @@ def validate(cfg: Config) -> list[str]:
         source = d.get("source")
         if source and cfg.load_profile(source) is None:
             errors.append(f"{slug}: unknown source profile '{source}' (no profiles/{source}/profile.toml)")
+        else:
+            errors.extend(_required_input_errors(cfg, slug))
     for slug in cfg.disabled:
         if slug not in {p.parent.name for p in cfg.daemons_dir().glob("*/daemon.toml")}:
             errors.append(f"[daemons].disabled references unknown daemon: {slug}")

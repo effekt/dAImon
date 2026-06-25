@@ -165,6 +165,20 @@ class ConfigTest(unittest.TestCase):
         errs = config.validate(config.Config.load())
         self.assertTrue(any("backend must be one of" in e for e in errs))
 
+    def test_validate_catches_empty_required_input(self):
+        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            required_inputs = ["repo", "token"]
+            [inputs]
+            repo = "me/alpha"
+            token = ""
+        """)
+        errs = config.validate(config.Config.load())
+        self.assertTrue(any("required input 'token'" in e for e in errs))
+        self.assertFalse(any("required input 'repo'" in e for e in errs))
+
     def test_validate_catches_missing_command(self):
         write(self.root / "daemons" / "alpha" / "daemon.toml", """
             [daemon]

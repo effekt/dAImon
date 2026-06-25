@@ -4,6 +4,7 @@ source = "shortcut"
 schedule = { minutes = [8, 38] }
 command = "/work-queue"
 stuck_after = 2700
+required_inputs = ["ready_label", "skip_label", "in_progress_state"]
 
 [inputs]
 repos = []
