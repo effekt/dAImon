@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shlex
 import sys
 import tomllib
 from pathlib import Path
@@ -350,8 +351,10 @@ def main(argv: list[str]) -> int:
     if args.cmd == "schedule":
         print(schedule_descriptor(cfg.daemon(args.slug)["schedule"])); return 0
     if args.cmd == "env":
+        # Output is eval'd by run.sh (set -a), so each value must be shell-quoted
+        # or input values containing spaces (e.g. "In Progress") break the eval.
         for k, v in cfg.daemon(args.slug)["inputs"].items():
-            print(f"DAIMON_INPUT_{k.upper()}={_emit(v)}")
+            print(f"DAIMON_INPUT_{k.upper()}={shlex.quote(_emit(v))}")
         return 0
     if args.cmd == "validate":
         errs = validate(cfg)
