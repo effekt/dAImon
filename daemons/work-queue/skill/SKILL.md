@@ -11,12 +11,23 @@ explains how to find, read, and move stories.
 
 ## 1. Claim one story
 
-Find stories labelled `{{inputs.ready_label}}` (see the Source section), excluding
-any tagged `{{inputs.skip_label}}` or already in `{{inputs.in_progress_state}}`.
-If any carry `{{inputs.priority_label}}`, pick one of those first; otherwise the
-oldest. Read it in full, then **claim it** by moving it to
-`{{inputs.in_progress_state}}` so a later run won't pick it up again. If there are
-no ready stories, stop.
+**Scope is a hard gate, not a preference.** Only ever claim, move, implement, or
+otherwise touch a story that `{{inputs.owner}}` requested or owns (if
+`{{inputs.owner}}` is blank, all stories are in scope). A `{{inputs.ready_label}}`
+story belonging to anyone else is off-limits — never claim it, even though it
+carries the ready label.
+
+Find stories labelled `{{inputs.ready_label}}`, excluding any tagged
+`{{inputs.skip_label}}` or already in `{{inputs.in_progress_state}}`, **already
+scoped to `{{inputs.owner}}` on the server** (the owner's and requester's stories
+— see the Source section). Before acting on a candidate, apply the **safety net**
+from Source: re-read it and drop it unless `{{inputs.owner}}` is its requester or
+an owner, logging `[out-of-scope skip] sc-{id} …`. If no in-scope ready stories
+remain, stop.
+
+Among the survivors, if any carry `{{inputs.priority_label}}`, pick one of those
+first; otherwise the oldest. Read it in full, then **claim it** by moving it to
+`{{inputs.in_progress_state}}` so a later run won't pick it up again.
 
 ## 2. Pick the repository and isolate
 
