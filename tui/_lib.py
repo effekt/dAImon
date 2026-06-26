@@ -7,5 +7,6 @@ sys.path.insert(0, str(INSTALL_ROOT / "lib"))
 
 import config  # noqa: E402
 import models  # noqa: E402
+import schedule_fmt  # noqa: E402
 
-__all__ = ["config", "models", "INSTALL_ROOT"]
+__all__ = ["config", "models", "schedule_fmt", "INSTALL_ROOT"]

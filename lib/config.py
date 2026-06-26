@@ -15,6 +15,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import schedule_fmt  # noqa: E402
 import toml_emit  # noqa: E402
 
 BACKENDS = ("claude", "codex", "both")
@@ -173,42 +174,13 @@ class Config:
         self._merge_write(self.daemon_local_path(slug), daemon, inputs)
 
 
-def _schedule_to_plist(sched: dict) -> str:
-    if "interval" in sched:
-        return f"    <key>StartInterval</key>\n    <integer>{int(sched['interval'])}</integer>"
-    if "minutes" in sched:
-        entries = "\n".join(
-            f"        <dict><key>Minute</key><integer>{int(m)}</integer></dict>"
-            for m in sched["minutes"]
-        )
-        return f"    <key>StartCalendarInterval</key>\n    <array>\n{entries}\n    </array>"
-    if "daily" in sched:
-        hh, mm = sched["daily"].split(":")
-        return (
-            "    <key>StartCalendarInterval</key>\n    <dict>"
-            f"<key>Hour</key><integer>{int(hh)}</integer>"
-            f"<key>Minute</key><integer>{int(mm)}</integer></dict>"
-        )
-    raise ValueError(f"unrecognized schedule: {sched}")
-
-
-def schedule_descriptor(sched: dict) -> str:
-    if "interval" in sched:
-        return f"interval {int(sched['interval'])}"
-    if "minutes" in sched:
-        return "minutes " + " ".join(str(int(m)) for m in sched["minutes"])
-    if "daily" in sched:
-        return f"daily {sched['daily']} {sched.get('tz', 'local')}"
-    raise ValueError(f"unrecognized schedule: {sched}")
-
-
 def render_plist(cfg: Config, slug: str) -> str:
     d = cfg.daemon(slug)
     return render_plist_raw(
         label=f"com.{cfg.core['namespace']}.{slug}",
         program=[str(cfg.install_root / "lib" / "run.sh"), slug],
         working_dir=d["working_dir"],
-        schedule_xml=_schedule_to_plist(d["schedule"]),
+        schedule_xml=schedule_fmt.to_plist(d["schedule"]),
         log=str(cfg.state_dir / "logs" / f"{slug}.log"),
     )
 
@@ -280,11 +252,15 @@ def _is_empty(value) -> bool:
     return isinstance(value, str) and value.strip() == ""
 
 
-def _required_input_errors(cfg: Config, slug: str) -> list[str]:
+def _missing_required_inputs(cfg: Config, slug: str) -> list[str]:
     merged = cfg.daemon(slug)
     inputs = merged["inputs"]
+    return [key for key in merged["required_inputs"] if _is_empty(inputs.get(key))]
+
+
+def _required_input_errors(cfg: Config, slug: str) -> list[str]:
     return [f"{slug}: required input '{key}' is missing or empty"
-            for key in merged["required_inputs"] if _is_empty(inputs.get(key))]
+            for key in _missing_required_inputs(cfg, slug)]
 
 
 def validate(cfg: Config) -> list[str]:
@@ -309,7 +285,7 @@ def validate(cfg: Config) -> list[str]:
             errors.append(f"{slug}: [daemon].schedule is required")
         else:
             try:
-                schedule_descriptor(sched)
+                schedule_fmt.descriptor(sched)
             except ValueError as e:
                 errors.append(f"{slug}: {e}")
         skill = cfg.daemons_dir() / slug / "skill" / "SKILL.md"
@@ -345,6 +321,7 @@ def main(argv: list[str]) -> int:
     m = sub.add_parser("model"); m.add_argument("slug"); m.add_argument("backend")
     s = sub.add_parser("schedule"); s.add_argument("slug")
     e = sub.add_parser("env"); e.add_argument("slug")
+    vi = sub.add_parser("validate-inputs"); vi.add_argument("slug")
     sub.add_parser("validate")
     rp = sub.add_parser("render-plist"); rp.add_argument("slug")
     rs = sub.add_parser("render-skill"); rs.add_argument("slug")
@@ -370,12 +347,17 @@ def main(argv: list[str]) -> int:
     if args.cmd == "model":
         print(cfg.model_for(args.slug, args.backend)); return 0
     if args.cmd == "schedule":
-        print(schedule_descriptor(cfg.daemon(args.slug)["schedule"])); return 0
+        print(schedule_fmt.descriptor(cfg.daemon(args.slug)["schedule"])); return 0
     if args.cmd == "env":
         # Output is eval'd by run.sh (set -a), so each value must be shell-quoted
         # or input values containing spaces (e.g. "In Progress") break the eval.
         for k, v in cfg.daemon(args.slug)["inputs"].items():
             print(f"DAIMON_INPUT_{k.upper()}={shlex.quote(_emit(v))}")
+        return 0
+    if args.cmd == "validate-inputs":
+        missing = _missing_required_inputs(cfg, args.slug)
+        if missing:
+            print(" ".join(missing)); return 1
         return 0
     if args.cmd == "validate":
         errs = validate(cfg)

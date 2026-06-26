@@ -42,31 +42,12 @@ make install-load            # schedule everything via launchd
 
 ## Adding a daemon
 
-Three ways, all producing the same `daemons/<slug>/` folder:
+Two ways, both producing the same `daemons/<slug>/` folder:
 
 1. **Interactive** — run `/daimon-builder` in Claude; it interviews you and writes
    the folder.
-2. **By hand** — copy an existing `daemons/<slug>/`, edit `daemon.toml`.
-3. **Programmatic** — register in Python and compile:
-
-   ```python
-   # examples/daemons.py
-   from daimon import Daimon
-   app = Daimon()
-
-   @app.daemon(slug="review-prs", backend="claude", schedule="20m",
-               working_dir="~/code/app",
-               inputs={"repo": "me/app", "filter": "review-requested:@me"})
-   def review_prs(ctx) -> bool:
-       return ctx.gh_count(ctx.inputs["filter"]) > 0
-   ```
-
-   ```bash
-   daimon sync examples/daemons.py
-   ```
-
-   The decorated function is the discovery gate. Loop over a list of repos to
-   generate one daemon per repo from one definition.
+2. **By hand** — copy an existing `daemons/<slug>/`, edit `daemon.toml`, then
+   `daimon sync` to regenerate its plist and render its skill.
 
 ## CLI
 
@@ -77,7 +58,7 @@ daimon daemons           list discovered daemons
 daimon status            launchd + running-session state
 daimon models <backend>  available models (live API or bundled fallback)
 daimon config <args>     config core (validate|get|daemon|schedule|...)
-daimon sync              compile registrations + regenerate plists/skills
+daimon sync              regenerate plists + render skills
 daimon kill <slug|all>   hard-kill a run
 daimon ps <slug|all>     process tree
 daimon watchdog          sweep orphans + leaked MCP + old logs
@@ -110,5 +91,5 @@ and bash syntax across all libs.
 ## Layout
 
 `lib/` framework · `backends/` agent CLIs · `daemons/` the daemons · `daimon/`
-programmatic API · `tui/` control panel · `skills/` management commands ·
-`config/` defaults + hooks · `templates/` plist/discover generators · `docs/`.
+sync (plists + skills) · `tui/` control panel · `skills/` management commands ·
+`config/` defaults + hooks · `docs/`.

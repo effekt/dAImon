@@ -12,14 +12,10 @@ BACKEND="${1:-unknown}"
 
 if grep -qiE "usage limit|hit your limit|rate limit|quota" "$DAIMON_TRANSCRIPT"; then
   ensure_state_dirs
-  python3 - "$(runtime_dir)/throttle.json" "$BACKEND" <<'PY'
-import json, sys, time
-path, backend = sys.argv[1], sys.argv[2]
-json.dump({
-    "level": "halt",
-    "set_at": time.time(),
-    "expires_at": time.time() + 3600,
-    "reason": f"{backend} usage limit detected in transcript",
-}, open(path, "w"))
-PY
+  f="$(runtime_dir)/throttle.json"; now="$(now_epoch)"
+  rm -f "$f"
+  json_state set "$f" level halt
+  json_state set "$f" set_at "$now"
+  json_state set "$f" expires_at "$(( now + 3600 ))"
+  json_state set "$f" reason "$BACKEND usage limit detected in transcript"
 fi

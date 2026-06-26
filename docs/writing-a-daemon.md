@@ -70,12 +70,6 @@ daimon sync               # regenerate plist + skill
 daimon tui                # enable scheduling with [e]
 ```
 
-## Generating from Python
-
-Instead of writing the folder by hand, register in `examples/daemons.py` and run
-`daimon sync` — the decorated function becomes `discover.sh`. Loop over a list of
-repos to emit one daemon per repo. See the README.
-
 ## Tips
 
 - One daemon targets one repo. Cover many repos with one daemon each.

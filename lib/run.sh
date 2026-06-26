@@ -30,14 +30,10 @@ if [ -f "$DISCOVER" ]; then
   # Preflight: every required input must be configured (non-empty) before the
   # gate runs. A missing input otherwise crashes discover.sh under `set -u`,
   # which exits 1 — indistinguishable from "no work" — so the daemon would skip
-  # silently and forever. Catch it here with a clear, loud reason instead.
-  missing=""
-  for key in $(cfg daemon "$SLUG" required_inputs); do
-    var="DAIMON_INPUT_$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')"
-    [ -n "${!var:-}" ] || missing="$missing $key"
-  done
-  if [ -n "$missing" ]; then
-    log_event "$SLUG" config_error "required input(s) empty:$missing; not launching" >> "$OPLOG"
+  # silently and forever. Catch it here with a clear, loud reason instead. The
+  # emptiness rule lives in config.py so it matches `daimon config validate`.
+  if ! missing="$(cfg validate-inputs "$SLUG")"; then
+    log_event "$SLUG" config_error "required input(s) empty: $missing; not launching" >> "$OPLOG"
     exit 1
   fi
 

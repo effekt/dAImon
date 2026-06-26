@@ -9,6 +9,7 @@ DAIMON_CONFIG_PY="$DAIMON_LIB_DIR/config.py"
 eval "$(python3 "$DAIMON_CONFIG_PY" paths)"
 
 cfg()        { python3 "$DAIMON_CONFIG_PY" "$@"; }
+json_state() { python3 "$DAIMON_LIB_DIR/json_state.py" "$@"; }
 
 session_name() {  # slug [backend]
   local slug="$1" be="${2:-}"

@@ -104,12 +104,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(self.cfg.model_for("beta", "claude"), "opus")
         self.assertEqual(self.cfg.model_for("beta", "codex"), "gpt-5-codex")
 
-    def test_schedule_descriptors(self):
-        sd = config.schedule_descriptor
-        self.assertEqual(sd(self.cfg.daemon("alpha")["schedule"]), "interval 1200")
-        self.assertEqual(sd(self.cfg.daemon("beta")["schedule"]), "minutes 17 47")
-        self.assertEqual(sd(self.cfg.daemon("gamma")["schedule"]), "daily 13:02 UTC")
-
     def test_env_shell_quotes_spaced_values(self):
         # `cfg env` output is eval'd by run.sh, so values with spaces (e.g. a
         # Shortcut state "In Progress") must be shell-quoted or the eval breaks
@@ -128,6 +122,33 @@ class ConfigTest(unittest.TestCase):
         env = self._parse_env_output(buf.getvalue())
         self.assertEqual(env["DAIMON_INPUT_IN_PROGRESS_STATE"], "In Progress")
         self.assertEqual(env["DAIMON_INPUT_READY_LABEL"], "auto-ready")
+
+    def test_validate_inputs_flags_empty_required(self):
+        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            required_inputs = ["ready_label", "skip_label"]
+            [inputs]
+            ready_label = "auto-ready"
+            skip_label = "   "
+        """)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = config.main(["validate-inputs", "alpha"])
+        self.assertEqual(rc, 1)
+        self.assertEqual(buf.getvalue().strip(), "skip_label")
+
+    def test_validate_inputs_passes_when_all_present(self):
+        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            required_inputs = ["ready_label"]
+            [inputs]
+            ready_label = "auto-ready"
+        """)
+        self.assertEqual(config.main(["validate-inputs", "alpha"]), 0)
 
     def _parse_env_output(self, output):
         # Mimic run.sh's eval: each line must be a single shell token (a
