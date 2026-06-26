@@ -24,15 +24,36 @@ if [ "${HAS_INBOX_MESSAGES:-0}" -gt 0 ]; then
 fi
 
 DISCOVER="$DAIMON_INSTALL_ROOT/daemons/$SLUG/discover.sh"
-if [ -x "$DISCOVER" ] || [ -f "$DISCOVER" ]; then
+if [ -f "$DISCOVER" ]; then
   set -a; eval "$(cfg env "$SLUG")"; set +a
-  if bash "$DISCOVER"; then
+
+  # Preflight: every required input must be configured (non-empty) before the
+  # gate runs. A missing input otherwise crashes discover.sh under `set -u`,
+  # which exits 1 — indistinguishable from "no work" — so the daemon would skip
+  # silently and forever. Catch it here with a clear, loud reason instead. The
+  # emptiness rule lives in config.py so it matches `daimon config validate`.
+  if ! missing="$(cfg validate-inputs "$SLUG")"; then
+    log_event "$SLUG" config_error "required input(s) empty: $missing; not launching" >> "$OPLOG"
+    exit 1
+  fi
+
+  # Run the gate, separating a genuine failure from an honest "no work":
+  #   exit 0                  -> work found, launch the agent
+  #   exit 1 with clean stderr -> nothing to do, skip until next run
+  #   any stderr, or exit >=2  -> the gate itself errored; surface it loudly
+  derr="$(mktemp "${TMPDIR:-/tmp}/daimon-discover.XXXXXX")"
+  bash "$DISCOVER" 2>"$derr"; rc=$?
+  errtext="$(cat "$derr")"; rm -f "$derr"
+  if [ -n "$errtext" ] || [ "$rc" -ge 2 ]; then
+    log_event "$SLUG" discover_error "discover.sh failed (exit $rc): ${errtext:-no stderr}" >> "$OPLOG"
+    exit 1
+  fi
+  if [ "$rc" -eq 0 ]; then
     log_event "$SLUG" launch_decision "discovery found work" >> "$OPLOG"
     exec bash "$DAIMON_LIB_DIR/launch.sh" "$SLUG"
-  else
-    log_event "$SLUG" skip "discovery found nothing; $(next_run_display "$SLUG")" >> "$OPLOG"
-    exit 0
   fi
+  log_event "$SLUG" skip "discovery found nothing; $(next_run_display "$SLUG")" >> "$OPLOG"
+  exit 0
 fi
 
 log_event "$SLUG" launch_decision "no discovery step; launching" >> "$OPLOG"

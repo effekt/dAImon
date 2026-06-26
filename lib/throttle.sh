@@ -6,14 +6,11 @@ _throttle_file() { echo "$(runtime_dir)/throttle.json"; }
 _fires_file()    { echo "$(runtime_dir)/throttle-fires.json"; }
 
 throttle_level() {  # echoes the active level, honoring expiry
-  python3 - "$(_throttle_file)" <<'PY'
-import json, sys, time
-try: d = json.load(open(sys.argv[1]))
-except Exception: print("off"); raise SystemExit
-exp = d.get("expires_at")
-if exp and time.time() > exp: print("off")
-else: print(d.get("level", "off"))
-PY
+  local file level exp
+  file="$(_throttle_file)"
+  level="$(json_state get "$file" level off)"
+  exp="$(json_state get "$file" expires_at 0)"; exp="${exp%.*}"
+  if [ "${exp:-0}" -gt 0 ] && [ "$(now_epoch)" -gt "$exp" ]; then echo off; else echo "$level"; fi
 }
 
 _in_list() {  # value cfg-key
@@ -23,15 +20,7 @@ _in_list() {  # value cfg-key
 }
 
 _bump_fire() {  # daemon -> echoes the new fire count
-  python3 - "$(_fires_file)" "$1" <<'PY'
-import json, sys
-path, slug = sys.argv[1], sys.argv[2]
-try: d = json.load(open(path))
-except Exception: d = {}
-d[slug] = d.get(slug, 0) + 1
-json.dump(d, open(path, "w"))
-print(d[slug])
-PY
+  json_state incr "$(_fires_file)" "$1"
 }
 
 SHOULD_SKIP=0

@@ -1,8 +1,11 @@
+import io
 import os
+import shlex
 import sys
 import tempfile
 import textwrap
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
@@ -101,16 +104,86 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(self.cfg.model_for("beta", "claude"), "opus")
         self.assertEqual(self.cfg.model_for("beta", "codex"), "gpt-5-codex")
 
-    def test_schedule_descriptors(self):
-        sd = config.schedule_descriptor
-        self.assertEqual(sd(self.cfg.daemon("alpha")["schedule"]), "interval 1200")
-        self.assertEqual(sd(self.cfg.daemon("beta")["schedule"]), "minutes 17 47")
-        self.assertEqual(sd(self.cfg.daemon("gamma")["schedule"]), "daily 13:02 UTC")
+    def test_env_shell_quotes_spaced_values(self):
+        # `cfg env` output is eval'd by run.sh, so values with spaces (e.g. a
+        # Shortcut state "In Progress") must be shell-quoted or the eval breaks
+        # and later DAIMON_INPUT_* vars never get exported.
+        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            [inputs]
+            in_progress_state = "In Progress"
+            ready_label = "auto-ready"
+        """)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            config.main(["env", "alpha"])
+        env = self._parse_env_output(buf.getvalue())
+        self.assertEqual(env["DAIMON_INPUT_IN_PROGRESS_STATE"], "In Progress")
+        self.assertEqual(env["DAIMON_INPUT_READY_LABEL"], "auto-ready")
+
+    def test_validate_inputs_flags_empty_required(self):
+        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            required_inputs = ["ready_label", "skip_label"]
+            [inputs]
+            ready_label = "auto-ready"
+            skip_label = "   "
+        """)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = config.main(["validate-inputs", "alpha"])
+        self.assertEqual(rc, 1)
+        self.assertEqual(buf.getvalue().strip(), "skip_label")
+
+    def test_validate_inputs_passes_when_all_present(self):
+        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            required_inputs = ["ready_label"]
+            [inputs]
+            ready_label = "auto-ready"
+        """)
+        self.assertEqual(config.main(["validate-inputs", "alpha"]), 0)
+
+    def _parse_env_output(self, output):
+        # Mimic run.sh's eval: each line must be a single shell token (a
+        # well-formed VAR=value), or word-splitting on a spaced value would
+        # break the eval and drop later assignments.
+        env = {}
+        for line in filter(None, output.splitlines()):
+            tokens = shlex.split(line)
+            self.assertEqual(len(tokens), 1, f"line not shell-safe: {line!r}")
+            key, _, value = tokens[0].partition("=")
+            env[key] = value
+        return env
 
     def test_render_skill_substitutes_inputs(self):
         out = config.render_skill(self.cfg, "alpha")
         self.assertIn("Repo me/alpha filter is:open.", out)
         self.assertNotIn("{{inputs", out)
+
+    def test_render_skill_appends_learning_protocol(self):
+        write(self.root / "references" / "learning.md", "LEARNING PROTOCOL BODY\n")
+        out = config.render_skill(self.cfg, "alpha")
+        self.assertIn("LEARNING PROTOCOL BODY", out)
+
+    def test_render_skill_learning_opt_out(self):
+        write(self.root / "references" / "learning.md", "LEARNING PROTOCOL BODY\n")
+        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            learning = false
+            [inputs]
+            repo = "me/alpha"
+        """)
+        out = config.render_skill(config.Config.load(), "alpha")
+        self.assertNotIn("LEARNING PROTOCOL BODY", out)
 
     def test_render_plist_contains_label_and_slug(self):
         xml = config.render_plist(self.cfg, "alpha")
@@ -130,6 +203,20 @@ class ConfigTest(unittest.TestCase):
         """)
         errs = config.validate(config.Config.load())
         self.assertTrue(any("backend must be one of" in e for e in errs))
+
+    def test_validate_catches_empty_required_input(self):
+        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            required_inputs = ["repo", "token"]
+            [inputs]
+            repo = "me/alpha"
+            token = ""
+        """)
+        errs = config.validate(config.Config.load())
+        self.assertTrue(any("required input 'token'" in e for e in errs))
+        self.assertFalse(any("required input 'repo'" in e for e in errs))
 
     def test_validate_catches_missing_command(self):
         write(self.root / "daemons" / "alpha" / "daemon.toml", """

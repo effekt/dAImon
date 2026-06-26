@@ -8,8 +8,7 @@ from textual.widgets.option_list import Option
 from rich.text import Text
 
 import ops
-import schedule_input
-from _lib import config, models
+from _lib import config, models, schedule_fmt
 from state import label_for, launchd_loaded, registered, sh
 
 BACKENDS = ["claude", "codex", "both"]
@@ -63,7 +62,7 @@ class ConfigScreen(ModalScreen):
         wd = self.raw.get("daemon", {}).get("working_dir", str(d["working_dir"]))
         yield Static("daemon", classes="section")
         yield Label("schedule")
-        yield Input(value=schedule_input.display(d["schedule"]), id="f-schedule")
+        yield Input(value=schedule_fmt.display(d["schedule"]), id="f-schedule")
         yield Label("working dir")
         yield Input(value=wd, id="f-working-dir")
         yield Label("source")
@@ -121,7 +120,7 @@ class ConfigScreen(ModalScreen):
 
     def _apply(self) -> None:
         old_sched = self.cfg.daemon(self.slug)["schedule"]
-        new_sched = schedule_input.parse(self._value("f-schedule"))
+        new_sched = schedule_fmt.parse(self._value("f-schedule"))
         self._save(new_sched)
         fresh = self.cfg.load()
         if registered(fresh, self.slug):

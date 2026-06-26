@@ -12,8 +12,8 @@
   is the periodic safety net.
 - **Backends** (`backends/`) — each teaches the launcher how to drive one agent
   CLI (binary, args, ready banner, completion mode). See `backends/README.md`.
-- **Generator** (`daimon/`) — optional Python front door; `daimon sync` compiles
-  registrations into the same daemon folders the runtime reads.
+- **Sync** (`daimon/sync.py`) — `daimon sync` regenerates launchd plists and
+  renders each daemon's skill from the daemon folders the runtime reads.
 - **TUI** (`tui/`) — Textual control panel; reads the config core, drives launchd
   and tmux.
 

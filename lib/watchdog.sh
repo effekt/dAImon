@@ -14,7 +14,7 @@ WLOG="$(logs_dir)/watchdog.log"
 wlog() { log_event watchdog "$1" "$2" >> "$WLOG"; }
 
 slug_of_session() {  # strips the namespace prefix and any -<backend> suffix
-  local s="${1#${DAIMON_NS}-}"
+  local s="${1#"${DAIMON_NS}"-}"
   s="${s%-claude}"; s="${s%-codex}"; echo "$s"
 }
 

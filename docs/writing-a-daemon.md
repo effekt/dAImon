@@ -11,6 +11,7 @@ backend = "claude"                 # claude | codex | both
 working_dir = "~/code/my-repo"     # the repo the agent runs inside
 schedule = { interval = 1800 }     # or { minutes = [8,38] } / { daily = "13:02" }
 command = "/my-daemon"             # slash-command typed into the session
+required_inputs = ["repo", "filter"]  # asserted non-empty before discover runs
 # model / danger / stuck_after override [defaults] when set
 
 [inputs]                           # task variables, your own keys
@@ -22,8 +23,14 @@ filter = "label:needs-triage"
 
 ## 2. `discover.sh`
 
-The gate: exit `0` to launch the agent this fire, non-zero to skip. Inputs arrive
-as `DAIMON_INPUT_*`. Keep it cheap.
+The gate. Inputs arrive as `DAIMON_INPUT_*`. Keep it cheap. Exit codes are read as:
+
+- `0` — work found; launch the agent this fire.
+- `1` with no stderr — nothing to do; skip until the next run.
+- any stderr output, or exit `≥2` — the gate itself errored. `run.sh` logs this as
+  `discover_error` rather than silently treating it as "no work", so a broken gate
+  surfaces instead of disabling the daemon invisibly. List the inputs the gate
+  depends on in `required_inputs` so a missing one is caught before this runs.
 
 ```bash
 #!/usr/bin/env bash
@@ -49,6 +56,11 @@ Find work in {{inputs.source}} via `{{inputs.access}}` matching {{inputs.filter}
 For each item: <do the work>. Record what you handled so the next run skips it.
 ```
 
+Every rendered skill also gets `references/learning.md` appended — a protocol for
+reading this project's Claude memory at the start of a run (to skip known false
+positives) and writing lessons at the end (so the next run is smarter). Set
+`learning = false` in `[daemon]` to opt a daemon out.
+
 ## Activate
 
 ```bash
@@ -57,12 +69,6 @@ daimon run my-daemon      # one gated run now
 daimon sync               # regenerate plist + skill
 daimon tui                # enable scheduling with [e]
 ```
-
-## Generating from Python
-
-Instead of writing the folder by hand, register in `examples/daemons.py` and run
-`daimon sync` — the decorated function becomes `discover.sh`. Loop over a list of
-repos to emit one daemon per repo. See the README.
 
 ## Tips
 

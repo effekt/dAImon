@@ -40,6 +40,8 @@ for slug in $(cfg daemons); do
   if [ "$wd" = "$DAIMON_INSTALL_ROOT" ]; then msg="$msg [working_dir not set — point it at your repo]"
   elif [ ! -d "$wd" ]; then msg="$msg [working_dir missing: $wd]"; fi
   [ -f "$HOME/.claude/skills/$cmd/SKILL.md" ] || msg="$msg [skill not synced — run: daimon sync]"
+  ( set -u; eval "$(cfg env "$slug")" ) >/dev/null 2>&1 \
+    || msg="$msg [inputs do not eval cleanly — run: daimon validate]"
   [ "$msg" = "$slug" ] && ok "$slug" || warn "$msg"
 done
 

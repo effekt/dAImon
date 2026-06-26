@@ -12,9 +12,19 @@ each un-assessed story in the `{{inputs.triage_state}}` state this run. The
 
 ## 1. Find un-assessed stories
 
-List stories in `{{inputs.triage_state}}` that carry no assessment label yet and
-are not tagged `{{inputs.skip_label}}`. **Scope:** only stories owned or requested
-by `{{inputs.owner}}` (if blank, all).
+**Scope is a hard gate, not a preference.** Only ever comment on, label, or follow
+a story that `{{inputs.owner}}` requested or owns (if `{{inputs.owner}}` is blank,
+all stories are in scope). A story belonging to anyone else is off-limits even if
+it is sitting in triage un-assessed.
+
+Get the un-assessed stories in `{{inputs.triage_state}}` that carry no assessment
+label and are not tagged `{{inputs.skip_label}}`, fetched **already scoped to
+`{{inputs.owner}}` on the server** (the owner's and requester's stories — see
+Source). Do not pull the whole triage column and rely on yourself to filter it.
+
+Then apply the **safety net** from Source: re-read each story and drop any where
+`{{inputs.owner}}` is neither the requester nor an owner, logging
+`[out-of-scope skip] sc-{id} …`. Only the survivors continue to step 2.
 
 ## 2. Investigate each
 

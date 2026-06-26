@@ -25,11 +25,11 @@ reap_session() {  # session_name
     sleep 0.5
   done
 
-  local p alive=""
-  for p in $tree; do kill -0 "$p" 2>/dev/null && alive="$alive $p"; done
-  if [ -n "$alive" ]; then
-    kill $alive 2>/dev/null; sleep 1
-    for p in $alive; do kill -0 "$p" 2>/dev/null && kill -9 "$p" 2>/dev/null; done
+  local p alive=()
+  for p in $tree; do kill -0 "$p" 2>/dev/null && alive+=("$p"); done
+  if [ "${#alive[@]}" -gt 0 ]; then
+    kill "${alive[@]}" 2>/dev/null; sleep 1
+    for p in "${alive[@]}"; do kill -0 "$p" 2>/dev/null && kill -9 "$p" 2>/dev/null; done
   fi
   tmux kill-session -t "$sess" 2>/dev/null
 }

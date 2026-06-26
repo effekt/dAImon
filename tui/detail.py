@@ -1,7 +1,7 @@
 """Per-panel content for the selected daemon, as Textual markup. Status is
 conveyed by symbol + text (never colour alone)."""
-import schedule_input
 import state
+from _lib import schedule_fmt
 
 
 def _models(d) -> str:
@@ -17,7 +17,7 @@ def render_config(cfg, slug: str) -> str:
         f"[dim]backend [/dim] {d['backend']}",
         f"[dim]model   [/dim] {_models(d)}",
         f"[dim]source  [/dim] {d.get('source') or '—'}",
-        f"[dim]schedule[/dim] {schedule_input.display(d['schedule'])}",
+        f"[dim]schedule[/dim] {schedule_fmt.display(d['schedule'])}",
         f"[dim]danger  [/dim] {'on' if d['danger'] else 'off'}",
         f"[dim]stuck   [/dim] {d['stuck_after']}s",
         f"[dim]command [/dim] {d['command']}",

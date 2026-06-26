@@ -1,9 +1,11 @@
 [daemon]
 backend = "claude"
 source = "shortcut"
+model = "sonnet"
 schedule = { interval = 1800 }
 command = "/story-reviewer"
 stuck_after = 1800
+required_inputs = ["triage_state", "ready_label", "skip_label", "assist_label", "human_label"]
 
 [inputs]
 repos = []

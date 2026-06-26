@@ -22,7 +22,7 @@ usage: daimon <command> [args]
   launch <slug>      launch the agent now, bypassing gates
   watchdog           sweep orphan sessions, leaked MCP servers, old logs
   new                scaffold a new daemon (opens /daimon-builder in Claude)
-  sync               compile registrations + regenerate plists
+  sync               regenerate plists + render skills
   daemons            list discovered daemons
   state <slug>       show a daemon's work-tracking record (--clear to reset)
   models <backend>   list available models (claude|codex)

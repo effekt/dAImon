@@ -1,4 +1,1 @@
-from .app import Daimon, DaemonSpec
-from .gate import Ctx
-
-__all__ = ["Daimon", "DaemonSpec", "Ctx"]
+"""`daimon sync` regenerates plists and renders skills. See daimon/sync.py."""

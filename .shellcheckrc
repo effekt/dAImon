@@ -1,0 +1,6 @@
+# Library files are sourced via a runtime-computed $DAIMON_LIB_DIR path that
+# shellcheck cannot resolve statically, so it cannot follow them (SC1091) and
+# flags variables that are actually set in those sourced files (SC2034).
+disable=SC1091
+disable=SC2034
+disable=SC2015

@@ -24,3 +24,12 @@ shortcut_count() {
     --data-urlencode "query=$1" -H "Shortcut-Token: $token" \
     | python3 -c "import sys,json;print(json.load(sys.stdin).get('total',0))" 2>/dev/null || echo 0
 }
+
+# shortcut_mention "<member-id>" -> the member's @mention name ("" on any error).
+# The search DSL's owner:/requester: operators take a mention name, not the id.
+shortcut_mention() {
+  local token; token="$(shortcut_token)"
+  [ -z "$token" ] && return
+  curl -s "https://api.app.shortcut.com/api/v3/members/$1" -H "Shortcut-Token: $token" \
+    | python3 -c "import sys,json;m=json.load(sys.stdin);p=m.get('profile') or {};print(p.get('mention_name') or m.get('mention_name') or '')" 2>/dev/null
+}
