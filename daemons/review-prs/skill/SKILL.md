@@ -30,8 +30,10 @@ For every PR in the queue:
 2. Check it against the repository's conventions and any rules files in the repo.
 3. Identify correctness bugs, security issues, and clear quality problems. Prefer
    a few high-confidence findings over many speculative ones.
-4. Post findings as inline review comments. Re-resolve any earlier comment that the
-   author has since fixed.
+4. Post findings as inline review comments, each prefixed with the bot marker
+   `{{inputs.bot_marker}}` so a later human reply gets picked up by the
+   reply-to-comments daemon. Re-resolve any earlier comment that the author has
+   since fixed.
 
 ## 3. Finish
 

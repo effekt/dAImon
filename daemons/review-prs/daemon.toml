@@ -8,3 +8,4 @@ required_inputs = ["filter"]
 
 [inputs]
 filter = "review-requested:@me"
+bot_marker = "🤖"
