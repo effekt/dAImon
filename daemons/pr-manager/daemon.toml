@@ -20,6 +20,14 @@ max_fix_cycles = 3
 # Re-evaluate a parked ci-blocked PR only after this many hours (avoids burning
 # runs on a PR whose upstream cause has not changed).
 blocked_recheck_hours = 6
+# Flip a green, conflict-free, non-change-requested managed draft to ready-for-review
+# so it enters the merge flow. Promotion does not merge — that still needs approval.
+promote_drafts = true
+# Minimum draft age (hours) before auto-promoting. 0 = promote as soon as it's green.
+promote_min_age_hours = 2
+# GitHub logins requested as reviewers on every managed PR (and on promotion).
+# Blank relies on CODEOWNERS; with neither, a PR has no approver and never merges.
+reviewers = []
 # Optional business-hours merge window. Leave all three blank to merge any time
 # CI is green. Set all three to gate ONLY the merge action (conflict and CI
 # fixes always run). e.g. tz = "America/Toronto", start = "9", end = "21".
