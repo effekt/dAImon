@@ -11,7 +11,7 @@ import ops
 from _lib import config, models, schedule_fmt
 from state import label_for, launchd_loaded, registered, sh
 
-BACKENDS = ["claude", "codex", "both"]
+BACKENDS = ["claude"]
 
 
 class ConfigScreen(ModalScreen):
@@ -36,7 +36,6 @@ class ConfigScreen(ModalScreen):
         self.input_keys = list(self.d["inputs"].keys())
         self.sources = [""] + sorted(p.parent.name for p in cfg.profiles_dir().glob("*/profile.toml"))
         self.claude_models = models.list_models("claude")
-        self.codex_models = models.list_models("codex")
 
     def _init_model(self, kind: str):
         m = self.d["model"]
@@ -69,10 +68,8 @@ class ConfigScreen(ModalScreen):
         yield self._select("f-source", self.sources, d.get("source", ""))
         yield Label("backend")
         yield self._select("f-backend", BACKENDS, d["backend"])
-        yield Label("claude model")
-        yield self._select("f-claude-model", self.claude_models, self._init_model("claude"))
-        yield Label("codex model")
-        yield self._select("f-codex-model", self.codex_models, self._init_model("codex"))
+        yield Label("model")
+        yield self._select("f-model", self.claude_models, self._init_model("claude"))
         yield Label("run dangerously")
         yield Switch(value=bool(d["danger"]), id="f-danger")
         yield Label("stuck_after (s)")
@@ -91,12 +88,6 @@ class ConfigScreen(ModalScreen):
     def _value(self, wid: str):
         return self.query_one(f"#{wid}").value
 
-    def _model_value(self, backend: str):
-        claude, codex = self._value("f-claude-model"), self._value("f-codex-model")
-        if backend == "both":
-            return {"claude": claude, "codex": codex}
-        return codex if backend == "codex" else claude
-
     def _coerce(self, original, value: str):
         if isinstance(original, list):
             return [s.strip() for s in value.split(",") if s.strip()]
@@ -111,7 +102,7 @@ class ConfigScreen(ModalScreen):
             "working_dir": self._value("f-working-dir"),
             "source": self._value("f-source"),
             "backend": backend,
-            "model": self._model_value(backend),
+            "model": self._value("f-model"),
             "danger": self._value("f-danger"),
             "stuck_after": int(self._value("f-stuck")),
         }

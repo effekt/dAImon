@@ -5,7 +5,7 @@
 <h1 align="center">dAImon</h1>
 
 Scheduled, autonomous agent daemons. Each daemon fires on a schedule, launches an
-interactive agent CLI (Claude or Codex) inside a detached tmux session pointed at a
+interactive Claude CLI inside a detached tmux session pointed at a
 target repository, drives it with a slash-command, and blocks until the run
 finishes or goes idle — no wall-clock cap, just an idle-gap reaper. A watchdog
 sweeps orphans and leaked MCP servers; a Textual TUI is the control panel.
@@ -15,14 +15,14 @@ sweeps orphans and leaked MCP servers; a Textual TUI is the control panel.
 - **Daemon** — a self-contained folder `daemons/<slug>/` with `daemon.toml`
   (settings + task `[inputs]`), `discover.sh` (a gate: should this fire do work?),
   and `skill/SKILL.md` (the prompt). Auto-discovered; drop one in and it exists.
-- **Backend** — the agent CLI that drives the session: `claude`, `codex`, or
-  `both` (sequential). Pluggable via `backends/<name>.sh`.
+- **Backend** — the agent CLI that drives the session. `claude` ships today;
+  pluggable via `backends/<name>.sh`.
 - **working_dir** — the repository a daemon operates in. The agent runs *inside*
   that trusted folder so it gets project context, MCP servers, and project skills.
   One daemon targets one repo; run many repos by registering one daemon per repo.
 - **Completion/liveness** — Claude signals done via a Stop hook (a sentinel file);
-  liveness via a heartbeat touched on every tool call. Codex has no such hook, so
-  it uses idle detection backed by a pane-activity heartbeat.
+  liveness via a heartbeat touched on every tool call. A backend without such a
+  hook can fall back to idle detection backed by a pane-activity heartbeat.
 
 ## Quick start
 

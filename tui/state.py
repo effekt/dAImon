@@ -19,7 +19,7 @@ def label_for(cfg, slug: str) -> str:
 
 def candidate_sessions(cfg, slug: str) -> list[str]:
     ns = cfg.core["namespace"]
-    return [f"{ns}-{slug}", f"{ns}-{slug}-claude", f"{ns}-{slug}-codex"]
+    return [f"{ns}-{slug}", f"{ns}-{slug}-claude"]
 
 
 def running_session(cfg, slug: str) -> str | None:
@@ -71,9 +71,8 @@ def _pane_pid(session: str) -> int | None:
 
 def _label(cmd: str) -> str:
     low = cmd.lower()
-    for needle in ("claude", "codex"):
-        if needle in low:
-            return needle
+    if "claude" in low:
+        return "claude"
     if "mcp" in low or "npx" in low:
         return "mcp"
     if "node" in low:

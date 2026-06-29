@@ -24,8 +24,8 @@
 3. `launch.sh` opens a detached tmux session in the daemon's `working_dir`,
    running the backend CLI with the configured model and danger flag.
 4. It waits for the ready banner, types the daemon's `command`, then blocks.
-5. Completion: a sentinel file (Claude's Stop hook) or heartbeat-idle (Codex).
-   There is no wall-clock cap — only `stuck_after` seconds of silence.
+5. Completion: a sentinel file (Claude's Stop hook), or heartbeat-idle for a
+   backend with no such hook. No wall-clock cap — only `stuck_after` seconds of silence.
 6. The pane scrollback is saved as a transcript; the session is reaped, taking
    its whole descendant tree (so MCP servers don't leak).
 
@@ -33,8 +33,8 @@
 
 `launch.sh` exports `DAIMON_SENTINEL`, `DAIMON_HEARTBEAT`, `DAIMON_WAIT` into the
 session. Claude's hooks (installed into `~/.claude/settings.json`, gated on those
-vars) touch the sentinel on Stop and the heartbeat on every tool call. Codex has
-no equivalent hook, so its backend declares `idle` completion and `launch.sh` runs
+vars) touch the sentinel on Stop and the heartbeat on every tool call. A backend
+with no equivalent hook can declare `idle` completion instead, and `launch.sh` runs
 a pane-activity heartbeat (touch on pane change) as a CLI-agnostic backstop.
 
 ## State

@@ -1,6 +1,6 @@
 [daemon]
-backend = "both"
-model = { claude = "haiku", codex = "gpt-5-codex" }
+backend = "claude"
+model = "haiku"
 schedule = { minutes = [17, 47] }
 command = "/reply-to-comments"
 stuck_after = 600

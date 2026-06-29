@@ -4,18 +4,11 @@ import state
 from _lib import schedule_fmt
 
 
-def _models(d) -> str:
-    m = d["model"]
-    if isinstance(m, dict):
-        return f"{m.get('claude', '—')} / {m.get('codex', '—')}"
-    return str(m)
-
-
 def render_config(cfg, slug: str) -> str:
     d = cfg.daemon(slug)
     lines = [
         f"[dim]backend [/dim] {d['backend']}",
-        f"[dim]model   [/dim] {_models(d)}",
+        f"[dim]model   [/dim] {d['model']}",
         f"[dim]source  [/dim] {d.get('source') or '—'}",
         f"[dim]schedule[/dim] {schedule_fmt.display(d['schedule'])}",
         f"[dim]danger  [/dim] {'on' if d['danger'] else 'off'}",

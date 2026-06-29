@@ -9,7 +9,7 @@ TARGET="${1:?usage: kill.sh <slug|all>}"
 
 kill_slug() {
   local slug="$1" sess
-  for sess in $(tmux ls -F '#{session_name}' 2>/dev/null | grep -E "^${DAIMON_NS}-${slug}(\$|-claude\$|-codex\$)" || true); do
+  for sess in $(tmux ls -F '#{session_name}' 2>/dev/null | grep -E "^${DAIMON_NS}-${slug}(\$|-claude\$)" || true); do
     echo "reaping $sess"
     reap_session "$sess"
     rm -f "$(sentinel_file "$sess")" "$(heartbeat_file "$sess")" "$(wait_file "$sess")"

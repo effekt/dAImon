@@ -1,9 +1,9 @@
 # Agent backends
 
 A backend teaches dAImon how to drive one agent CLI inside a tmux session. Each
-backend is a bash file (`backends/<name>.sh`) sourced by `lib/launch.sh`. Select
-it per daemon with `[daemon].backend` = `claude` | `codex` | `both` (`both` runs
-the listed backends sequentially, each in its own session).
+backend is a bash file (`backends/<name>.sh`) sourced by `lib/launch.sh`, selected
+per daemon with `[daemon].backend`. `claude` is the only backend shipped today;
+add another by dropping in `backends/<name>.sh` that implements the contract below.
 
 ## Contract
 

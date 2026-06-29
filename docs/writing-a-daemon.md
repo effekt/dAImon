@@ -7,7 +7,7 @@ auto-discovers it; `daimon sync` regenerates its plist and renders its skill.
 
 ```toml
 [daemon]
-backend = "claude"                 # claude | codex | both
+backend = "claude"
 working_dir = "~/code/my-repo"     # the repo the agent runs inside
 schedule = { interval = 1800 }     # or { minutes = [8,38] } / { daily = "13:02" }
 command = "/my-daemon"             # slash-command typed into the session
@@ -74,5 +74,5 @@ daimon tui                # enable scheduling with [e]
 
 - One daemon targets one repo. Cover many repos with one daemon each.
 - `/daimon-builder` scaffolds all three files interactively.
-- Codex completion is idle-based — set a sensible `stuck_after` (the quiet window
-  that means "done") for `codex`/`both` daemons.
+- `stuck_after` is the idle-gap reaper, not a runtime cap — set it to comfortably
+  exceed the longest quiet stretch a healthy run goes through mid-task.

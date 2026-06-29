@@ -15,7 +15,6 @@ have python3 && ok "python3 $(python3 --version 2>&1 | awk '{print $2}')" || bad
 have tmux && ok "tmux" || bad "tmux missing"
 have gh && ok "gh" || warn "gh missing (PR/issue daemons need it)"
 have claude && ok "claude" || warn "claude not on PATH (set DAIMON_CLAUDE_BIN)"
-have codex && ok "codex" || warn "codex not on PATH (codex/both backends)"
 have gh && { gh auth status >/dev/null 2>&1 && ok "gh authenticated" || warn "gh not authenticated (gh auth login)"; }
 
 echo "paths"
