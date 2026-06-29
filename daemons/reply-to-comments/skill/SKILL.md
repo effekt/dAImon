@@ -1,11 +1,11 @@
 ---
 name: reply-to-comments
-description: Watch for human replies to your bot comments and respond to each.
+description: Respond to replies on your bot comments, and re-trigger review when feedback is addressed.
 ---
 
 # reply-to-comments
 
-Respond to humans who replied to comments you previously posted. You run inside
+Respond to anyone who replied to comments you previously posted. You run inside
 the target repo, so `gh` targets it automatically.
 
 ## 1. Discover
@@ -13,22 +13,42 @@ the target repo, so `gh` targets it automatically.
 Find comment threads where:
 
 - a comment you authored carries the bot marker `{{inputs.bot_marker}}`, and
-- a human has replied **after** your last comment in that thread.
+- a reply from **someone other than you** appeared after your last comment in that
+  thread. "You" is your own GitHub login (`gh api user --jq .login`); a reply from
+  any other login counts, whether human or another bot. (Comparing against your
+  login also stops you replying to your own bot comments.)
 
-Track the last comment id you processed per thread in `$DAIMON_STATE_FILE` (JSON)
-so re-runs only pick up genuinely new replies.
+Track the last processed comment id per thread in `$DAIMON_STATE_FILE` (JSON) so
+re-runs only pick up genuinely new replies.
 
 ## 2. Respond to each thread
 
-For every thread with a new human reply:
+For every thread with a new reply:
 
 1. Read the full thread for context.
 2. If the reply asks a question or requests a change, address it directly — make
    the change if it is within scope, or explain clearly why not.
 3. Post your response, prefixed with the bot marker `{{inputs.bot_marker}}` so the
-   next run can tell your comments apart from human ones.
+   next run can tell your comments apart from others'.
 
-## 3. Finish
+## 3. Re-trigger review when a finding is addressed
+
+If the reply is on one of your `{{inputs.bot_marker}}` **code-review** comments
+(a review finding) and it indicates the finding was addressed, disputes it, or
+asks for a re-review — **and** the author has not pushed new commits (a new commit
+re-triggers review-prs on its own) — clear that PR's entry from review-prs's state
+so it re-reviews and re-decides at the current head:
+
+```bash
+RP="$DAIMON_STATE_DIR/state/review-prs.json"
+[ -f "$RP" ] && tmp="$(mktemp)" && jq 'map(select(.number != <N>))' "$RP" > "$tmp" && mv "$tmp" "$RP"
+```
+
+On its next run (every 60s) review-prs sees the PR as unreviewed and posts an
+updated `APPROVE` / `REQUEST_CHANGES`. Don't do this for purely conversational
+replies (thanks, acknowledgements) — only when the verdict could actually change.
+
+## 4. Finish
 
 Write the latest processed comment id per thread back to `$DAIMON_STATE_FILE`.
-Summarize how many threads you replied to.
+Summarize how many threads you replied to and any PRs you queued for re-review.
