@@ -9,3 +9,7 @@ required_inputs = ["filter"]
 [inputs]
 filter = "review-requested:@me"
 bot_marker = "🤖"
+# false → COMMENT instead of APPROVE on a clean review.
+auto_approve = true
+# Diffs touching these globs are HIGH risk: never auto-approved.
+high_risk_globs = ["**/auth/**", "**/*payment*", "**/*billing*", "**/*pricing*", "**/*refund*", "**/migrations/**", "**/*.env*", "**/*secret*", "**/Dockerfile*", "**/*.tf"]
