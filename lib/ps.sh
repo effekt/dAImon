@@ -9,7 +9,7 @@ TARGET="${1:?usage: ps.sh <slug|all>}"
 
 show_slug() {
   local slug="$1" sess pane
-  for sess in $(tmux ls -F '#{session_name}' 2>/dev/null | grep -E "^${DAIMON_NS}-${slug}(\$|-claude\$|-codex\$)" || true); do
+  for sess in $(tmux ls -F '#{session_name}' 2>/dev/null | grep -E "^${DAIMON_NS}-${slug}(\$|-claude\$)" || true); do
     pane=$(tmux list-panes -t "$sess" -F '#{pane_pid}' 2>/dev/null | head -1)
     echo "== $sess (pane pid $pane) =="
     for p in $(_descendants "$pane"); do

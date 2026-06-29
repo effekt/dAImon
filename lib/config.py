@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import schedule_fmt  # noqa: E402
 import toml_emit  # noqa: E402
 
-BACKENDS = ("claude", "codex", "both")
+BACKENDS = ("claude",)
 
 CORE_DEFAULTS = {
     "namespace": "daimon",
@@ -147,8 +147,7 @@ class Config:
         return merged
 
     def backends(self, slug: str) -> list[str]:
-        b = self.daemon(slug)["backend"]
-        return ["claude", "codex"] if b == "both" else [b]
+        return [self.daemon(slug)["backend"]]
 
     def model_for(self, slug: str, backend: str) -> str:
         m = self.daemon(slug)["model"]

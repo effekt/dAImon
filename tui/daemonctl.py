@@ -147,7 +147,7 @@ class DaemonCtl(App):
         return f"[{colour}]{slug}[/{colour}]"
 
     def _be(self, backend: str) -> str:
-        return {"claude": "cld", "codex": "cdx", "both": "c+x"}.get(backend, backend)
+        return {"claude": "cld"}.get(backend, backend)
 
     def refresh_table(self) -> None:
         cfg = config.Config.load()

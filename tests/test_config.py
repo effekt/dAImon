@@ -57,8 +57,8 @@ class ConfigTest(unittest.TestCase):
               "---\nname: alpha\ndescription: a\n---\nRepo {{inputs.repo}} filter {{inputs.filter}}.\n")
         write(root / "daemons" / "beta" / "daemon.toml", """
             [daemon]
-            backend = "both"
-            model = { claude = "opus", codex = "gpt-5-codex" }
+            backend = "claude"
+            model = { claude = "opus", default = "sonnet" }
             schedule = { minutes = [17, 47] }
             command = "/beta"
         """)
@@ -97,12 +97,12 @@ class ConfigTest(unittest.TestCase):
 
     def test_backends(self):
         self.assertEqual(self.cfg.backends("alpha"), ["claude"])
-        self.assertEqual(self.cfg.backends("beta"), ["claude", "codex"])
+        self.assertEqual(self.cfg.backends("beta"), ["claude"])
 
     def test_model_scalar_and_table(self):
         self.assertEqual(self.cfg.model_for("alpha", "claude"), "opus")
         self.assertEqual(self.cfg.model_for("beta", "claude"), "opus")
-        self.assertEqual(self.cfg.model_for("beta", "codex"), "gpt-5-codex")
+        self.assertEqual(self.cfg.model_for("beta", "other"), "sonnet")
 
     def test_env_shell_quotes_spaced_values(self):
         # `cfg env` output is eval'd by run.sh, so values with spaces (e.g. a

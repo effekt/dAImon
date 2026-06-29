@@ -25,7 +25,7 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
-| `backend` | enum | `claude` | Agent CLI that drives the session: `claude`, `codex`, or `both` (run sequentially, each in its own session). |
+| `backend` | enum | `claude` | Agent CLI that drives the session. `claude` is the only built-in backend; add more via `backends/<name>.sh`. |
 | `model` | string | `opus` | Passed to the backend as its model flag. |
 | `danger` | bool | `true` | Allow the backend to skip its permission/approval prompts (run-dangerous). |
 | `stuck_after` | int (sec) | `2700` | Idle-gap reaper. A run is killed only after this many seconds with **no agent activity** (heartbeat stale). This is **not** a max runtime — healthy runs may last hours. |

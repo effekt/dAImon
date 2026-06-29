@@ -10,12 +10,9 @@ class ModelsTest(unittest.TestCase):
     def test_claude_nonempty(self):
         self.assertTrue(models.list_models("claude"))
 
-    def test_codex_nonempty(self):
-        self.assertTrue(models.list_models("codex"))
-
     def test_unknown_backend_raises(self):
         with self.assertRaises(ValueError):
-            models.list_models("gemini")
+            models.list_models("codex")
 
 
 if __name__ == "__main__":
