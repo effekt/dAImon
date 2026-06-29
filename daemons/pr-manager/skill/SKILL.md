@@ -51,6 +51,22 @@ fix can't be trusted). Always `git worktree remove --force` when done. Leave
 
 Process in this order; stop at the first that applies, then move to the next PR.
 
+### 3.0 Promote a ready draft
+
+Skip this phase if `{{inputs.promote_drafts}}` is `0`. work-queue opens its PRs as
+drafts; this step takes a finished one off draft so it can be reviewed and merged.
+
+If a managed PR is a draft, all checks pass (no FAILURE/PENDING), it is not
+`CONFLICTING`, it is not `CHANGES_REQUESTED`, and it has been open at least
+`{{inputs.promote_min_age_hours}}` hours:
+
+- `gh pr ready <n>`, then request the reviewers (§3.5).
+- Post `{{inputs.bot_marker}} Auto-promoted from draft — CI green, no conflicts.
+  Flagging for review.` and record `promoted` in `$DAIMON_STATE_FILE`.
+
+Promotion does **not** merge — the PR still needs an approving review to reach
+§3.1. Leave it ready and move on.
+
 ### 3.1 Merge — approved and green
 
 If `reviewDecision == "APPROVED"`, all checks pass (no FAILURE/PENDING in
@@ -116,6 +132,15 @@ If `reviewDecision == "CHANGES_REQUESTED"`, fetch the review comments
 Follow the repo's own conventions and rules files for any fix. After addressing
 all comments, run the repo's checks, push (§5), and re-request the reviewers who
 asked for changes: `gh pr edit <n> --add-reviewer <logins>`.
+
+### 3.5 Request reviewers
+
+The configured reviewers are `{{inputs.reviewers}}` (blank = skip this step). For
+every managed PR that is **not** a draft, request each configured reviewer who is
+not already a requested reviewer and has not already reviewed the PR — e.g.
+`gh pr edit <n> --add-reviewer alice,bob` with only the missing logins. Don't
+re-request someone who already reviewed (it spams them). This also runs as part of
+promotion (§3.0), so a just-promoted PR gets its reviewers immediately.
 
 ## 4. Isolated worktrees
 
