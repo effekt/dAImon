@@ -67,10 +67,17 @@ If a managed PR is a draft, all checks pass (no FAILURE/PENDING), it is not
 Promotion does **not** merge — the PR still needs an approving review to reach
 §3.1. Leave it ready and move on.
 
-### 3.1 Merge — approved and green
+### 3.1 Merge
 
-If `reviewDecision == "APPROVED"`, all checks pass (no FAILURE/PENDING in
-`statusCheckRollup`), and `mergeable != "CONFLICTING"`, and it is not a draft:
+Merge when all checks pass (no FAILURE/PENDING in `statusCheckRollup`),
+`mergeable != "CONFLICTING"`, it is not a draft, and **either**:
+
+- `reviewDecision == "APPROVED"`, or
+- `{{inputs.auto_merge}}` is `1` and `reviewDecision != "CHANGES_REQUESTED"` —
+  unattended merge without an approving review. (Never merge over requested
+  changes; address them in §3.4 first.)
+
+When the merge condition holds:
 
 - **Merge window:** if `{{inputs.merge_window_tz}}`, `{{inputs.merge_window_start}}`
   and `{{inputs.merge_window_end}}` are all set, check

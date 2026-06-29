@@ -28,6 +28,10 @@ promote_min_age_hours = 2
 # GitHub logins requested as reviewers on every managed PR (and on promotion).
 # Blank relies on CODEOWNERS; with neither, a PR has no approver and never merges.
 reviewers = []
+# Merge green, non-conflicting, non-change-requested PRs WITHOUT an approving
+# review. Off by default: unreviewed AI-authored code reaching the base branch is
+# a deliberate choice. promote_min_age_hours stays the human intervention window.
+auto_merge = false
 # Optional business-hours merge window. Leave all three blank to merge any time
 # CI is green. Set all three to gate ONLY the merge action (conflict and CI
 # fixes always run). e.g. tz = "America/Toronto", start = "9", end = "21".

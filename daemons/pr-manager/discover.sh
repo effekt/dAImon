@@ -16,6 +16,7 @@ printf '%s' "$prs" | jq -e \
   --arg label "$DAIMON_INPUT_MANAGE_LABEL" \
   --arg reviewers "$DAIMON_INPUT_REVIEWERS" \
   --argjson promote "$DAIMON_INPUT_PROMOTE_DRAFTS" \
+  --argjson automerge "$DAIMON_INPUT_AUTO_MERGE" \
   --argjson min_age "$DAIMON_INPUT_PROMOTE_MIN_AGE_HOURS" '
   ($reviewers | split(" ") | map(select(. != ""))) as $want
   | def managed: (.headRefName | startswith("daimon/")) or
@@ -30,6 +31,8 @@ printf '%s' "$prs" | jq -e \
   def seen: ([.reviewRequests[]?.login] + [.latestReviews[]?.author.login]);
   def actionable_ready: (.isDraft | not) and (
     (.reviewDecision == "APPROVED" and green) or
+    ($automerge == 1 and green and .reviewDecision != "CHANGES_REQUESTED"
+      and .mergeable != "CONFLICTING") or
     (.reviewDecision == "CHANGES_REQUESTED") or
     (.mergeable == "CONFLICTING") or
     failing);
