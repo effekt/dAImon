@@ -55,6 +55,24 @@ class SkillsTest(unittest.TestCase):
                 leftover = PLACEHOLDER.findall(rendered)
                 self.assertEqual(leftover, [], f"{slug}: unresolved {{{{inputs.*}}}}: {leftover}")
 
+    def test_output_conventions_attached_to_comment_daemons(self):
+        cfg = config.Config.load()
+        for slug in ("review-prs", "story-reviewer", "reply-to-pr-comments", "reply-to-story-comments"):
+            if slug not in cfg.discover():
+                continue
+            with self.subTest(daemon=slug):
+                rendered = config.render_skill(cfg, slug)
+                self.assertIn("Severity: two tiers", rendered, f"{slug}: missing severity tiers")
+                self.assertIn("Respectfully disagree", rendered, f"{slug}: missing reply taxonomy")
+
+    def test_review_prs_gating_ladder(self):
+        cfg = config.Config.load()
+        if "review-prs" not in cfg.discover():
+            self.skipTest("review-prs not configured")
+        rendered = config.render_skill(cfg, "review-prs")
+        for needle in ("Review-only mode", "REQUEST_CHANGES", "Blocking", "Suggestion", "Findings"):
+            self.assertIn(needle, rendered, f"review-prs skill missing: {needle}")
+
 
 if __name__ == "__main__":
     unittest.main()

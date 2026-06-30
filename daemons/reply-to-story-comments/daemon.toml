@@ -11,3 +11,5 @@ required_inputs = ["bot_marker", "assist_label"]
 
 [inputs]
 bot_marker = "🤖"
+# full → reply includes a one-line rationale; compact → terse reply.
+verbosity = "full"
