@@ -97,6 +97,12 @@
         "source": {
           "type": "string"
         },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "working_dir": {
           "type": "string"
         },

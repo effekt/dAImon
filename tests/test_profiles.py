@@ -122,6 +122,54 @@ class ProfileTest(unittest.TestCase):
         self.assertIn("repos=a, b", out)
         self.assertNotIn("{{", out)
 
+    def test_source_string_is_back_compat_single_source(self):
+        self.assertEqual(self.cfg.daemon("wq")["sources"], ["sc"])
+
+    def test_multiple_sources_merge_defaults_and_append_each_reference(self):
+        write(
+            self.root / "profiles" / "gh" / "profile.toml",
+            """
+            [profile]
+            tool = "gh"
+            [defaults]
+            workspace = "ws-gh"
+            base = "trunk"
+        """,
+        )
+        write(self.root / "profiles" / "gh" / "reference.md", "GH-MARKER base {{inputs.base}}")
+        write(
+            self.root / "daemons" / "wq" / "daemon.toml",
+            """
+            [daemon]
+            sources = ["sc", "gh"]
+            schedule = { interval = 1200 }
+            command = "/wq"
+            [inputs]
+            repos = []
+        """,
+        )
+        d = config.Config.load().daemon("wq")
+        self.assertEqual(d["sources"], ["sc", "gh"])
+        self.assertEqual(d["inputs"]["workspace"], "ws-gh")
+        self.assertEqual(d["inputs"]["ready_label"], "ai-ready")
+        self.assertEqual(d["inputs"]["base"], "trunk")
+        out = config.render_skill(config.Config.load(), "wq")
+        self.assertIn("REF-MARKER", out)
+        self.assertIn("GH-MARKER", out)
+
+    def test_validate_flags_unknown_among_multiple_sources(self):
+        write(
+            self.root / "daemons" / "wq" / "daemon.toml",
+            """
+            [daemon]
+            sources = ["sc", "nope"]
+            schedule = { interval = 1200 }
+            command = "/wq"
+        """,
+        )
+        errs = config.validate(config.Config.load())
+        self.assertTrue(any("unknown source profile 'nope'" in e for e in errs))
+
     def test_validate_unknown_profile(self):
         write(
             self.root / "daemons" / "wq" / "daemon.toml",
