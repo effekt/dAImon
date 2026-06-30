@@ -249,6 +249,10 @@ def render_skill(cfg: Config, slug: str) -> str:
         ref = cfg.profiles_dir() / source / "reference.md"
         if ref.exists():
             text += f"\n\n---\n\n{ref.read_text()}"
+    if "bot_marker" in d["inputs"]:
+        conventions = cfg.install_root / "references" / "skill-conventions.md"
+        if conventions.exists():
+            text += f"\n\n---\n\n{conventions.read_text()}"
     if d.get("learning", True):
         learning = cfg.install_root / "references" / "learning.md"
         if learning.exists():
