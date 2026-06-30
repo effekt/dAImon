@@ -7,3 +7,4 @@ config/daimon.toml
 *.local.toml
 daemons/*/daemon.local.toml
 profiles/*/profile.local.toml
+.claude/settings.local.json
