@@ -125,6 +125,33 @@ class ProfileTest(unittest.TestCase):
     def test_source_string_is_back_compat_single_source(self):
         self.assertEqual(self.cfg.daemon("wq")["sources"], ["sc"])
 
+    def test_write_source_appends_write_reference(self):
+        write(self.root / "profiles" / "sc" / "reference.write.md", "WRITE-MARKER")
+        write(
+            self.root / "daemons" / "wq" / "daemon.toml",
+            """
+            [daemon]
+            sources = [{ name = "sc", write = true }]
+            schedule = { interval = 1200 }
+            command = "/wq"
+            [inputs]
+            repos = []
+        """,
+        )
+        d = config.Config.load().daemon("wq")
+        self.assertEqual(d["write_sources"], ["sc"])
+        out = config.render_skill(config.Config.load(), "wq")
+        self.assertIn("REF-MARKER", out)
+        self.assertIn("WRITE-MARKER", out)
+
+    def test_read_only_source_omits_write_reference(self):
+        write(self.root / "profiles" / "sc" / "reference.write.md", "WRITE-MARKER")
+        d = self.cfg.daemon("wq")
+        self.assertEqual(d["write_sources"], [])
+        out = config.render_skill(self.cfg, "wq")
+        self.assertIn("REF-MARKER", out)
+        self.assertNotIn("WRITE-MARKER", out)
+
     def test_multiple_sources_merge_defaults_and_append_each_reference(self):
         write(
             self.root / "profiles" / "gh" / "profile.toml",

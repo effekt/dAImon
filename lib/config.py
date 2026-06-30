@@ -52,14 +52,22 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def sources_of(daemon: dict) -> list[str]:
+def sources_of(daemon: dict) -> list[dict]:
     raw = daemon.get("sources")
     if raw is None:
         single = daemon.get("source", "")
         raw = [single] if single else []
     elif isinstance(raw, str):
         raw = [raw]
-    return [s for s in raw if s]
+    specs: list[dict] = []
+    for entry in raw:
+        if isinstance(entry, dict):
+            name = entry.get("name", "")
+            if name:
+                specs.append({"name": name, "write": bool(entry.get("write", False))})
+        elif entry:
+            specs.append({"name": entry, "write": False})
+    return specs
 
 
 def expand(p: str) -> Path:
@@ -151,16 +159,17 @@ class Config:
         raw = self.raw_daemon(slug)
         merged = dict(self.defaults)
         merged.update(raw["daemon"])
-        sources = sources_of(merged)
+        specs = sources_of(merged)
         inputs: dict = {}
-        for s in sources:
-            prof = self.load_profile(s)
+        for s in specs:
+            prof = self.load_profile(s["name"])
             if prof:
                 inputs.update(prof.get("defaults", {}))
         inputs.update(raw["inputs"])
         merged["inputs"] = inputs
-        merged["sources"] = sources
-        merged["source"] = sources[0] if sources else ""
+        merged["sources"] = [s["name"] for s in specs]
+        merged["write_sources"] = [s["name"] for s in specs if s["write"]]
+        merged["source"] = specs[0]["name"] if specs else ""
         merged["slug"] = slug
         wd = merged.get("working_dir")
         merged["working_dir"] = str(expand(wd)) if wd else str(self.install_root)
@@ -262,6 +271,10 @@ def render_skill(cfg: Config, slug: str) -> str:
         ref = cfg.profiles_dir() / source / "reference.md"
         if ref.exists():
             text += f"\n\n---\n\n{ref.read_text()}"
+        if source in d["write_sources"]:
+            wref = cfg.profiles_dir() / source / "reference.write.md"
+            if wref.exists():
+                text += f"\n\n---\n\n{wref.read_text()}"
     if "bot_marker" in d["inputs"]:
         conventions = cfg.install_root / "references" / "skill-conventions.md"
         if conventions.exists():
@@ -323,7 +336,7 @@ def validate(cfg: Config) -> list[str]:
         skill = cfg.daemons_dir() / slug / "skill" / "SKILL.md"
         if not skill.exists():
             errors.append(f"{slug}: missing skill/SKILL.md")
-        unknown = [s for s in sources_of(d) if cfg.load_profile(s) is None]
+        unknown = [s["name"] for s in sources_of(d) if cfg.load_profile(s["name"]) is None]
         if unknown:
             for s in unknown:
                 errors.append(
@@ -384,7 +397,23 @@ def daemon_schema() -> dict:
             "command": {"type": "string", "pattern": "^/"},
             "schedule": schedule,
             "source": {"type": "string"},
-            "sources": {"type": "array", "items": {"type": "string"}},
+            "sources": {
+                "type": "array",
+                "items": {
+                    "oneOf": [
+                        {"type": "string"},
+                        {
+                            "type": "object",
+                            "required": ["name"],
+                            "additionalProperties": False,
+                            "properties": {
+                                "name": {"type": "string"},
+                                "write": {"type": "boolean"},
+                            },
+                        },
+                    ]
+                },
+            },
             "working_dir": {"type": "string"},
             "learning": {"type": "boolean"},
             "required_inputs": {
