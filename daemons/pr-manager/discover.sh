@@ -7,10 +7,10 @@
 # closed (no gh, no auth) means "skip", the safe default.
 set -uo pipefail
 
-prs="$(gh pr list --author @me --state open \
-  --json number,headRefName,reviewDecision,mergeable,isDraft,labels,statusCheckRollup,createdAt,reviewRequests,latestReviews \
-  2>/dev/null)"
-[ -z "$prs" ] && prs='[]'
+source "$(dirname "$0")/../../profiles/github/lib.sh"
+
+prs="$(gh_pr_json --author @me --state open \
+  --json number,headRefName,reviewDecision,mergeable,isDraft,labels,statusCheckRollup,createdAt,reviewRequests,latestReviews)"
 
 printf '%s' "$prs" | jq -e \
   --arg label "$DAIMON_INPUT_MANAGE_LABEL" \

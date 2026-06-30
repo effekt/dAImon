@@ -8,16 +8,10 @@
 set -uo pipefail
 
 source "$(dirname "$0")/../../lib/common.sh"
+source "$(dirname "$0")/../../profiles/github/lib.sh"
 
-seen='[]'
-state="$(state_file review-prs)"
-if [ -f "$state" ]; then
-  contents="$(cat "$state")"
-  echo "$contents" | jq empty 2>/dev/null && seen="$contents"
-fi
-
-prs="$(gh pr list --search "$DAIMON_INPUT_FILTER" --json number,headRefOid 2>/dev/null)"
-[ -z "$prs" ] && prs='[]'
+seen="$(load_seen_state "$(state_file review-prs)")"
+prs="$(gh_pr_json --search "$DAIMON_INPUT_FILTER" --json number,headRefOid)"
 
 printf '%s' "$prs" | jq -e --argjson seen "$seen" '
   [ .[] | select(. as $p

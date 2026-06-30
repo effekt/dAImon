@@ -1,0 +1,6 @@
+[profile]
+tool = "github"
+description = "GitHub pull requests and issues via the gh CLI"
+
+[defaults]
+base = "main"

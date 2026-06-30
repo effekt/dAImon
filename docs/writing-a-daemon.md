@@ -35,10 +35,13 @@ The gate. Inputs arrive as `DAIMON_INPUT_*`. Keep it cheap. Exit codes are read 
 ```bash
 #!/usr/bin/env bash
 set -uo pipefail
-count=$(gh issue list --repo "$DAIMON_INPUT_REPO" --search "$DAIMON_INPUT_FILTER" \
-  --json number --jq 'length' 2>/dev/null || echo 0)
-[ "${count:-0}" -gt 0 ]
+source "$(dirname "$0")/../../profiles/github/lib.sh"
+[ "$(gh_pr_count --search "$DAIMON_INPUT_FILTER")" -gt 0 ]
 ```
+
+`profiles/github/lib.sh` provides fail-closed gate helpers (`gh_pr_json`,
+`gh_pr_count`, `gh_search_pr_count`, `load_seen_state`); `profiles/shortcut/lib.sh`
+is the equivalent for story gates.
 
 ## 3. `skill/SKILL.md`
 

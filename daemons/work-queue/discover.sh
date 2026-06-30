@@ -6,6 +6,7 @@
 set -uo pipefail
 
 source "$(dirname "$0")/../../profiles/shortcut/lib.sh"
+source "$(dirname "$0")/../../profiles/github/lib.sh"
 
 base="label:\"$DAIMON_INPUT_READY_LABEL\" \
   !label:\"$DAIMON_INPUT_SKIP_LABEL\" !state:\"$DAIMON_INPUT_IN_PROGRESS_STATE\""
@@ -25,6 +26,6 @@ else
   ready=$(( ${owned:-0} + ${requested:-0} ))
 fi
 
-open_prs=$(gh search prs --author=@me --state=open --json number --jq 'length' 2>/dev/null || echo 0)
+open_prs=$(gh_search_pr_count --author=@me --state=open)
 
 [ "${ready:-0}" -gt 0 ] && [ "${open_prs:-0}" -lt "${DAIMON_INPUT_MAX_OPEN_PRS:-2}" ]
