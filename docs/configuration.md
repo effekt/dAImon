@@ -109,7 +109,8 @@ file. Set workspace-wide values (e.g. your Shortcut workspace/labels) once in
 
 A **source profile** describes a work-item backend (a task/story tracker) once,
 so daemons don't each re-encode it. A daemon opts in with `[daemon].source =
-"<name>"`, resolving to `profiles/<name>/`:
+"<name>"` (or `[daemon].sources = ["a", "b"]` for more than one), resolving to
+`profiles/<name>/`:
 
 | File | Purpose |
 |------|---------|
@@ -124,4 +125,18 @@ label names, the pipeline state to pull from (`triage_state`), `in_progress_stat
 A daemon's own `[inputs]` override the profile `[defaults]` for that one daemon,
 and the TUI config screen (`c`) edits the same values per daemon. Add a backend by
 dropping in a new `profiles/<name>/` folder — no framework changes.
+
+### Multiple sources
+
+`sources = ["a", "b"]` composes more than one profile: each `[defaults]` table is
+merged in list order (later wins on a key clash), the daemon's own `[inputs]`
+override all of them, and every profile's `reference.md` is appended to the skill.
+`source = "x"` is shorthand for `sources = ["x"]`; if both are set, `sources` wins.
+
+This lets one daemon span backends — e.g. `review-prs` reviews GitHub PRs
+(native) but also carries the `shortcut` source so a PR that references a story is
+reviewed against that story's acceptance criteria. A profile's `reference.md` is
+task-shaped (it documents how to comment/label/transition items); a daemon that
+only needs to *read* from a source should say so in its skill, as `review-prs`
+does ("Shortcut is read-only here").
 
