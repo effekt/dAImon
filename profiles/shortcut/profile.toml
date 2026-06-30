@@ -3,7 +3,6 @@ tool = "shortcut"
 description = "Shortcut stories via the Shortcut REST API"
 
 [defaults]
-workspace = "your-workspace"
 team = ""
 owner = ""
 triage_state = "To Do"

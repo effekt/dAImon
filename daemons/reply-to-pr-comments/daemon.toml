@@ -2,7 +2,7 @@
 backend = "claude"
 model = "haiku"
 schedule = { minutes = [17, 47] }
-command = "/reply-to-comments"
+command = "/reply-to-pr-comments"
 stuck_after = 600
 
 [inputs]

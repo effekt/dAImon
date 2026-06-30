@@ -1,0 +1,13 @@
+[daemon]
+backend = "claude"
+model = "haiku"
+# Read-write: reads story comments, posts replies, and edits assessment labels to
+# re-trigger story-reviewer when a reply unblocks an awaiting-input story.
+sources = [{ name = "shortcut", write = true }]
+schedule = { minutes = [17, 47] }
+command = "/reply-to-story-comments"
+stuck_after = 600
+required_inputs = ["bot_marker", "assist_label"]
+
+[inputs]
+bot_marker = "🤖"

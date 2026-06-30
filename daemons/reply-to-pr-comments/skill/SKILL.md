@@ -1,12 +1,12 @@
 ---
-name: reply-to-comments
-description: Respond to replies on your bot comments, and re-trigger review when feedback is addressed.
+name: reply-to-pr-comments
+description: Respond to replies on your bot comments on GitHub PRs, and re-trigger review when feedback is addressed.
 ---
 
-# reply-to-comments
+# reply-to-pr-comments
 
-Respond to anyone who replied to comments you previously posted. You run inside
-the target repo, so `gh` targets it automatically.
+Respond to anyone who replied to comments you previously posted on a GitHub pull
+request. You run inside the target repo, so `gh` targets it automatically.
 
 ## 1. Discover
 

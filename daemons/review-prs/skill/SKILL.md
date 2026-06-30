@@ -22,7 +22,7 @@ record is the JSON array at `$DAIMON_STATE_FILE` (`[{number, headSha, verdict}]`
 — read it at the start, skip PRs whose number + head SHA you've already recorded,
 and write back the ones you act on this run. (Submitting a review also clears the
 `review-requested` flag, so most already-done PRs simply won't appear. A removed
-entry — e.g. reply-to-comments cleared it after a reply — makes a PR reappear for
+entry — e.g. reply-to-pr-comments cleared it after a reply — makes a PR reappear for
 re-review even at an unchanged SHA.)
 
 ## 2. Review each PR
@@ -54,7 +54,7 @@ re-review even at an unchanged SHA.)
 
 Submit **exactly one** review per PR (`gh pr review`, or the reviews API for
 inline comments). Every comment you post is prefixed with `{{inputs.bot_marker}}`
-so reply-to-comments can pick up responses.
+so reply-to-pr-comments can pick up responses.
 
 - **Findings exist → `REQUEST_CHANGES`.** One inline comment per finding (problem
   + concrete fix); review body ≤140 chars summarizing. Re-resolve any earlier

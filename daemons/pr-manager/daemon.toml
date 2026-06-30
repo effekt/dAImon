@@ -10,7 +10,7 @@ base = "main"
 # A PR is "managed" if it is on a daimon/* branch (work-queue created it) or it
 # carries this label (you opted a hand-authored PR in).
 manage_label = "auto-pr-manage"
-# Prefix on every comment this daemon posts, so reply-to-comments can tell its
+# Prefix on every comment this daemon posts, so reply-to-pr-comments can tell its
 # own comments from human replies.
 bot_marker = "🤖"
 # How approved PRs get merged: squash | merge | rebase.

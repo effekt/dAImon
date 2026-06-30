@@ -8,8 +8,9 @@ where the steps above don't restate them.
 
 Prefix every comment, review, or reply you post with `{{inputs.bot_marker}}`. This
 is how other daemons — and you, on a later run — tell your automated comments from
-a human's. `reply-to-comments` only acts on replies to comments carrying this
-marker, and no daemon should ever act on its own comments.
+a human's. The reply daemons (`reply-to-pr-comments`, `reply-to-story-comments`)
+only act on replies to comments carrying this marker, and no daemon should ever
+act on its own comments.
 
 ## Track what you've handled in `$DAIMON_STATE_FILE`
 
