@@ -4,6 +4,8 @@
 # "new human reply to a bot comment" filtering. gh targets the current repo.
 set -uo pipefail
 
-count=$(gh pr list --state open --json number --jq 'length' 2>/dev/null || echo 0)
+source "$(dirname "$0")/../../profiles/github/lib.sh"
+
+count=$(gh_pr_count --state open)
 
 [ "${count:-0}" -gt 0 ]
