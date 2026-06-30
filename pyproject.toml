@@ -1,0 +1,59 @@
+# dAImon project + dev-tooling manifest.
+#
+# This is a *virtual* uv project (`tool.uv.package = false`): it is NOT built or
+# installed as a wheel. The runtime core under lib/ stays dependency-free (stdlib
+# only — tomllib) and is invoked as plain scripts by the bash layer, so nothing
+# here changes how daemons run. pyproject exists to (a) pin the dev toolchain and
+# (b) centralize ruff / pyright config. The version mirrors the VERSION file.
+[project]
+name = "daimon"
+version = "0.1.0"
+description = "Agent daemon pipeline — shepherd long-running Claude/Codex daemons via launchd."
+requires-python = ">=3.12"
+# Runtime core is stdlib-only by design; see AGENTS.md. Do not add deps here.
+dependencies = []
+
+[dependency-groups]
+# Dev-only: linters, type checker, hooks, and the TUI framework (so pyright can
+# resolve tui/ imports). None of these are needed to run a daemon.
+dev = [
+    "ruff>=0.9",
+    "pyright>=1.1.390",
+    "pre-commit>=4.0",
+    "textual>=0.85",
+]
+
+[tool.uv]
+package = false
+
+# ---------------------------------------------------------------------------
+# ruff — lint + format. Run: `uv run ruff check` / `uv run ruff format`.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+# Generated/vendored trees the formatter and linter must never touch.
+extend-exclude = ["tui/.venv", "**/__pycache__"]
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I isort, UP pyupgrade, B bugbear, SIM simplify,
+# C4 comprehensions.
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "C4"]
+# E501: formatter owns width. E702: `cmd; return 0` is a deliberate house style.
+ignore = ["E501", "E702"]
+
+[tool.ruff.lint.isort]
+# lib/ modules import each other as top-level names (config, schedule_fmt, …).
+known-first-party = ["config", "models", "schedule_fmt", "toml_emit", "json_state", "daimon"]
+
+# ---------------------------------------------------------------------------
+# pyright — type checking. Run: `uv run pyright`.
+# extraPaths lets pyright resolve the flat lib/ modules that are imported by
+# top-level name (config.py runs as a bare script, not `python -m`).
+# ---------------------------------------------------------------------------
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+include = ["lib", "daimon", "tui"]
+extraPaths = ["lib"]
+exclude = ["**/__pycache__", "tui/.venv"]
