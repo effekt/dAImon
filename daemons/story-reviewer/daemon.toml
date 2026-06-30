@@ -1,6 +1,6 @@
 [daemon]
 backend = "claude"
-source = "shortcut"
+sources = [{ name = "shortcut", write = true }]
 model = "sonnet"
 schedule = { interval = 1800 }
 command = "/story-reviewer"

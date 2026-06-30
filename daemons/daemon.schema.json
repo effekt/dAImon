@@ -100,7 +100,26 @@
         "sources": {
           "type": "array",
           "items": {
-            "type": "string"
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "write": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            ]
           }
         },
         "working_dir": {
