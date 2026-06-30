@@ -5,6 +5,7 @@ Queries the live provider API when a key is present, otherwise returns a bundled
 fallback. Authoritative source:
   Claude: https://platform.claude.com/docs/en/about-claude/models/overview
 """
+
 from __future__ import annotations
 
 import json
@@ -14,8 +15,14 @@ import urllib.error
 import urllib.request
 
 # Claude daemons pass these to `claude --model`, which accepts aliases or ids.
-CLAUDE_FALLBACK = ["opus", "sonnet", "haiku",
-                   "claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"]
+CLAUDE_FALLBACK = [
+    "opus",
+    "sonnet",
+    "haiku",
+    "claude-opus-4-8",
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5",
+]
 
 
 def _get_json(url: str, headers: dict, timeout: float = 6.0):

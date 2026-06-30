@@ -3,6 +3,7 @@
 then get / incr / set one key. Centralizes the load-or-default guard the gate
 libs would otherwise each re-embed. Nested or list-shaped state (the inbox,
 hourly budget buckets) stays in its own lib."""
+
 import json
 import sys
 

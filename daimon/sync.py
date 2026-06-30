@@ -1,5 +1,6 @@
 """Regenerate launchd plists and render daemon skills from the daemon folders.
 Run via `daimon sync` or `python -m daimon.sync`."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -12,6 +13,8 @@ INSTALL_ROOT = Path(__file__).resolve().parent.parent
 
 def _import_from_path(name: str, path: Path):
     spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {name} from {path}")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

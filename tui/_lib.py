@@ -1,4 +1,5 @@
 """Path bootstrap for the TUI: makes the framework's config core importable."""
+
 import sys
 from pathlib import Path
 

@@ -21,19 +21,27 @@ class MaterializeTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.home = self.root / "home"
-        write(self.root / "config" / "daimon.toml", f"""
+        write(
+            self.root / "config" / "daimon.toml",
+            f"""
             [core]
             install_root = "{self.root}"
             state_dir = "{self.root}/state"
             namespace = "testns"
-        """)
-        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+        """,
+        )
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
             [daemon]
             schedule = { interval = 1200 }
             command = "/alpha"
-        """)
-        write(self.root / "daemons" / "alpha" / "skill" / "SKILL.md",
-              "---\nname: alpha\ndescription: a\n---\nHi.\n")
+        """,
+        )
+        write(
+            self.root / "daemons" / "alpha" / "skill" / "SKILL.md",
+            "---\nname: alpha\ndescription: a\n---\nHi.\n",
+        )
         os.environ["DAIMON_CONFIG"] = str(self.root / "config" / "daimon.toml")
         os.environ["HOME"] = str(self.home)
         self.config = importlib.import_module("config")

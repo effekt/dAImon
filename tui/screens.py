@@ -1,17 +1,22 @@
 """Modal screens: per-daemon configure, and the process-tree inspector."""
+
+from typing import Any, Protocol, cast
+
+import ops
+from _lib import config, models, schedule_fmt
+from rich.text import Text
+from state import label_for, launchd_loaded, registered, sh
 from textual.app import ComposeResult
 from textual.containers import Grid, Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, OptionList, Select, Static, Switch
 from textual.widgets.option_list import Option
 
-from rich.text import Text
-
-import ops
-from _lib import config, models, schedule_fmt
-from state import label_for, launchd_loaded, registered, sh
-
 BACKENDS = ["claude"]
+
+
+class _HasValue(Protocol):
+    value: Any
 
 
 class ConfigScreen(ModalScreen):
@@ -34,7 +39,9 @@ class ConfigScreen(ModalScreen):
         self.d = cfg.daemon(slug)
         self.raw = cfg.raw_daemon(slug)
         self.input_keys = list(self.d["inputs"].keys())
-        self.sources = [""] + sorted(p.parent.name for p in cfg.profiles_dir().glob("*/profile.toml"))
+        self.sources = [""] + sorted(
+            p.parent.name for p in cfg.profiles_dir().glob("*/profile.toml")
+        )
         self.claude_models = models.list_models("claude")
 
     def _init_model(self, kind: str):
@@ -48,10 +55,9 @@ class ConfigScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         with Vertical(id="dialog"):
             yield Label(f"configure {self.slug}", id="dialog-title")
-            with VerticalScroll(id="grid-scroll"):
-                with Grid(id="grid"):
-                    yield from self._framework_fields()
-                    yield from self._input_fields()
+            with VerticalScroll(id="grid-scroll"), Grid(id="grid"):
+                yield from self._framework_fields()
+                yield from self._input_fields()
             with Horizontal(id="buttons"):
                 yield Button("cancel", id="cancel")
                 yield Button("save", variant="primary", id="save")
@@ -86,7 +92,7 @@ class ConfigScreen(ModalScreen):
             yield Input(value=shown, id=f"in-{key}")
 
     def _value(self, wid: str):
-        return self.query_one(f"#{wid}").value
+        return cast(_HasValue, self.query_one(f"#{wid}")).value
 
     def _coerce(self, original, value: str):
         if isinstance(original, list):
@@ -106,7 +112,9 @@ class ConfigScreen(ModalScreen):
             "danger": self._value("f-danger"),
             "stuck_after": int(self._value("f-stuck")),
         }
-        inputs = {k: self._coerce(self.d["inputs"][k], self._value(f"in-{k}")) for k in self.input_keys}
+        inputs = {
+            k: self._coerce(self.d["inputs"][k], self._value(f"in-{k}")) for k in self.input_keys
+        }
         self.cfg.update_local(self.slug, daemon, inputs or None)
 
     def _apply(self) -> None:
@@ -274,7 +282,10 @@ class ProcessScreen(ModalScreen):
         self.slug = slug
 
     def compose(self) -> ComposeResult:
-        out = sh("bash", str(self.install_root / "lib" / "ps.sh"), self.slug) or "(no running process)"
+        out = (
+            sh("bash", str(self.install_root / "lib" / "ps.sh"), self.slug)
+            or "(no running process)"
+        )
         with VerticalScroll(id="proc-box"):
             yield Static(f"process tree — {self.slug}  (esc to close)", id="proc-title")
             yield Static(out)

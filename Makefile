@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 BIN := ./bin/daimon
 
-.PHONY: help install install-load doctor sync validate status tui test
+.PHONY: help install install-load doctor sync validate status tui test lint fmt typecheck
 
 help:
 	@echo "dAImon — make targets:"
@@ -13,6 +13,9 @@ help:
 	@echo "  make status         show launchd + running-session state"
 	@echo "  make tui            open the control panel"
 	@echo "  make test           run the test suite"
+	@echo "  make lint           ruff + shellcheck (no changes)"
+	@echo "  make fmt            ruff format + autofix (writes changes)"
+	@echo "  make typecheck      pyright"
 
 install:
 	@$(BIN) install
@@ -37,3 +40,14 @@ tui:
 
 test:
 	@bash tests/run.sh
+
+lint:
+	@uv run ruff check .
+	@find lib backends daemons -name '*.sh' -print0 | xargs -0 shellcheck -x
+
+fmt:
+	@uv run ruff format .
+	@uv run ruff check --fix .
+
+typecheck:
+	@uv run pyright

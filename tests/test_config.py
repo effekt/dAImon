@@ -22,7 +22,9 @@ class ConfigTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         root = Path(self.tmp.name)
         self.root = root
-        write(root / "config" / "daimon.toml", f"""
+        write(
+            root / "config" / "daimon.toml",
+            f"""
             [core]
             install_root = "{root}"
             state_dir = "{root}/state"
@@ -43,8 +45,11 @@ class ConfigTest(unittest.TestCase):
             defer_at_pct = 80
             [daemons]
             disabled = ["delta"]
-        """)
-        write(root / "daemons" / "alpha" / "daemon.toml", """
+        """,
+        )
+        write(
+            root / "daemons" / "alpha" / "daemon.toml",
+            """
             [daemon]
             schedule = { interval = 1200 }
             command = "/alpha"
@@ -52,32 +57,50 @@ class ConfigTest(unittest.TestCase):
             [inputs]
             repo = "me/alpha"
             filter = "is:open"
-        """)
-        write(root / "daemons" / "alpha" / "skill" / "SKILL.md",
-              "---\nname: alpha\ndescription: a\n---\nRepo {{inputs.repo}} filter {{inputs.filter}}.\n")
-        write(root / "daemons" / "beta" / "daemon.toml", """
+        """,
+        )
+        write(
+            root / "daemons" / "alpha" / "skill" / "SKILL.md",
+            "---\nname: alpha\ndescription: a\n---\nRepo {{inputs.repo}} filter {{inputs.filter}}.\n",
+        )
+        write(
+            root / "daemons" / "beta" / "daemon.toml",
+            """
             [daemon]
             backend = "claude"
             model = { claude = "opus", default = "sonnet" }
             schedule = { minutes = [17, 47] }
             command = "/beta"
-        """)
-        write(root / "daemons" / "beta" / "skill" / "SKILL.md",
-              "---\nname: beta\ndescription: b\n---\nHi.\n")
-        write(root / "daemons" / "gamma" / "daemon.toml", """
+        """,
+        )
+        write(
+            root / "daemons" / "beta" / "skill" / "SKILL.md",
+            "---\nname: beta\ndescription: b\n---\nHi.\n",
+        )
+        write(
+            root / "daemons" / "gamma" / "daemon.toml",
+            """
             [daemon]
             schedule = { daily = "13:02", tz = "UTC" }
             command = "/gamma"
-        """)
-        write(root / "daemons" / "gamma" / "skill" / "SKILL.md",
-              "---\nname: gamma\ndescription: c\n---\nHi.\n")
-        write(root / "daemons" / "delta" / "daemon.toml", """
+        """,
+        )
+        write(
+            root / "daemons" / "gamma" / "skill" / "SKILL.md",
+            "---\nname: gamma\ndescription: c\n---\nHi.\n",
+        )
+        write(
+            root / "daemons" / "delta" / "daemon.toml",
+            """
             [daemon]
             schedule = { interval = 900 }
             command = "/delta"
-        """)
-        write(root / "daemons" / "delta" / "skill" / "SKILL.md",
-              "---\nname: delta\ndescription: d\n---\nHi.\n")
+        """,
+        )
+        write(
+            root / "daemons" / "delta" / "skill" / "SKILL.md",
+            "---\nname: delta\ndescription: d\n---\nHi.\n",
+        )
         os.environ["DAIMON_CONFIG"] = str(root / "config" / "daimon.toml")
         self.cfg = config.Config.load()
 
@@ -108,14 +131,17 @@ class ConfigTest(unittest.TestCase):
         # `cfg env` output is eval'd by run.sh, so values with spaces (e.g. a
         # Shortcut state "In Progress") must be shell-quoted or the eval breaks
         # and later DAIMON_INPUT_* vars never get exported.
-        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
             [daemon]
             schedule = { interval = 1200 }
             command = "/alpha"
             [inputs]
             in_progress_state = "In Progress"
             ready_label = "auto-ready"
-        """)
+        """,
+        )
         buf = io.StringIO()
         with redirect_stdout(buf):
             config.main(["env", "alpha"])
@@ -124,7 +150,9 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(env["DAIMON_INPUT_READY_LABEL"], "auto-ready")
 
     def test_validate_inputs_flags_empty_required(self):
-        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
             [daemon]
             schedule = { interval = 1200 }
             command = "/alpha"
@@ -132,7 +160,8 @@ class ConfigTest(unittest.TestCase):
             [inputs]
             ready_label = "auto-ready"
             skip_label = "   "
-        """)
+        """,
+        )
         buf = io.StringIO()
         with redirect_stdout(buf):
             rc = config.main(["validate-inputs", "alpha"])
@@ -140,14 +169,17 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(buf.getvalue().strip(), "skip_label")
 
     def test_validate_inputs_passes_when_all_present(self):
-        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
             [daemon]
             schedule = { interval = 1200 }
             command = "/alpha"
             required_inputs = ["ready_label"]
             [inputs]
             ready_label = "auto-ready"
-        """)
+        """,
+        )
         self.assertEqual(config.main(["validate-inputs", "alpha"]), 0)
 
     def _parse_env_output(self, output):
@@ -174,14 +206,17 @@ class ConfigTest(unittest.TestCase):
 
     def test_render_skill_learning_opt_out(self):
         write(self.root / "references" / "learning.md", "LEARNING PROTOCOL BODY\n")
-        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
             [daemon]
             schedule = { interval = 1200 }
             command = "/alpha"
             learning = false
             [inputs]
             repo = "me/alpha"
-        """)
+        """,
+        )
         out = config.render_skill(config.Config.load(), "alpha")
         self.assertNotIn("LEARNING PROTOCOL BODY", out)
 
@@ -195,17 +230,22 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.validate(self.cfg), [])
 
     def test_validate_catches_bad_backend(self):
-        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
             [daemon]
             backend = "gpt"
             schedule = { interval = 1200 }
             command = "/alpha"
-        """)
+        """,
+        )
         errs = config.validate(config.Config.load())
         self.assertTrue(any("backend must be one of" in e for e in errs))
 
     def test_validate_catches_empty_required_input(self):
-        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
             [daemon]
             schedule = { interval = 1200 }
             command = "/alpha"
@@ -213,16 +253,20 @@ class ConfigTest(unittest.TestCase):
             [inputs]
             repo = "me/alpha"
             token = ""
-        """)
+        """,
+        )
         errs = config.validate(config.Config.load())
         self.assertTrue(any("required input 'token'" in e for e in errs))
         self.assertFalse(any("required input 'repo'" in e for e in errs))
 
     def test_validate_catches_missing_command(self):
-        write(self.root / "daemons" / "alpha" / "daemon.toml", """
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
             [daemon]
             schedule = { interval = 1200 }
-        """)
+        """,
+        )
         errs = config.validate(config.Config.load())
         self.assertTrue(any("command" in e for e in errs))
 
