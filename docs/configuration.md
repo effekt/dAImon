@@ -135,8 +135,21 @@ override all of them, and every profile's `reference.md` is appended to the skil
 
 This lets one daemon span backends — e.g. `review-prs` reviews GitHub PRs
 (native) but also carries the `shortcut` source so a PR that references a story is
-reviewed against that story's acceptance criteria. A profile's `reference.md` is
-task-shaped (it documents how to comment/label/transition items); a daemon that
-only needs to *read* from a source should say so in its skill, as `review-prs`
-does ("Shortcut is read-only here").
+reviewed against that story's acceptance criteria.
+
+### Read-only vs read-write
+
+A source entry can be a plain string (read-only) or a table with `write = true`:
+
+```toml
+sources = ["shortcut"]                          # read-only
+sources = [{ name = "shortcut", write = true }] # may mutate the source
+```
+
+A profile splits its guidance in two: `reference.md` is the read core (access,
+read one item, linking) and is always appended; `reference.write.md` documents the
+mutating operations (search/scope, comment, label, transition) and is appended
+**only** to daemons that declare `write = true`. So `review-prs` (read-only) never
+receives the comment/label/transition instructions, while the triage daemons
+(`story-reviewer`, `work-queue`) do.
 
