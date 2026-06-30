@@ -13,12 +13,13 @@ source "$DAIMON_LIB_DIR/budget.sh"
 
 ensure_state_dirs
 OPLOG="$(logs_dir)/$SLUG.log"
-COMMAND="$(cfg daemon "$SLUG" command)"
-DANGER="$(cfg daemon "$SLUG" danger)"
-STUCK_AFTER="$(cfg daemon "$SLUG" stuck_after)"
-WORKING_DIR="$(cfg daemon "$SLUG" working_dir)"
-READY_TIMEOUT="$(cfg get defaults.ready_timeout)"
-read -r -a BACKENDS <<< "$(cfg backends "$SLUG")"
+eval "$(cfg daemon-env "$SLUG")"
+COMMAND="$DAIMON_D_COMMAND"
+DANGER="$DAIMON_D_DANGER"
+STUCK_AFTER="$DAIMON_D_STUCK_AFTER"
+WORKING_DIR="$DAIMON_D_WORKING_DIR"
+READY_TIMEOUT="$DAIMON_READY_TIMEOUT"
+read -r -a BACKENDS <<< "$DAIMON_D_BACKENDS"
 MULTI=0; [ "${#BACKENDS[@]}" -gt 1 ] && MULTI=1
 
 pane_heartbeat() {  # session heartbeat — touch heartbeat whenever the pane changes
@@ -34,8 +35,9 @@ run_one_backend() {
   local be="$1"
   # shellcheck source=/dev/null
   source "$DAIMON_INSTALL_ROOT/backends/$be.sh"
-  local model session
-  model="$(cfg model "$SLUG" "$be")"
+  local model session model_var
+  model_var="DAIMON_D_MODEL_$(printf '%s' "$be" | tr '[:lower:]' '[:upper:]')"
+  model="${!model_var}"
   if [ "$MULTI" = "1" ]; then session="$(session_name "$SLUG" "$be")"; else session="$(session_name "$SLUG")"; fi
 
   local SENTINEL HEARTBEAT WAITF
