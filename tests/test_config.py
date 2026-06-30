@@ -149,6 +149,27 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(env["DAIMON_INPUT_IN_PROGRESS_STATE"], "In Progress")
         self.assertEqual(env["DAIMON_INPUT_READY_LABEL"], "auto-ready")
 
+    def test_daemon_env_bundles_all_launch_fields(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            config.main(["daemon-env", "alpha"])
+        env = self._parse_env_output(buf.getvalue())
+        d = self.cfg.daemon("alpha")
+        self.assertEqual(env["DAIMON_D_COMMAND"], d["command"])
+        self.assertEqual(env["DAIMON_D_DANGER"], "1")
+        self.assertEqual(env["DAIMON_D_STUCK_AFTER"], str(d["stuck_after"]))
+        self.assertEqual(env["DAIMON_D_WORKING_DIR"], d["working_dir"])
+        self.assertEqual(env["DAIMON_D_BACKENDS"], "claude")
+        self.assertEqual(env["DAIMON_READY_TIMEOUT"], "20")
+        self.assertEqual(env["DAIMON_D_MODEL_CLAUDE"], self.cfg.model_for("alpha", "claude"))
+
+    def test_discover_memoized_and_invalidated_on_write(self):
+        first = self.cfg.discover()
+        self.assertIs(first, self.cfg.discover())
+        self.cfg.update_daemon_field("alpha", "command", "/alpha2")
+        self.assertIsNot(first, self.cfg.discover())
+        self.assertEqual(self.cfg.daemon("alpha")["command"], "/alpha2")
+
     def test_validate_inputs_flags_empty_required(self):
         write(
             self.root / "daemons" / "alpha" / "daemon.toml",

@@ -80,6 +80,7 @@ class Config:
         else:
             self.install_root = repo_root()
         self.state_dir = expand(self.core["state_dir"])
+        self._discover_cache: dict[str, dict] | None = None
 
     @classmethod
     def load(cls) -> Config:
@@ -91,6 +92,11 @@ class Config:
         return self.install_root / "daemons"
 
     def discover(self) -> dict[str, dict]:
+        if self._discover_cache is None:
+            self._discover_cache = self._scan_daemons()
+        return self._discover_cache
+
+    def _scan_daemons(self) -> dict[str, dict]:
         out: dict[str, dict] = {}
         ddir = self.daemons_dir()
         if not ddir.is_dir():
@@ -169,6 +175,7 @@ class Config:
                 {"daemon": raw.get("daemon", {}), "inputs": raw.get("inputs", {})}
             )
         )
+        self._discover_cache = None
 
     def update_daemon_field(self, slug: str, field: str, value) -> None:
         self._merge_write(self.daemon_toml_path(slug), {field: value}, None)
@@ -319,6 +326,21 @@ def _emit(value) -> str:
     return str(value)
 
 
+def bundle_daemon_env(cfg: Config, slug: str) -> str:
+    d = cfg.daemon(slug)
+    be_list = cfg.backends(slug)
+    pairs = [
+        ("DAIMON_D_COMMAND", d["command"]),
+        ("DAIMON_D_DANGER", d["danger"]),
+        ("DAIMON_D_STUCK_AFTER", d["stuck_after"]),
+        ("DAIMON_D_WORKING_DIR", d["working_dir"]),
+        ("DAIMON_D_BACKENDS", be_list),
+        ("DAIMON_READY_TIMEOUT", cfg.defaults["ready_timeout"]),
+    ]
+    pairs += [(f"DAIMON_D_MODEL_{be.upper()}", cfg.model_for(slug, be)) for be in be_list]
+    return "".join(f"{k}={shlex.quote(_emit(v))}\n" for k, v in pairs)
+
+
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(prog="daimon-config")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -340,6 +362,8 @@ def main(argv: list[str]) -> int:
     s.add_argument("slug")
     e = sub.add_parser("env")
     e.add_argument("slug")
+    de = sub.add_parser("daemon-env")
+    de.add_argument("slug")
     vi = sub.add_parser("validate-inputs")
     vi.add_argument("slug")
     sub.add_parser("validate")
@@ -387,6 +411,9 @@ def main(argv: list[str]) -> int:
         # or input values containing spaces (e.g. "In Progress") break the eval.
         for k, v in cfg.daemon(args.slug)["inputs"].items():
             print(f"DAIMON_INPUT_{k.upper()}={shlex.quote(_emit(v))}")
+        return 0
+    if args.cmd == "daemon-env":
+        print(bundle_daemon_env(cfg, args.slug), end="")
         return 0
     if args.cmd == "validate-inputs":
         missing = _missing_required_inputs(cfg, args.slug)
