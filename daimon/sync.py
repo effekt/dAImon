@@ -4,6 +4,7 @@ Run via `daimon sync` or `python -m daimon.sync`."""
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import sys
 from pathlib import Path
@@ -22,6 +23,8 @@ def _import_from_path(name: str, path: Path):
 
 def materialize(cfg_mod):
     cfg = cfg_mod.Config.load()
+    schema_path = cfg.install_root / "daemons" / "daemon.schema.json"
+    schema_path.write_text(json.dumps(cfg_mod.daemon_schema(), indent=2) + "\n")
     skills_root = Path(os.path.expanduser("~/.claude/skills"))
     agents = Path(os.path.expanduser("~/Library/LaunchAgents"))
     ns = cfg.core["namespace"]
