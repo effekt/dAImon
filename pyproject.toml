@@ -21,6 +21,7 @@ dev = [
     "pyright>=1.1.390",
     "pre-commit>=4.0",
     "textual>=0.85",
+    "jsonschema>=4.20",
 ]
 
 [tool.uv]

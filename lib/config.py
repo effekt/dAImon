@@ -8,6 +8,7 @@ than parse TOML themselves, so defaults/merge/validation live in exactly one pla
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shlex
 import sys
@@ -318,6 +319,69 @@ def validate(cfg: Config) -> list[str]:
     return errors
 
 
+def daemon_schema() -> dict:
+    schedule = {
+        "type": "object",
+        "oneOf": [
+            {
+                "required": ["interval"],
+                "properties": {"interval": {"type": "integer", "minimum": 1}},
+                "additionalProperties": False,
+            },
+            {
+                "required": ["minutes"],
+                "properties": {
+                    "minutes": {
+                        "type": "array",
+                        "items": {"type": "integer", "minimum": 0, "maximum": 59},
+                    }
+                },
+                "additionalProperties": False,
+            },
+            {
+                "required": ["daily"],
+                "properties": {
+                    "daily": {"type": "string", "pattern": r"^[0-9]{1,2}:[0-9]{2}$"},
+                    "tz": {"type": "string"},
+                },
+                "additionalProperties": False,
+            },
+        ],
+    }
+    daemon = {
+        "type": "object",
+        "required": ["command", "schedule"],
+        "additionalProperties": False,
+        "properties": {
+            "backend": {"type": "string", "enum": list(BACKENDS)},
+            "model": {
+                "oneOf": [
+                    {"type": "string"},
+                    {"type": "object", "additionalProperties": {"type": "string"}},
+                ]
+            },
+            "danger": {"type": "boolean"},
+            "stuck_after": {"type": "integer", "minimum": 1},
+            "ready_timeout": {"type": "integer", "minimum": 1},
+            "command": {"type": "string", "pattern": "^/"},
+            "schedule": schedule,
+            "source": {"type": "string"},
+            "working_dir": {"type": "string"},
+            "learning": {"type": "boolean"},
+            "required_inputs": {
+                "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]
+            },
+        },
+    }
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "dAImon daemon.toml",
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {"daemon": daemon, "inputs": {"type": "object"}},
+    }
+
+
 def _emit(value) -> str:
     if isinstance(value, bool):
         return "1" if value else "0"
@@ -367,6 +431,7 @@ def main(argv: list[str]) -> int:
     vi = sub.add_parser("validate-inputs")
     vi.add_argument("slug")
     sub.add_parser("validate")
+    sub.add_parser("schema")
     rp = sub.add_parser("render-plist")
     rp.add_argument("slug")
     rs = sub.add_parser("render-skill")
@@ -429,6 +494,9 @@ def main(argv: list[str]) -> int:
                 print(f"  - {er}", file=sys.stderr)
             return 1
         print(f"config OK ({len(cfg.discover())} daemon(s))")
+        return 0
+    if args.cmd == "schema":
+        print(json.dumps(daemon_schema(), indent=2))
         return 0
     if args.cmd == "render-plist":
         print(render_plist(cfg, args.slug), end="")
