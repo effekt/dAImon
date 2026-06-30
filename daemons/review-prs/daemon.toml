@@ -5,6 +5,8 @@ schedule = { interval = 1200 }
 command = "/review-prs"
 stuck_after = 1800
 required_inputs = ["filter"]
+# Read-only work-item lookup, so a PR referencing one is reviewed against its criteria.
+sources = ["shortcut"]
 
 [inputs]
 filter = "review-requested:@me"

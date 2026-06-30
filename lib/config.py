@@ -52,6 +52,16 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def sources_of(daemon: dict) -> list[str]:
+    raw = daemon.get("sources")
+    if raw is None:
+        single = daemon.get("source", "")
+        raw = [single] if single else []
+    elif isinstance(raw, str):
+        raw = [raw]
+    return [s for s in raw if s]
+
+
 def expand(p: str) -> Path:
     return Path(os.path.expanduser(p)).resolve()
 
@@ -141,12 +151,16 @@ class Config:
         raw = self.raw_daemon(slug)
         merged = dict(self.defaults)
         merged.update(raw["daemon"])
-        source = merged.get("source", "")
-        prof = self.load_profile(source) if source else None
-        inputs = dict(prof.get("defaults", {})) if prof else {}
+        sources = sources_of(merged)
+        inputs: dict = {}
+        for s in sources:
+            prof = self.load_profile(s)
+            if prof:
+                inputs.update(prof.get("defaults", {}))
         inputs.update(raw["inputs"])
         merged["inputs"] = inputs
-        merged["source"] = source
+        merged["sources"] = sources
+        merged["source"] = sources[0] if sources else ""
         merged["slug"] = slug
         wd = merged.get("working_dir")
         merged["working_dir"] = str(expand(wd)) if wd else str(self.install_root)
@@ -244,8 +258,7 @@ def render_plist_raw(label, program, working_dir, schedule_xml, log) -> str:
 def render_skill(cfg: Config, slug: str) -> str:
     d = cfg.daemon(slug)
     text = (cfg.daemons_dir() / slug / "skill" / "SKILL.md").read_text()
-    source = d.get("source")
-    if source:
+    for source in d["sources"]:
         ref = cfg.profiles_dir() / source / "reference.md"
         if ref.exists():
             text += f"\n\n---\n\n{ref.read_text()}"
@@ -310,11 +323,12 @@ def validate(cfg: Config) -> list[str]:
         skill = cfg.daemons_dir() / slug / "skill" / "SKILL.md"
         if not skill.exists():
             errors.append(f"{slug}: missing skill/SKILL.md")
-        source = d.get("source")
-        if source and cfg.load_profile(source) is None:
-            errors.append(
-                f"{slug}: unknown source profile '{source}' (no profiles/{source}/profile.toml)"
-            )
+        unknown = [s for s in sources_of(d) if cfg.load_profile(s) is None]
+        if unknown:
+            for s in unknown:
+                errors.append(
+                    f"{slug}: unknown source profile '{s}' (no profiles/{s}/profile.toml)"
+                )
         else:
             errors.extend(_required_input_errors(cfg, slug))
     for slug in cfg.disabled:
@@ -370,6 +384,7 @@ def daemon_schema() -> dict:
             "command": {"type": "string", "pattern": "^/"},
             "schedule": schedule,
             "source": {"type": "string"},
+            "sources": {"type": "array", "items": {"type": "string"}},
             "working_dir": {"type": "string"},
             "learning": {"type": "boolean"},
             "required_inputs": {
