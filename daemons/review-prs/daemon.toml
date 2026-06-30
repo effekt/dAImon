@@ -11,7 +11,12 @@ sources = ["shortcut"]
 [inputs]
 filter = "review-requested:@me"
 bot_marker = "🤖"
-# false → COMMENT instead of APPROVE on a clean review.
-auto_approve = true
+# Which verdicts the daemon may cast:
+#   approve         → full ladder: APPROVE / REQUEST_CHANGES / COMMENT
+#   request_changes → REQUEST_CHANGES on blocking findings, else COMMENT; never APPROVE
+#   comment         → always COMMENT (findings still posted inline); never APPROVE/REQUEST_CHANGES
+review_mode = "approve"
+# How much detail to post: full (structured body + findings table) or compact (one-liner).
+verbosity = "full"
 # Diffs touching these globs are HIGH risk: never auto-approved.
 high_risk_globs = ["**/auth/**", "**/*payment*", "**/*billing*", "**/*pricing*", "**/*refund*", "**/migrations/**", "**/*.env*", "**/*secret*", "**/Dockerfile*", "**/*.tf"]

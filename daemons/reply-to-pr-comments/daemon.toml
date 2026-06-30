@@ -7,3 +7,5 @@ stuck_after = 600
 
 [inputs]
 bot_marker = "🤖"
+# full → reply includes a one-line rationale; compact → terse reply.
+verbosity = "full"

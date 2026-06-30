@@ -28,8 +28,12 @@ For every thread with a new reply:
 1. Read the full thread for context.
 2. If the reply asks a question or requests a change, address it directly — make
    the change if it is within scope, or explain clearly why not.
-3. Post your response, prefixed with the bot marker `{{inputs.bot_marker}}` so the
-   next run can tell your comments apart from others'.
+3. Post your response, prefixed with the bot marker `{{inputs.bot_marker}}`, opening
+   with the intent prefix from the reply taxonomy in **Output conventions** below —
+   `Fixed — …`, `Acknowledged — …`, or `Respectfully disagree — …`. Detail follows
+   `{{inputs.verbosity}}`: `full` adds a one-line rationale, `compact` stays terse.
+   **Timing:** a reply that claims a code change is posted only *after* the commit
+   is pushed; explanation-only replies post immediately.
 
 ## 3. Re-trigger review when a finding is addressed
 

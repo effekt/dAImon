@@ -46,8 +46,11 @@ For every story with a new human reply:
 1. Read the full comment trail for context.
 2. If the reply asks a question or requests something in scope, address it
    directly — make the change if it's within scope, or explain clearly why not.
-3. Post your response as a story comment, prefixed with `{{inputs.bot_marker}}` so
-   the next run can tell your comments apart from others'.
+3. Post your response as a story comment, prefixed with `{{inputs.bot_marker}}`,
+   opening with the intent prefix from the reply taxonomy in **Output conventions**
+   below — `Acknowledged — …` or `Respectfully disagree — …` (use `Fixed — …` only
+   when you actually landed a change). Detail follows `{{inputs.verbosity}}`: `full`
+   adds a one-line rationale, `compact` stays terse.
 
 ## 3. Re-trigger triage when an awaiting-input question is answered
 

@@ -9,4 +9,7 @@ required_inputs = ["triage_state", "ready_label", "skip_label", "assist_label", 
 
 [inputs]
 repos = []
+bot_marker = "🤖"
+# How much detail the posted assessment carries: full (sectioned template) or compact.
+verbosity = "full"
 

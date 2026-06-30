@@ -39,9 +39,42 @@ decisions.
 
 ## 3. Post an assessment
 
-Comment on the story with a concise, factual assessment: affected files, a
-suggested approach, complexity, and open questions. Keep every claim grounded in
-what you actually found in the code — do not invent file paths or APIs.
+Comment on the story with a factual assessment, written per `{{inputs.verbosity}}`.
+Keep every claim grounded in what you actually found in the code — do not invent
+file paths or APIs.
+
+- **`compact`** — affected files, a suggested approach, complexity, and open
+  questions, in a few short paragraphs.
+- **`full`** — a sectioned assessment:
+
+  ```markdown
+  ## Assessment: <story name>
+
+  **Domain:** <frontend | backend | fullstack | infra | …>
+
+  ### Affected areas
+  - `path/to/file` — <what changes here and why>
+
+  ### Approach
+  <Which layers to touch, the pattern to follow, a similar existing implementation.>
+
+  ### Patterns to follow
+  - <existing implementation / component / service method to reuse, with its path>
+
+  ### Dependencies & risks
+  - <migrations, schema changes, other services, blockers>
+
+  ### Suggested order
+  1. <first step>  2. <next step>  …
+
+  **Complexity:** <S | M | L | XL>
+
+  ### Open questions
+  - <anything that needs a human answer — these drive the label in §4>
+  ```
+
+Prefix the comment with `{{inputs.bot_marker}}` (see **Output conventions** for
+voice — factual, no hedging, no AI/automation mentions).
 
 ## 4. Stamp the label
 

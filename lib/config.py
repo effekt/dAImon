@@ -264,25 +264,25 @@ def render_plist_raw(label, program, working_dir, schedule_xml, log) -> str:
 """
 
 
+def _append_ref(text: str, path: Path) -> str:
+    """Append a reference doc (separated by a markdown rule) if it exists."""
+    if path.exists():
+        text += f"\n\n---\n\n{path.read_text()}"
+    return text
+
+
 def render_skill(cfg: Config, slug: str) -> str:
     d = cfg.daemon(slug)
     text = (cfg.daemons_dir() / slug / "skill" / "SKILL.md").read_text()
     for source in d["sources"]:
-        ref = cfg.profiles_dir() / source / "reference.md"
-        if ref.exists():
-            text += f"\n\n---\n\n{ref.read_text()}"
+        text = _append_ref(text, cfg.profiles_dir() / source / "reference.md")
         if source in d["write_sources"]:
-            wref = cfg.profiles_dir() / source / "reference.write.md"
-            if wref.exists():
-                text += f"\n\n---\n\n{wref.read_text()}"
+            text = _append_ref(text, cfg.profiles_dir() / source / "reference.write.md")
     if "bot_marker" in d["inputs"]:
-        conventions = cfg.install_root / "references" / "skill-conventions.md"
-        if conventions.exists():
-            text += f"\n\n---\n\n{conventions.read_text()}"
+        text = _append_ref(text, cfg.install_root / "references" / "skill-conventions.md")
+        text = _append_ref(text, cfg.install_root / "references" / "output-conventions.md")
     if d.get("learning", True):
-        learning = cfg.install_root / "references" / "learning.md"
-        if learning.exists():
-            text += f"\n\n---\n\n{learning.read_text()}"
+        text = _append_ref(text, cfg.install_root / "references" / "learning.md")
     for key, val in d["inputs"].items():
         rendered = ", ".join(str(x) for x in val) if isinstance(val, list) else str(val)
         text = text.replace(f"{{{{inputs.{key}}}}}", rendered)

@@ -37,7 +37,9 @@ re-review even at an unchanged SHA.)
    appears below, no source is configured — just review the diff.
 3. Check it against the repository's conventions and any rules files in the repo.
 4. Identify correctness bugs, security issues, and clear quality problems. Prefer
-   a few high-confidence findings over many speculative ones.
+   a few high-confidence findings over many speculative ones. Tag each finding as
+   **Blocking** or **Suggestion** (see the severity tiers in **Output
+   conventions** below) — this drives the verdict in §4.
 
 ## 3. Classify risk
 
@@ -53,18 +55,59 @@ re-review even at an unchanged SHA.)
 ## 4. Cast one review decision
 
 Submit **exactly one** review per PR (`gh pr review`, or the reviews API for
-inline comments). Every comment you post is prefixed with `{{inputs.bot_marker}}`
-so reply-to-pr-comments can pick up responses.
+inline comments). Post **one inline comment per finding** — Blocking and
+Suggestion alike — each tagged with its tier (see **Output conventions** below for
+the finding shape). Every comment is prefixed with `{{inputs.bot_marker}}` so
+reply-to-pr-comments can pick up responses. Re-resolve any earlier comment the
+author has since fixed.
 
-- **Findings exist → `REQUEST_CHANGES`.** One inline comment per finding (problem
-  + concrete fix); review body ≤140 chars summarizing. Re-resolve any earlier
-  comment the author has since fixed.
-- **Clean + HIGH → `COMMENT`** (not approve): `Automated review — no rule
-  violations found. HIGH-risk change; human approval recommended. Verify: <areas>.`
-- **Clean + INERT/LOW/MEDIUM →** if `{{inputs.auto_approve}}` is `1`, `APPROVE`
-  with a ≤140-char note on what's good; if `0`, post `COMMENT` instead.
+The verdict is gated on `{{inputs.review_mode}}`:
+
+- **`comment`** — always `COMMENT`, whatever the findings. Never APPROVE or
+  REQUEST_CHANGES. (Review-only mode.)
+- **`request_changes`**:
+  - Any **Blocking** finding → `REQUEST_CHANGES`.
+  - No Blocking finding (clean, or Suggestions only) → `COMMENT`.
+- **`approve`** (full ladder):
+  - Any **Blocking** finding → `REQUEST_CHANGES`.
+  - No Blocking, but **Suggestions** exist, risk INERT/LOW/MEDIUM → `APPROVE`; the
+    suggestions ride along as non-blocking inline followups (the body says so).
+  - No Blocking, Suggestions exist, risk **HIGH** → `COMMENT` (human sign-off).
+  - Clean + HIGH → `COMMENT`: `Automated review — no rule violations found.
+    HIGH-risk change; human approval recommended. Verify: <areas>.`
+  - Clean + INERT/LOW/MEDIUM → `APPROVE` with a note on what's good.
+
+### Review body
+
+Write the body per `{{inputs.verbosity}}`:
+
+- **`compact`** — a single ≤140-char line summarizing the verdict and finding
+  counts.
+- **`full`** — a structured body:
+
+  ```markdown
+  {{inputs.bot_marker}} ## PR Review: #<n> — <title>
+
+  **Summary:** <2–3 sentences: what the PR does, what area it touches, key changes.>
+
+  <files reviewed> · risk: <INERT|LOW|MEDIUM|HIGH> · <blocking> blocking, <suggestion> suggestions
+
+  ### Findings
+
+  | # | Severity | File | Issue |
+  |---|----------|------|-------|
+  | 1 | Blocking | `path:line` | [<category>] <problem> |
+  | 2 | Suggestion | `path:line` | [<category>] <problem> |
+
+  <Below the table, expand each finding with its full description and fix block —
+  the same content as the inline comments.>
+  ```
+
+  On a clean review, replace the table with a single `Clean — no findings.` line.
+  Add a `### Resolved without fix` section (one line per thread: `path:line —
+  original concern — why unaddressed`) only when re-resolving prior comments.
 
 ## 5. Finish
 
 Record each acted-on PR as `{number, headSha, verdict}` in `$DAIMON_STATE_FILE`.
-Keep the summary short: each PR, its verdict, and how many findings it got.
+Keep the summary short: each PR, its verdict, and its blocking/suggestion counts.
