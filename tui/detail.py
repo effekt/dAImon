@@ -1,5 +1,6 @@
 """Per-panel content for the selected daemon, as Textual markup. Status is
 conveyed by symbol + text (never colour alone)."""
+
 import state
 from _lib import schedule_fmt
 
@@ -23,7 +24,9 @@ def render_config(cfg, slug: str) -> str:
 
 
 def render_status(cfg, slug: str) -> str:
-    mark = lambda ok: "[green]✓[/green]" if ok else "[dim]·[/dim]"
+    def mark(ok):
+        return "[green]✓[/green]" if ok else "[dim]·[/dim]"
+
     reg = mark(state.registered(cfg, slug))
     loaded = mark(state.launchd_loaded(state.label_for(cfg, slug)))
     run = "[green]● running[/green]" if state.running_session(cfg, slug) else "[dim]— idle[/dim]"
@@ -35,8 +38,10 @@ def render_procs(cfg, slug: str) -> str:
     if not procs:
         return "[dim]— not running[/dim]"
     total = sum(rss for _, rss, _ in procs)
-    rows = [f"[dim]{pid:>6}[/dim] {label:<7}[dim]{rss:>6.0f} MB[/dim]"
-            for pid, rss, label in sorted(procs, key=lambda p: -p[1])[:6]]
+    rows = [
+        f"[dim]{pid:>6}[/dim] {label:<7}[dim]{rss:>6.0f} MB[/dim]"
+        for pid, rss, label in sorted(procs, key=lambda p: -p[1])[:6]
+    ]
     return "\n".join([f"[dim]{len(procs)} procs · {total:.0f} MB total[/dim]"] + rows)
 
 

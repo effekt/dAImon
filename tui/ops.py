@@ -1,4 +1,5 @@
 """Side-effecting control-panel actions: launchd, throttle, plist regen, kill."""
+
 import json
 import os
 import shutil
@@ -21,6 +22,7 @@ def regen_plist(cfg, slug: str) -> None:
 
 def cfg_render_plist(cfg, slug: str) -> str:
     import config
+
     return config.render_plist(cfg, slug)
 
 
@@ -29,8 +31,11 @@ def run_now(cfg, slug: str) -> None:
     if launchd_loaded(label):
         subprocess.run(["launchctl", "kickstart", "-k", f"{_gui()}/{label}"], check=False)
     else:
-        subprocess.Popen(["bash", str(INSTALL_ROOT / "lib" / "run.sh"), slug],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(
+            ["bash", str(INSTALL_ROOT / "lib" / "run.sh"), slug],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
 
 def enable(cfg, slug: str) -> None:
@@ -76,10 +81,16 @@ def cycle_throttle(cfg) -> str:
             cur = json.loads(path.read_text()).get("level", "off")
         except (ValueError, OSError):
             cur = "off"
-    nxt = THROTTLE_CYCLE[(THROTTLE_CYCLE.index(cur) + 1) % len(THROTTLE_CYCLE)] \
-        if cur in THROTTLE_CYCLE else "off"
+    nxt = (
+        THROTTLE_CYCLE[(THROTTLE_CYCLE.index(cur) + 1) % len(THROTTLE_CYCLE)]
+        if cur in THROTTLE_CYCLE
+        else "off"
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     expires = time.time() + 3600 if nxt != "off" else None
-    path.write_text(json.dumps({"level": nxt, "set_at": time.time(),
-                                "expires_at": expires, "reason": "set via TUI"}))
+    path.write_text(
+        json.dumps(
+            {"level": nxt, "set_at": time.time(), "expires_at": expires, "reason": "set via TUI"}
+        )
+    )
     return nxt

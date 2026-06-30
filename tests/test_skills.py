@@ -35,8 +35,10 @@ class SkillsTest(unittest.TestCase):
             cfg = tomllib.loads((d / "daemon.toml").read_text())
             daemon = cfg.get("daemon", {})
             with self.subTest(daemon=d.name):
-                self.assertTrue(str(daemon.get("command", "")).startswith("/"),
-                                f"{d.name}: command must start with /")
+                self.assertTrue(
+                    str(daemon.get("command", "")).startswith("/"),
+                    f"{d.name}: command must start with /",
+                )
                 self.assertIn("schedule", daemon, f"{d.name}: schedule required")
                 skill = d / "skill" / "SKILL.md"
                 self.assertTrue(skill.exists(), f"{d.name}: missing SKILL.md")
@@ -51,8 +53,7 @@ class SkillsTest(unittest.TestCase):
             with self.subTest(daemon=slug):
                 rendered = config.render_skill(cfg, slug)
                 leftover = PLACEHOLDER.findall(rendered)
-                self.assertEqual(leftover, [],
-                                 f"{slug}: unresolved {{{{inputs.*}}}}: {leftover}")
+                self.assertEqual(leftover, [], f"{slug}: unresolved {{{{inputs.*}}}}: {leftover}")
 
 
 if __name__ == "__main__":

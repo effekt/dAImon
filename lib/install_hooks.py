@@ -5,6 +5,7 @@ usage: install_hooks.py <settings.json> <hooks.json>
 Backs up the settings file, then appends our hook entries to each event only if
 an entry referencing $DAIMON_ is not already present.
 """
+
 import json
 import shutil
 import sys
@@ -14,11 +15,7 @@ MARKER = "$DAIMON_"
 
 
 def _has_marker(entries) -> bool:
-    return any(
-        MARKER in h.get("command", "")
-        for entry in entries
-        for h in entry.get("hooks", [])
-    )
+    return any(MARKER in h.get("command", "") for entry in entries for h in entry.get("hooks", []))
 
 
 def main(argv):

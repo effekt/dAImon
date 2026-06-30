@@ -1,5 +1,6 @@
 """Minimal TOML emitter for dAImon's daemon.toml shapes (scalars, inline tables,
 arrays, plus [section] headers). Shared by config.py and the sync compiler."""
+
 from __future__ import annotations
 
 

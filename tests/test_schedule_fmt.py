@@ -23,14 +23,16 @@ class ScheduleFmtTest(unittest.TestCase):
     def test_descriptor(self):
         self.assertEqual(schedule_fmt.descriptor({"interval": 1200}), "interval 1200")
         self.assertEqual(schedule_fmt.descriptor({"minutes": [17, 47]}), "minutes 17 47")
-        self.assertEqual(schedule_fmt.descriptor({"daily": "13:02", "tz": "UTC"}),
-                         "daily 13:02 UTC")
+        self.assertEqual(
+            schedule_fmt.descriptor({"daily": "13:02", "tz": "UTC"}), "daily 13:02 UTC"
+        )
 
     def test_to_plist(self):
         self.assertIn("StartInterval", schedule_fmt.to_plist({"interval": 1200}))
         self.assertIn("StartCalendarInterval", schedule_fmt.to_plist({"minutes": [8]}))
-        self.assertIn("<key>Hour</key><integer>13</integer>",
-                      schedule_fmt.to_plist({"daily": "13:02"}))
+        self.assertIn(
+            "<key>Hour</key><integer>13</integer>", schedule_fmt.to_plist({"daily": "13:02"})
+        )
 
 
 if __name__ == "__main__":

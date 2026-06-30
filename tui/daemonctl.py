@@ -1,19 +1,26 @@
 """dAImon control panel — a Textual TUI over the daemon pipeline. Config-driven:
 the daemon list comes from the framework's auto-discovery, never a hardcoded list."""
-import subprocess
 
-from rich.text import Text
-from textual.app import App, ComposeResult
-from textual.binding import Binding
-from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.widgets import DataTable, Footer, Header, Input, Static
+import subprocess
 
 import detail
 import ops
 import state
 from _lib import INSTALL_ROOT, config
-from screens import (ConfigScreen, ConfirmScreen, DuplicateScreen, FilesScreen,
-                     HelpScreen, ManageScreen, ProcessScreen)
+from rich.text import Text
+from screens import (
+    ConfigScreen,
+    ConfirmScreen,
+    DuplicateScreen,
+    FilesScreen,
+    HelpScreen,
+    ManageScreen,
+    ProcessScreen,
+)
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.widgets import DataTable, Footer, Header, Input, Static
 
 MANAGE_ITEMS = [
     ("enable", "e  enable (activate)"),
@@ -158,9 +165,12 @@ class DaemonCtl(App):
         self.slugs = [s for s in allslugs if flt in s.lower()]
         for slug in self.slugs:
             d = cfg.daemon(slug)
-            self.table.add_row(Text.from_markup(self._dot(cfg, slug)),
-                               Text.from_markup(self._name_markup(cfg, slug)),
-                               self._be(d["backend"]), key=slug)
+            self.table.add_row(
+                Text.from_markup(self._dot(cfg, slug)),
+                Text.from_markup(self._name_markup(cfg, slug)),
+                self._be(d["backend"]),
+                key=slug,
+            )
         count = f"{len(self.slugs)}/{len(allslugs)}" if flt else str(len(allslugs))
         self.query_one("#sidebar").border_title = f"daemons ({count})"
         self.sub_title = f"throttle={state.throttle_level(cfg)}  ·  {len(allslugs)} daemons"
@@ -255,7 +265,7 @@ class DaemonCtl(App):
             return
         slug, cfg = sel
 
-        def done(ok: bool) -> None:
+        def done(ok: bool | None) -> None:
             if ok:
                 fn(cfg, slug)
                 self.refresh_table()

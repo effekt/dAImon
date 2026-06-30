@@ -1,4 +1,5 @@
 """Read-only queries the control panel renders: session, launchd, log, throttle."""
+
 import json
 import os
 import subprocess
@@ -31,8 +32,9 @@ def running_session(cfg, slug: str) -> str | None:
 
 
 def session_runtime(session: str) -> str:
-    return sh("tmux", "display-message", "-p", "-t", session, "#{session_activity}") and \
-        sh("tmux", "display-message", "-p", "-t", session, "#{t:session_created}")
+    return sh("tmux", "display-message", "-p", "-t", session, "#{session_activity}") and sh(
+        "tmux", "display-message", "-p", "-t", session, "#{t:session_created}"
+    )
 
 
 def launchd_loaded(label: str) -> bool:

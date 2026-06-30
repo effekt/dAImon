@@ -4,6 +4,7 @@
 All other components (bash libs, the TUI, the installer) shell out to this rather
 than parse TOML themselves, so defaults/merge/validation live in exactly one place.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -51,7 +52,7 @@ def repo_root() -> Path:
 
 
 def expand(p: str) -> Path:
-    return Path(os.path.expanduser(p)).resolve() if p else p
+    return Path(os.path.expanduser(p)).resolve()
 
 
 def global_config_path() -> Path:
@@ -81,7 +82,7 @@ class Config:
         self.state_dir = expand(self.core["state_dir"])
 
     @classmethod
-    def load(cls) -> "Config":
+    def load(cls) -> Config:
         path = global_config_path()
         raw = _load_toml(path) if path.exists() else {}
         return cls(raw, path if path.exists() else None)
@@ -163,8 +164,11 @@ class Config:
         raw.setdefault("daemon", {}).update(daemon)
         if inputs is not None:
             raw["inputs"] = inputs
-        path.write_text(toml_emit.dump_sections(
-            {"daemon": raw.get("daemon", {}), "inputs": raw.get("inputs", {})}))
+        path.write_text(
+            toml_emit.dump_sections(
+                {"daemon": raw.get("daemon", {}), "inputs": raw.get("inputs", {})}
+            )
+        )
 
     def update_daemon_field(self, slug: str, field: str, value) -> None:
         self._merge_write(self.daemon_toml_path(slug), {field: value}, None)
@@ -198,7 +202,9 @@ def render_plist_raw(label, program, working_dir, schedule_xml, log) -> str:
     args = "\n".join(f"        <string>{escape(a)}</string>" for a in program)
     env_xml = "\n".join(
         f"        <key>{k}</key>\n        <string>{escape(os.environ[k])}</string>"
-        for k in ("PATH", "HOME", "SSH_AUTH_SOCK") if os.environ.get(k))
+        for k in ("PATH", "HOME", "SSH_AUTH_SOCK")
+        if os.environ.get(k)
+    )
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -258,8 +264,10 @@ def _missing_required_inputs(cfg: Config, slug: str) -> list[str]:
 
 
 def _required_input_errors(cfg: Config, slug: str) -> list[str]:
-    return [f"{slug}: required input '{key}' is missing or empty"
-            for key in _missing_required_inputs(cfg, slug)]
+    return [
+        f"{slug}: required input '{key}' is missing or empty"
+        for key in _missing_required_inputs(cfg, slug)
+    ]
 
 
 def validate(cfg: Config) -> list[str]:
@@ -292,7 +300,9 @@ def validate(cfg: Config) -> list[str]:
             errors.append(f"{slug}: missing skill/SKILL.md")
         source = d.get("source")
         if source and cfg.load_profile(source) is None:
-            errors.append(f"{slug}: unknown source profile '{source}' (no profiles/{source}/profile.toml)")
+            errors.append(
+                f"{slug}: unknown source profile '{source}' (no profiles/{source}/profile.toml)"
+            )
         else:
             errors.extend(_required_input_errors(cfg, slug))
     for slug in cfg.disabled:
@@ -312,41 +322,66 @@ def _emit(value) -> str:
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(prog="daimon-config")
     sub = p.add_subparsers(dest="cmd", required=True)
-    g = sub.add_parser("get"); g.add_argument("key")
-    d = sub.add_parser("daemon"); d.add_argument("slug"); d.add_argument("field")
-    i = sub.add_parser("input"); i.add_argument("slug"); i.add_argument("key")
+    g = sub.add_parser("get")
+    g.add_argument("key")
+    d = sub.add_parser("daemon")
+    d.add_argument("slug")
+    d.add_argument("field")
+    i = sub.add_parser("input")
+    i.add_argument("slug")
+    i.add_argument("key")
     sub.add_parser("daemons")
-    b = sub.add_parser("backends"); b.add_argument("slug")
-    m = sub.add_parser("model"); m.add_argument("slug"); m.add_argument("backend")
-    s = sub.add_parser("schedule"); s.add_argument("slug")
-    e = sub.add_parser("env"); e.add_argument("slug")
-    vi = sub.add_parser("validate-inputs"); vi.add_argument("slug")
+    b = sub.add_parser("backends")
+    b.add_argument("slug")
+    m = sub.add_parser("model")
+    m.add_argument("slug")
+    m.add_argument("backend")
+    s = sub.add_parser("schedule")
+    s.add_argument("slug")
+    e = sub.add_parser("env")
+    e.add_argument("slug")
+    vi = sub.add_parser("validate-inputs")
+    vi.add_argument("slug")
     sub.add_parser("validate")
-    rp = sub.add_parser("render-plist"); rp.add_argument("slug")
-    rs = sub.add_parser("render-skill"); rs.add_argument("slug")
+    rp = sub.add_parser("render-plist")
+    rp.add_argument("slug")
+    rs = sub.add_parser("render-skill")
+    rs.add_argument("slug")
     sub.add_parser("paths")
     args = p.parse_args(argv)
     cfg = Config.load()
 
     if args.cmd == "get":
         section, _, field = args.key.partition(".")
-        table = {"core": cfg.core, "defaults": cfg.defaults,
-                 "throttle": cfg.throttle, "budget": cfg.budget}.get(section)
+        table = {
+            "core": cfg.core,
+            "defaults": cfg.defaults,
+            "throttle": cfg.throttle,
+            "budget": cfg.budget,
+        }.get(section)
         if table is None or field not in table:
-            print(f"unknown key: {args.key}", file=sys.stderr); return 2
-        print(_emit(table[field])); return 0
+            print(f"unknown key: {args.key}", file=sys.stderr)
+            return 2
+        print(_emit(table[field]))
+        return 0
     if args.cmd == "daemon":
-        print(_emit(cfg.daemon(args.slug)[args.field])); return 0
+        print(_emit(cfg.daemon(args.slug)[args.field]))
+        return 0
     if args.cmd == "input":
-        print(_emit(cfg.daemon(args.slug)["inputs"].get(args.key, ""))); return 0
+        print(_emit(cfg.daemon(args.slug)["inputs"].get(args.key, "")))
+        return 0
     if args.cmd == "daemons":
-        print("\n".join(cfg.discover().keys())); return 0
+        print("\n".join(cfg.discover().keys()))
+        return 0
     if args.cmd == "backends":
-        print(" ".join(cfg.backends(args.slug))); return 0
+        print(" ".join(cfg.backends(args.slug)))
+        return 0
     if args.cmd == "model":
-        print(cfg.model_for(args.slug, args.backend)); return 0
+        print(cfg.model_for(args.slug, args.backend))
+        return 0
     if args.cmd == "schedule":
-        print(schedule_fmt.descriptor(cfg.daemon(args.slug)["schedule"])); return 0
+        print(schedule_fmt.descriptor(cfg.daemon(args.slug)["schedule"]))
+        return 0
     if args.cmd == "env":
         # Output is eval'd by run.sh (set -a), so each value must be shell-quoted
         # or input values containing spaces (e.g. "In Progress") break the eval.
@@ -356,7 +391,8 @@ def main(argv: list[str]) -> int:
     if args.cmd == "validate-inputs":
         missing = _missing_required_inputs(cfg, args.slug)
         if missing:
-            print(" ".join(missing)); return 1
+            print(" ".join(missing))
+            return 1
         return 0
     if args.cmd == "validate":
         errs = validate(cfg)
@@ -365,11 +401,14 @@ def main(argv: list[str]) -> int:
             for er in errs:
                 print(f"  - {er}", file=sys.stderr)
             return 1
-        print(f"config OK ({len(cfg.discover())} daemon(s))"); return 0
+        print(f"config OK ({len(cfg.discover())} daemon(s))")
+        return 0
     if args.cmd == "render-plist":
-        print(render_plist(cfg, args.slug), end=""); return 0
+        print(render_plist(cfg, args.slug), end="")
+        return 0
     if args.cmd == "render-skill":
-        print(render_skill(cfg, args.slug), end=""); return 0
+        print(render_skill(cfg, args.slug), end="")
+        return 0
     if args.cmd == "paths":
         print(f"DAIMON_INSTALL_ROOT='{cfg.install_root}'")
         print(f"DAIMON_STATE_DIR='{cfg.state_dir}'")

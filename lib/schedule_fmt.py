@@ -11,6 +11,7 @@ Human string form (TUI input/display):
     ":8,38"               <-> {"minutes": [8, 38]}
     "09:02"               <-> {"daily": "09:02"}
 """
+
 import re
 
 _INTERVAL = re.compile(r"(\d+)([smh])")
