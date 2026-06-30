@@ -241,6 +241,26 @@ class ConfigTest(unittest.TestCase):
         out = config.render_skill(config.Config.load(), "alpha")
         self.assertNotIn("LEARNING PROTOCOL BODY", out)
 
+    def test_conventions_appended_for_bot_marker_daemons(self):
+        write(self.root / "references" / "skill-conventions.md", "PREFIX {{inputs.bot_marker}}\n")
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            [inputs]
+            bot_marker = "BOT"
+        """,
+        )
+        out = config.render_skill(config.Config.load(), "alpha")
+        self.assertIn("PREFIX BOT", out)
+
+    def test_conventions_skipped_without_bot_marker(self):
+        write(self.root / "references" / "skill-conventions.md", "CONVENTIONS BODY\n")
+        out = config.render_skill(self.cfg, "gamma")
+        self.assertNotIn("CONVENTIONS BODY", out)
+
     def test_render_plist_contains_label_and_slug(self):
         xml = config.render_plist(self.cfg, "alpha")
         self.assertIn("<string>com.testns.alpha</string>", xml)

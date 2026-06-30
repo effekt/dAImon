@@ -61,6 +61,11 @@ reading this project's Claude memory at the start of a run (to skip known false
 positives) and writing lessons at the end (so the next run is smarter). Set
 `learning = false` in `[daemon]` to opt a daemon out.
 
+A daemon that posts comments (it has a `bot_marker` input) additionally gets
+`references/skill-conventions.md` appended — the marker-every-comment and
+durable-state-in `$DAIMON_STATE_FILE` conventions — so you inherit them instead of
+restating them in each skill.
+
 ## Activate
 
 ```bash
