@@ -28,12 +28,13 @@ re-review even at an unchanged SHA.)
 ## 2. Review each PR
 
 1. Read the diff (`gh pr diff <number>`).
-2. **Check intent.** If the PR title or body references a story (an `sc-####` id
-   or a Shortcut URL), read that story (see Source) and review the diff against
-   its description and acceptance criteria — flag scope gaps and unmet criteria,
-   not only code defects. Shortcut is **read-only** here: only `GET` a story to
-   read it. Never comment on, label, or move a story — those sections in Source
-   do not apply to you.
+2. **Check intent.** If the PR references a work item in one of your configured
+   sources — see **Source** below for how items are identified and read (typically
+   an id or tracker URL in the title or body) — look it up and review the diff
+   against its description and acceptance criteria, flagging scope gaps and unmet
+   criteria, not only code defects. Treat every source as **read-only**: only read
+   the item; never comment on, label, or transition it. If no Source section
+   appears below, no source is configured — just review the diff.
 3. Check it against the repository's conventions and any rules files in the repo.
 4. Identify correctness bugs, security issues, and clear quality problems. Prefer
    a few high-confidence findings over many speculative ones.
