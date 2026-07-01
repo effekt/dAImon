@@ -68,6 +68,11 @@ CONFIRM = {
     "unregister": "Unregister '{slug}' — unload and delete its plist?",
 }
 
+# Distinct shapes so state reads without relying on colour (legend under the list).
+RUN, IDLE = "●", "·"
+LOADED, REGISTERED, UNREG = "▶", "◇", "–"
+LEGEND = f"[dim]{RUN} running   {IDLE} idle[/dim]\n[dim]{LOADED} loaded  {REGISTERED} registered  {UNREG} off[/dim]"
+
 
 class DaemonCtl(App):
     TITLE = "dAImon"
@@ -81,6 +86,7 @@ class DaemonCtl(App):
     #panel-procs { height: auto; border: round $surface-lighten-2; padding: 0 1; }
     #panel-log { height: 1fr; border: round $surface-lighten-2; padding: 0 1; }
     #list { height: 1fr; background: transparent; }
+    #legend { height: auto; padding: 0; margin: 0; }
     DataTable > .datatable--cursor { background: $accent 40%; text-style: bold; }
     #filter { display: none; border: none; height: 1; padding: 0; margin: 0; }
     .filtering #filter { display: block; }
@@ -119,6 +125,7 @@ class DaemonCtl(App):
         with Horizontal(id="main"):
             with Vertical(id="sidebar"):
                 yield DataTable(id="list")
+                yield Static(LEGEND, id="legend")
                 yield Input(placeholder="filter…", id="filter")
             with Vertical(id="detail-col"):
                 with VerticalScroll(id="panel-config"):
@@ -146,11 +153,17 @@ class DaemonCtl(App):
         self.set_class(event.size.width < 90, "narrow")
 
     def _dot(self, running: bool) -> str:
-        return "[green]●[/green]" if running else "[red]●[/red]"
+        return f"[green]{RUN}[/green]" if running else f"[dim]{IDLE}[/dim]"
 
     def _name_markup(self, slug: str, loaded: bool, registered: bool) -> str:
-        colour = "green" if loaded else "yellow" if registered else "red"
-        return f"[{colour}]{slug}[/{colour}]"
+        glyph, colour = (
+            (LOADED, "green")
+            if loaded
+            else (REGISTERED, "yellow")
+            if registered
+            else (UNREG, "red")
+        )
+        return f"[{colour}]{glyph} {slug}[/{colour}]"
 
     def _be(self, backend: str) -> str:
         return {"claude": "cld"}.get(backend, backend)

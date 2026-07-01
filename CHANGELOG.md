@@ -31,6 +31,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   configure/new), and dropped the no-op "source" field from the config editor.
 - TUI refresh queries tmux/launchctl once per cycle instead of once per daemon
   row, and loads config once per refresh instead of twice.
+- TUI daemon list conveys state with distinct glyphs (● running, ▶ loaded,
+  ◇ registered, – off) plus a legend, so status no longer relies on colour alone.
 
 ### Fixed
 - TUI config save no longer copies profile defaults (owner, team, labels…) into
