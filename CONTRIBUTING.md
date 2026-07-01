@@ -52,18 +52,28 @@ CI runs the same checks on every pull request (`.github/workflows/ci.yml`); a gr
 
 ## Maintainers: repository settings
 
-Merge method is squash-only with auto-delete of merged branches (set via the repo
-API). Branch protection for `main` requires a public repo or GitHub Pro; once the
-repo is public, require CI before merge with:
+Merges are squash-only with auto-delete of merged branches. `main` is protected:
+CI (`test`, `lint`, `conventional`) must pass, linear history, a PR is required
+(0 approvals), admins are not enforced. To reproduce the protection (nested JSON
+must go via `--input`; the `-f 'a[b]=c'` form does not build it correctly):
 
 ```bash
-gh api -X PUT repos/effekt/dAImon/branches/main/protection \
-  -H "Accept: application/vnd.github+json" \
-  -f 'required_status_checks[strict]=true' \
-  -f 'required_status_checks[contexts][]=test' \
-  -f 'required_status_checks[contexts][]=lint' \
-  -f 'required_status_checks[contexts][]=conventional' \
-  -f 'required_pull_request_reviews[required_approving_review_count]=0' \
-  -F 'enforce_admins=false' -F 'restrictions=' -F 'required_linear_history=true' \
-  -F 'allow_force_pushes=false' -F 'allow_deletions=false'
+gh api -X PUT repos/effekt/dAImon/branches/main/protection --input - <<'JSON'
+{
+  "required_status_checks": { "strict": true, "contexts": ["test", "lint", "conventional"] },
+  "enforce_admins": false,
+  "required_pull_request_reviews": { "required_approving_review_count": 0 },
+  "restrictions": null,
+  "required_linear_history": true,
+  "allow_force_pushes": false,
+  "allow_deletions": false
+}
+JSON
 ```
+
+**Release PRs:** release-please opens its `chore(main): release …` PR using the
+built-in `GITHUB_TOKEN`, and GitHub does not trigger CI on bot-token PRs — so the
+required checks never appear on it. Merge it with an admin override (GitHub's
+"merge without waiting for requirements", available because `enforce_admins` is
+off), or give release-please a PAT secret (`RELEASE_PLEASE_TOKEN`) so its PRs run
+CI and merge normally.
