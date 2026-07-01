@@ -38,7 +38,9 @@ class ConfigScreen(ModalScreen):
         self.slug = slug
         self.d = cfg.daemon(slug)
         self.raw = cfg.raw_daemon(slug)
-        self.input_keys = list(self.d["inputs"].keys())
+        prov = cfg.input_provenance(slug)
+        self.daemon_inputs = prov["daemon"]
+        self.profile_inputs = prov["profiles"]
         self.sources = [""] + sorted(
             p.parent.name for p in cfg.profiles_dir().glob("*/profile.toml")
         )
@@ -81,15 +83,21 @@ class ConfigScreen(ModalScreen):
         yield Label("stuck_after (s)")
         yield Input(value=str(d["stuck_after"]), id="f-stuck")
 
+    @staticmethod
+    def _show(val) -> str:
+        return ", ".join(str(x) for x in val) if isinstance(val, list) else str(val)
+
     def _input_fields(self) -> ComposeResult:
-        if not self.input_keys:
-            return
-        yield Static("inputs", classes="section")
-        for key in self.input_keys:
-            val = self.d["inputs"][key]
-            shown = ", ".join(str(x) for x in val) if isinstance(val, list) else str(val)
-            yield Label(key)
-            yield Input(value=shown, id=f"in-{key}")
+        if self.daemon_inputs:
+            yield Static("inputs", classes="section")
+            for key, val in self.daemon_inputs.items():
+                yield Label(key)
+                yield Input(value=self._show(val), id=f"in-{key}")
+        for name, fields in self.profile_inputs.items():
+            yield Static(f"profile: {name}  (shared by all {name} daemons)", classes="section")
+            for key, val in fields.items():
+                yield Label(key)
+                yield Input(value=self._show(val), id=f"prof-{name}-{key}")
 
     def _value(self, wid: str):
         return cast(_HasValue, self.query_one(f"#{wid}")).value
@@ -112,10 +120,14 @@ class ConfigScreen(ModalScreen):
             "danger": self._value("f-danger"),
             "stuck_after": int(self._value("f-stuck")),
         }
-        inputs = {
-            k: self._coerce(self.d["inputs"][k], self._value(f"in-{k}")) for k in self.input_keys
-        }
+        inputs = {k: self._coerce(v, self._value(f"in-{k}")) for k, v in self.daemon_inputs.items()}
         self.cfg.update_local(self.slug, daemon, inputs or None)
+        for name, fields in self.profile_inputs.items():
+            edited = {
+                k: self._coerce(v, self._value(f"prof-{name}-{k}")) for k, v in fields.items()
+            }
+            if edited:
+                self.cfg.update_profile_local(name, edited)
 
     def _apply(self) -> None:
         old_sched = self.cfg.daemon(self.slug)["schedule"]

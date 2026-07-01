@@ -17,9 +17,13 @@ def render_config(cfg, slug: str) -> str:
         f"[dim]command [/dim] {d['command']}",
         f"[dim]workdir [/dim] {d['working_dir']}",
     ]
-    if d["inputs"]:
+    prov = cfg.input_provenance(slug)
+    if prov["daemon"]:
         lines.append("[dim]── inputs ──────[/dim]")
-        lines += [f"[dim]{k:<12}[/dim] {v}" for k, v in d["inputs"].items()]
+        lines += [f"[dim]{k:<12}[/dim] {v}" for k, v in prov["daemon"].items()]
+    for name, fields in prov["profiles"].items():
+        lines.append(f"[dim]── profile: {name} ──[/dim]")
+        lines += [f"[dim]{k:<12}[/dim] {v}" for k, v in fields.items()]
     return "\n".join(lines)
 
 

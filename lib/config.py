@@ -207,6 +207,31 @@ class Config:
     def update_local(self, slug: str, daemon: dict, inputs: dict | None = None) -> None:
         self._merge_write(self.daemon_local_path(slug), daemon, inputs)
 
+    def profile_local_path(self, name: str) -> Path:
+        return self.profiles_dir() / name / "profile.local.toml"
+
+    def update_profile_local(self, name: str, defaults: dict) -> None:
+        path = self.profile_local_path(name)
+        raw = _load_toml(path) if path.exists() else {}
+        merged = {**raw.get("defaults", {}), **defaults}
+        path.write_text(toml_emit.dump_sections({"defaults": merged}))
+        self._discover_cache = None
+
+    def input_provenance(self, slug: str) -> dict:
+        """Split a daemon's effective inputs by origin: keys it owns (edited in its
+        daemon.local.toml) versus keys inherited from each source profile's defaults
+        (edited profile-wide). A key the daemon overrides counts as daemon-owned."""
+        owned = self.raw_daemon(slug)["inputs"]
+        profiles: dict[str, dict] = {}
+        for src in self.daemon(slug)["sources"]:
+            prof = self.load_profile(src)
+            if not prof:
+                continue
+            inherited = {k: v for k, v in prof.get("defaults", {}).items() if k not in owned}
+            if inherited:
+                profiles[src] = inherited
+        return {"daemon": dict(owned), "profiles": profiles}
+
 
 def render_plist(cfg: Config, slug: str) -> str:
     d = cfg.daemon(slug)

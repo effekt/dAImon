@@ -22,8 +22,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `review-prs`: `review_mode` replaces `auto_approve`; non-blocking suggestions no
   longer force `REQUEST_CHANGES`.
 - `doctor` now reports the platform and prints config-validation errors inline.
+- TUI config editor and detail view now separate daemon-owned inputs from
+  profile-provided fields; editing a profile field writes to the shared
+  `profiles/<name>/profile.local.toml` instead of the daemon's local file.
 
 ### Fixed
+- TUI config save no longer copies profile defaults (owner, team, labels…) into
+  each daemon's `daemon.local.toml`, which caused per-daemon divergence.
 - `story-reviewer` now marks its comments with the bot marker, so
   `reply-to-story-comments` can find and reply to them.
 
