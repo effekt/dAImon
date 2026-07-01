@@ -37,6 +37,15 @@ same checks. Use feature branches and PRs; never commit to `main` directly.
 - **`*.local.toml` is gitignored** and holds machine-specific `working_dir` +
   `[inputs]`. Committed `daemon.toml` holds shared defaults only.
 
+## Documentation
+
+- **Each daemon has a generated `README.md`** (and there's a generated
+  `daemons/README.md` index). They're built from committed metadata only —
+  `daemon.toml` + `skill/SKILL.md` — never machine-local files. Do not hand-edit
+  them; run `make docs` to regenerate. A pre-commit hook regenerates them when a
+  `daemon.toml` or `SKILL.md` changes, and `tests/test_docs.py` fails CI if any is
+  stale. Change the daemon's metadata (or `daimon/gen_docs.py`), not the README.
+
 ## House style
 
 - Shell: hand-aligned definitions and the compact `cmd; return 0` dispatch style
