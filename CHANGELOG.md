@@ -7,7 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- `daimon init` — scaffold machine-local config from the tracked `*.example` files.
+- `daimon init [slug ...]` — choose which daemons run on this machine (the rest go to
+  `[daemons].disabled`) and scaffold their machine-local config from the tracked
+  `*.example` files. Bare invocation prompts interactively.
 - `daemon.local.toml.example` for every daemon and `profiles/shortcut/profile.local.toml.example`.
 - Configurable output for the review/reply daemons: `review_mode`
   (`approve` | `request_changes` | `comment`) and `verbosity` (`full` | `compact`),

@@ -49,7 +49,7 @@ macOS: `brew install python@3.12 tmux gh jq` (plus the [Claude CLI](https://docs
 git clone <your-fork> ~/dev/dAImon
 cd ~/dev/dAImon
 make install                 # hooks, TUI venv, skills, plists (not scheduled); puts `daimon` on PATH
-daimon init                  # scaffold editable local config from the *.example files
+daimon init                  # pick which daemons to run + scaffold their local config
 $EDITOR ~/.config/daimon/daimon.toml                       # globals: install_root, state_dir, defaults
 $EDITOR daemons/review-prs/daemon.local.toml               # set working_dir to your repo (gitignored)
 make doctor                  # verify tools, gh auth, hooks, config
@@ -65,11 +65,19 @@ PATH); `make help` lists targets.
 
 Each daemon splits its config in two: **`daemon.toml`** (committed — shared defaults,
 schedule, task inputs) and **`daemon.local.toml`** (gitignored — your `working_dir`
-and any per-machine overrides). `daimon init` copies every `*.example` into place;
-edit the `.local.toml` copies and never commit them. Source-wide settings (e.g. your
-Shortcut `owner`/`team`) live the same way in `profiles/<name>/profile.local.toml`.
-API tokens are never stored in these files — use `gh auth login` and
-`$SHORTCUT_API_TOKEN`.
+and any per-machine overrides). Edit the `.local.toml` copies and never commit them.
+Source-wide settings (e.g. your Shortcut `owner`/`team`) live the same way in
+`profiles/<name>/profile.local.toml`. API tokens are never stored in these files —
+use `gh auth login` and `$SHORTCUT_API_TOKEN`.
+
+`daimon init` defines which daemons run on this machine: name the ones you want and
+the rest are added to `[daemons].disabled` (excluded from sync and scheduling), and
+the chosen ones get their `.local.toml` scaffolded from the tracked examples.
+
+```bash
+daimon init story-reviewer reply-to-story-comments   # run only these two
+daimon init                                          # interactive picker (default: all)
+```
 
 ## Adding a daemon
 
