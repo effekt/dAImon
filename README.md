@@ -9,11 +9,16 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 </p>
 
-Scheduled, autonomous agent daemons. Each daemon fires on a schedule, launches an
-interactive Claude CLI inside a detached tmux session pointed at a
-target repository, drives it with a slash-command, and blocks until the run
-finishes or goes idle — no wall-clock cap, just an idle-gap reaper. A watchdog
-sweeps orphans and leaked MCP servers; a Textual TUI is the control panel.
+**dAImon runs a fleet of Claude Code agents on a schedule to automate your
+software-development lifecycle** — triaging issues, implementing them, reviewing
+pull requests, answering review feedback, and merging — each stage an autonomous
+daemon pointed at a repo you own.
+
+Under the hood, each daemon fires on a schedule, launches an interactive Claude CLI
+inside a detached tmux session pointed at its target repository, drives it with a
+slash-command, and blocks until the run finishes or goes idle — no wall-clock cap,
+just an idle-gap reaper. A watchdog sweeps orphans and leaked MCP servers; a Textual
+TUI is the control panel.
 
 <p align="center">
   <img src="assets/tui.png" alt="dAImon control panel — daemon list with live status, config, processes, and log" width="900">
@@ -85,9 +90,19 @@ daimon init                                          # interactive picker (defau
 
 ## Daemons
 
-The reference daemons live under [`daemons/`](daemons/) — see the
-[daemons index](daemons/README.md) for what each does and how it's configured
-(every daemon has its own generated README).
+The reference daemons cover the development lifecycle end to end:
+
+- **story-reviewer** — triage incoming stories; label the AI-completable ones.
+- **work-queue** — implement a ready story on a branch and open a pull request.
+- **review-prs** — risk-gated code review on open PRs.
+- **reply-to-pr-comments** / **reply-to-story-comments** — answer feedback on the
+  bot's comments and re-trigger review/triage when it's addressed.
+- **pr-manager** — shepherd approved PRs to merge (resolve conflicts, fix CI,
+  handle change requests).
+
+They're reference implementations — run the ones you want (`daimon init <slug>…`) or
+copy one as a starting point. See the [daemons index](daemons/README.md) for each
+daemon's schedule, inputs, and config (every daemon has its own generated README).
 
 ## Adding a daemon
 
