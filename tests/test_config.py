@@ -118,6 +118,50 @@ class ConfigTest(unittest.TestCase):
     def test_per_daemon_override(self):
         self.assertEqual(self.cfg.daemon("alpha")["stuck_after"], 600)
 
+    def _make_sourced_daemon(self):
+        write(
+            self.root / "profiles" / "sc" / "profile.toml",
+            """
+            [profile]
+            tool = "sc"
+            [defaults]
+            owner = "me"
+            team = "t"
+            """,
+        )
+        write(
+            self.root / "daemons" / "epsilon" / "daemon.toml",
+            """
+            [daemon]
+            sources = ["sc"]
+            schedule = { interval = 900 }
+            command = "/epsilon"
+            [inputs]
+            filter = "x"
+            owner = "override-me"
+            """,
+        )
+        write(
+            self.root / "daemons" / "epsilon" / "skill" / "SKILL.md",
+            "---\nname: epsilon\ndescription: e\n---\nHi.\n",
+        )
+        return config.Config.load()
+
+    def test_input_provenance_splits_daemon_and_profile(self):
+        cfg = self._make_sourced_daemon()
+        prov = cfg.input_provenance("epsilon")
+        # daemon owns its own inputs, including a key that overrides a profile default
+        self.assertEqual(prov["daemon"], {"filter": "x", "owner": "override-me"})
+        # profile contributes only non-overridden defaults
+        self.assertEqual(prov["profiles"], {"sc": {"team": "t"}})
+
+    def test_update_profile_local_is_shared_and_not_daemon_local(self):
+        cfg = self._make_sourced_daemon()
+        cfg.update_profile_local("sc", {"team": "t2"})
+        fresh = config.Config.load()
+        self.assertEqual(fresh.input_provenance("epsilon")["profiles"]["sc"]["team"], "t2")
+        self.assertNotIn("team", fresh.raw_daemon("epsilon")["inputs"])
+
     def test_backends(self):
         self.assertEqual(self.cfg.backends("alpha"), ["claude"])
         self.assertEqual(self.cfg.backends("beta"), ["claude"])
