@@ -145,16 +145,11 @@ class DaemonCtl(App):
     def on_resize(self, event) -> None:
         self.set_class(event.size.width < 90, "narrow")
 
-    def _dot(self, cfg, slug: str) -> str:
-        return "[green]●[/green]" if state.running_session(cfg, slug) else "[red]●[/red]"
+    def _dot(self, running: bool) -> str:
+        return "[green]●[/green]" if running else "[red]●[/red]"
 
-    def _name_markup(self, cfg, slug: str) -> str:
-        if state.launchd_loaded(state.label_for(cfg, slug)):
-            colour = "green"
-        elif state.registered(cfg, slug):
-            colour = "yellow"
-        else:
-            colour = "red"
+    def _name_markup(self, slug: str, loaded: bool, registered: bool) -> str:
+        colour = "green" if loaded else "yellow" if registered else "red"
         return f"[{colour}]{slug}[/{colour}]"
 
     def _be(self, backend: str) -> str:
@@ -167,11 +162,15 @@ class DaemonCtl(App):
         allslugs = list(cfg.discover())
         flt = self.filter_text.lower()
         self.slugs = [s for s in allslugs if flt in s.lower()]
+        sessions = state.live_sessions()  # one tmux/launchctl query per refresh, not per row
+        loaded = state.loaded_labels_text()
         for slug in self.slugs:
             d = cfg.daemon(slug)
+            running = state.running_session(cfg, slug, sessions) is not None
+            is_loaded = state.launchd_loaded(state.label_for(cfg, slug), loaded)
             self.table.add_row(
-                Text.from_markup(self._dot(cfg, slug)),
-                Text.from_markup(self._name_markup(cfg, slug)),
+                Text.from_markup(self._dot(running)),
+                Text.from_markup(self._name_markup(slug, is_loaded, state.registered(cfg, slug))),
                 self._be(d["backend"]),
                 key=slug,
             )
@@ -180,7 +179,7 @@ class DaemonCtl(App):
         self.sub_title = f"throttle={state.throttle_level(cfg)}  ·  {len(allslugs)} daemons"
         if self.slugs:
             self.table.move_cursor(row=min(row, len(self.slugs) - 1))
-        self._update_detail(allslugs)
+        self._update_detail(allslugs, cfg)
 
     def _render_panels(self, cfg, slug: str) -> None:
         self.query_one("#config-body", Static).update(detail.render_config(cfg, slug))
@@ -197,11 +196,11 @@ class DaemonCtl(App):
             msg = f"[dim]No daemon matches '{self.filter_text}'.[/dim]"
         self.query_one("#config-body", Static).update(msg)
 
-    def _update_detail(self, allslugs: list[str] | None = None) -> None:
+    def _update_detail(self, allslugs: list[str] | None = None, cfg=None) -> None:
         slug = self._slug()
         self.query_one("#panel-config").border_title = f"config · {slug}" if slug else "config"
         if slug:
-            self._render_panels(config.Config.load(), slug)
+            self._render_panels(cfg or config.Config.load(), slug)
         else:
             self._clear_panels(allslugs)
 
@@ -307,10 +306,14 @@ class DaemonCtl(App):
         slug, cfg = sel
 
         def done(new: str | None) -> None:
-            if new:
-                ops.duplicate(cfg, slug, new)
-                self.refresh_table()
-                self.push_screen(ConfigScreen(config.Config.load(), new))
+            if not new:
+                return
+            if (cfg.daemons_dir() / new).exists():
+                self.notify(f"'{new}' already exists", severity="error")
+                return
+            ops.duplicate(cfg, slug, new)
+            self.refresh_table()
+            self.push_screen(ConfigScreen(config.Config.load(), new))
 
         self.push_screen(DuplicateScreen(slug), done)
 
