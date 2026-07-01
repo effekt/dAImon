@@ -136,6 +136,11 @@ Global settings in `~/.config/daimon/daimon.toml`; per-daemon in
 Run-dangerous, model, schedule, backend, and idle timeout are all configurable
 globally and per daemon.
 
+## Troubleshooting
+
+Run `daimon doctor` first; for common setup issues and fixes see
+[docs/troubleshooting.md](docs/troubleshooting.md).
+
 ## Logging
 
 Per daemon, under `state_dir/logs/`: a structured operational log (`<slug>.log`)

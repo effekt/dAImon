@@ -8,7 +8,7 @@
 
 ## Checklist
 
-- [ ] `make test` passes
-- [ ] `make lint` and `make typecheck` pass
-- [ ] Docs updated if behavior changed
+- [ ] `make check` passes (test + lint + typecheck + docs/link checks)
+- [ ] Reviewed the docs this change affects (README, CONTRIBUTING, `docs/`) and
+      updated them; ran `make docs` if a daemon changed
 - [ ] No secrets or machine-local config committed (`*.local.toml`, tokens, `.env`)
