@@ -13,7 +13,7 @@ help:
 	@echo "  make status         show launchd + running-session state"
 	@echo "  make tui            open the control panel"
 	@echo "  make test           run the test suite"
-	@echo "  make lint           ruff + shellcheck (no changes)"
+	@echo "  make lint           ruff check + format --check + shellcheck (no changes)"
 	@echo "  make fmt            ruff format + autofix (writes changes)"
 	@echo "  make typecheck      pyright"
 
@@ -43,6 +43,7 @@ test:
 
 lint:
 	@uv run ruff check .
+	@uv run ruff format --check .
 	@find lib backends daemons -name '*.sh' -print0 | xargs -0 shellcheck -x
 
 fmt:

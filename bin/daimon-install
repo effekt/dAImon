@@ -12,7 +12,7 @@ CONFIG="$CONFIG_DIR/daimon.toml"
 if [ ! -f "$CONFIG" ]; then
   mkdir -p "$CONFIG_DIR"
   cp "$ROOT/config/daimon.toml.example" "$CONFIG"
-  echo "created $CONFIG — review it, then re-run install"
+  echo "created $CONFIG — review it before scheduling (install continues)"
 fi
 
 eval "$(python3 "$ROOT/lib/config.py" paths)"

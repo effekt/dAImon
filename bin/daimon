@@ -18,6 +18,7 @@ dAImon — agent daemon pipeline
 
 usage: daimon <command> [args]
 
+  init               scaffold local config from *.example files (idempotent)
   run <slug>         gated run (throttle/inbox/discovery), then launch
   launch <slug>      launch the agent now, bypassing gates
   watchdog           sweep orphan sessions, leaked MCP servers, old logs
@@ -38,6 +39,7 @@ EOF
 }
 
 case "$CMD" in
+  init)      exec bash "$LIB/init.sh" "$@" ;;
   run)       exec bash "$LIB/run.sh" "$@" ;;
   launch)    exec bash "$LIB/launch.sh" "$@" ;;
   watchdog)  exec bash "$LIB/watchdog.sh" "$@" ;;

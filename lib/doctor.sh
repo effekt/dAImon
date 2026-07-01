@@ -10,6 +10,10 @@ warn() { echo "  warn  $1"; WARN=1; }
 bad()  { echo "  FAIL  $1"; FAIL=1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+echo "platform"
+[ "$(uname)" = "Darwin" ] && ok "macOS — launchd scheduling available" \
+  || warn "non-macOS — 'daimon run' works, but launchd scheduling ('install --load') does not"
+
 echo "tools"
 have python3 && ok "python3 $(python3 --version 2>&1 | awk '{print $2}')" || bad "python3 missing"
 have tmux && ok "tmux" || bad "tmux missing"
@@ -27,7 +31,12 @@ grep -q "DAIMON_" "$HOME/.claude/settings.json" 2>/dev/null \
   && ok "completion/heartbeat hooks installed" || warn "hooks NOT installed — run: daimon install"
 
 echo "config"
-cfg validate >/dev/null 2>&1 && ok "config valid" || bad "config invalid — run: daimon validate"
+if cfg_out="$(cfg validate 2>&1)"; then
+  ok "config valid"
+else
+  bad "config invalid:"
+  while IFS= read -r line; do echo "        $line"; done <<<"$cfg_out"
+fi
 
 echo "daemons"
 needs_shortcut=0
