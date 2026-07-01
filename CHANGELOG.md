@@ -25,6 +25,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - TUI config editor and detail view now separate daemon-owned inputs from
   profile-provided fields; editing a profile field writes to the shared
   `profiles/<name>/profile.local.toml` instead of the daemon's local file.
+- TUI log panel shows a bounded, newest-first tail (reads only the end of the
+  file) instead of re-reading the whole log oldest-first on every refresh.
+- TUI manage menu is now the complete, grouped command list (adds run/attach/
+  configure/new), and dropped the no-op "source" field from the config editor.
 
 ### Fixed
 - TUI config save no longer copies profile defaults (owner, team, labels…) into

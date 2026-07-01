@@ -23,19 +23,23 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import DataTable, Footer, Header, Input, Static
 
 MANAGE_ITEMS = [
-    ("enable", "e  enable (activate)"),
-    ("disable", "d  disable"),
-    ("register", "r  register"),
-    ("unregister", "u  unregister"),
-    ("ai_configure", "b  edit with AI"),
-    ("duplicate", "y  duplicate (clone for another repo)"),
-    ("view", "v  view files (config + skill)"),
-    ("kill", "   kill the running session"),
-    ("procs", "p  process tree"),
-    ("log", "l  log"),
-    ("throttle", "t  cycle throttle"),
-    ("pause_all", "P  pause all"),
-    ("resume_all", "R  resume all"),
+    ("run_now", "g   run now (bypass gates)"),
+    ("attach", "a   attach to live session"),
+    ("configure", "c   configure (schedule / model / inputs)"),
+    ("enable", "e   enable (load plist)"),
+    ("disable", "d   disable (unload plist)"),
+    ("register", "r   register (create plist)"),
+    ("unregister", "u   unregister (delete plist)"),
+    ("ai_configure", "b   edit with AI"),
+    ("duplicate", "y   duplicate (clone for another repo)"),
+    ("new_daemon", "n   new daemon (build with AI)"),
+    ("view", "v   view files (config + skill)"),
+    ("procs", "p   process tree"),
+    ("log", "l   tail the log"),
+    ("kill", "    kill the running session"),
+    ("throttle", "t   cycle throttle"),
+    ("pause_all", "P   pause all"),
+    ("resume_all", "R   resume all"),
 ]
 
 HELP_ITEMS = [
@@ -132,7 +136,7 @@ class DaemonCtl(App):
         self.table.add_columns("st", "daemon", "be")
         self.query_one("#panel-status").border_title = "launchd"
         self.query_one("#panel-procs").border_title = "processes"
-        self.query_one("#panel-log").border_title = "log"
+        self.query_one("#panel-log").border_title = "log · newest first"
         self.slugs: list[str] = []
         self.filter_text = ""
         self.refresh_table()

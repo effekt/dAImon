@@ -41,9 +41,6 @@ class ConfigScreen(ModalScreen):
         prov = cfg.input_provenance(slug)
         self.daemon_inputs = prov["daemon"]
         self.profile_inputs = prov["profiles"]
-        self.sources = [""] + sorted(
-            p.parent.name for p in cfg.profiles_dir().glob("*/profile.toml")
-        )
         self.claude_models = models.list_models("claude")
 
     def _init_model(self, kind: str):
@@ -72,8 +69,6 @@ class ConfigScreen(ModalScreen):
         yield Input(value=schedule_fmt.display(d["schedule"]), id="f-schedule")
         yield Label("working dir")
         yield Input(value=wd, id="f-working-dir")
-        yield Label("source")
-        yield self._select("f-source", self.sources, d.get("source", ""))
         yield Label("backend")
         yield self._select("f-backend", BACKENDS, d["backend"])
         yield Label("model")
@@ -114,7 +109,6 @@ class ConfigScreen(ModalScreen):
         daemon = {
             "schedule": new_sched,
             "working_dir": self._value("f-working-dir"),
-            "source": self._value("f-source"),
             "backend": backend,
             "model": self._value("f-model"),
             "danger": self._value("f-danger"),
