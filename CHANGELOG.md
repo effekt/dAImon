@@ -17,6 +17,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and structured review bodies with a findings table.
 - Contributor scaffolding: `CONTRIBUTING.md`, issue/PR templates, README badges,
   a Prerequisites section, and a macOS-only note.
+- Conventional-commit enforcement: a `pr-title` CI check validates PR titles, and
+  merges are squash-only (the PR title becomes the commit), keeping `main`'s log
+  conventional. Merged branches auto-delete.
 
 ### Changed
 - `review-prs`: `review_mode` replaces `auto_approve`; non-blocking suggestions no
