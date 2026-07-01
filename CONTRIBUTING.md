@@ -53,16 +53,18 @@ CI runs the same checks on every pull request (`.github/workflows/ci.yml`); a gr
 ## Maintainers: repository settings
 
 Merges are squash-only with auto-delete of merged branches. `main` is protected:
-CI (`test`, `lint`, `conventional`) must pass, linear history, a PR is required
-(0 approvals), admins are not enforced. To reproduce the protection (nested JSON
-must go via `--input`; the `-f 'a[b]=c'` form does not build it correctly):
+CI (`test`, `lint`, `conventional`) must pass, linear history, no force-push or
+deletion, admins can override. **No review is required** — outsiders can't merge
+because they lack write access, not because of a review gate; add a review
+requirement only once there are other collaborators. To reproduce the protection
+(nested JSON must go via `--input`; the `-f 'a[b]=c'` form does not build it):
 
 ```bash
 gh api -X PUT repos/effekt/dAImon/branches/main/protection --input - <<'JSON'
 {
   "required_status_checks": { "strict": true, "contexts": ["test", "lint", "conventional"] },
   "enforce_admins": false,
-  "required_pull_request_reviews": { "required_approving_review_count": 0 },
+  "required_pull_request_reviews": null,
   "restrictions": null,
   "required_linear_history": true,
   "allow_force_pushes": false,
@@ -70,6 +72,10 @@ gh api -X PUT repos/effekt/dAImon/branches/main/protection --input - <<'JSON'
 }
 JSON
 ```
+
+Use classic branch protection (above), not a repository ruleset, for the required
+checks: a ruleset with an empty bypass list blocks even admins, so release PRs
+(which can't receive CI — see below) become unmergeable.
 
 **Release PRs:** release-please opens its `chore(main): release …` PR using the
 built-in `GITHUB_TOKEN`, and GitHub does not trigger CI on bot-token PRs — so the
