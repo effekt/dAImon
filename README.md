@@ -15,6 +15,10 @@ target repository, drives it with a slash-command, and blocks until the run
 finishes or goes idle — no wall-clock cap, just an idle-gap reaper. A watchdog
 sweeps orphans and leaked MCP servers; a Textual TUI is the control panel.
 
+<p align="center">
+  <img src="assets/tui.png" alt="dAImon control panel — daemon list with live status, config, processes, and log" width="900">
+</p>
+
 ## Concepts
 
 - **Daemon** — a self-contained folder `daemons/<slug>/` with `daemon.toml`
