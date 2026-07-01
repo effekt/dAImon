@@ -19,7 +19,7 @@ eval "$(python3 "$ROOT/lib/config.py" paths)"
 mkdir -p "$DAIMON_STATE_DIR/logs/transcripts" "$DAIMON_STATE_DIR/queues" "$DAIMON_STATE_DIR/runtime"
 echo "state: $DAIMON_STATE_DIR"
 
-if [ -f "$ROOT/tui/requirements.txt" ]; then
+if [ -f "$ROOT/tui/requirements.txt" ] && [ "${DAIMON_SKIP_TUI_VENV:-0}" != "1" ]; then
   python3 -m venv "$ROOT/tui/.venv"
   "$ROOT/tui/.venv/bin/pip" install -q -r "$ROOT/tui/requirements.txt" && echo "tui venv ready"
 fi
