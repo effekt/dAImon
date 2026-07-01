@@ -152,4 +152,3 @@ mutating operations (search/scope, comment, label, transition) and is appended
 **only** to daemons that declare `write = true`. So `review-prs` (read-only) never
 receives the comment/label/transition instructions, while the triage daemons
 (`story-reviewer`, `work-queue`) do.
-
