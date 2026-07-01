@@ -4,6 +4,11 @@
 
 <h1 align="center">dAImon</h1>
 
+<p align="center">
+  <a href="https://github.com/effekt/dAImon/actions/workflows/ci.yml"><img src="https://github.com/effekt/dAImon/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+</p>
+
 Scheduled, autonomous agent daemons. Each daemon fires on a schedule, launches an
 interactive Claude CLI inside a detached tmux session pointed at a
 target repository, drives it with a slash-command, and blocks until the run
@@ -24,21 +29,47 @@ sweeps orphans and leaked MCP servers; a Textual TUI is the control panel.
   liveness via a heartbeat touched on every tool call. A backend without such a
   hook can fall back to idle detection backed by a pane-activity heartbeat.
 
+## Prerequisites
+
+- **macOS** for scheduled runs — daemons are scheduled with `launchd`. On Linux you
+  can clone and `daimon run <slug>` manually, but `install --load` (launchd) and the
+  TUI's scheduling controls won't work. (systemd support isn't there yet.)
+- **Python 3.12+** — the core runtime is stdlib-only (no pip needed for it).
+- **tmux** — each run drives the agent inside a detached tmux session.
+- **Claude CLI** (`claude`) — the default backend. Set `DAIMON_CLAUDE_BIN` if it's off PATH.
+- **gh** — for the GitHub daemons (`gh auth login`).
+- **jq** — used by the GitHub discovery gates.
+
+macOS: `brew install python@3.12 tmux gh jq` (plus the [Claude CLI](https://docs.claude.com/en/docs/claude-code/overview)).
+`make doctor` verifies all of the above.
+
 ## Quick start
 
 ```bash
 git clone <your-fork> ~/dev/dAImon
 cd ~/dev/dAImon
 make install                 # hooks, TUI venv, skills, plists (not scheduled); puts `daimon` on PATH
+daimon init                  # scaffold editable local config from the *.example files
+$EDITOR ~/.config/daimon/daimon.toml                       # globals: install_root, state_dir, defaults
+$EDITOR daemons/review-prs/daemon.local.toml               # set working_dir to your repo (gitignored)
 make doctor                  # verify tools, gh auth, hooks, config
-$EDITOR ~/.config/daimon/daimon.toml                       # globals: state_dir, defaults
-$EDITOR daemons/review-prs/daemon.local.toml               # your working_dir + [inputs] (gitignored)
 make validate
 daimon run review-prs        # one gated run, now — watch with `daimon tui`
-make install-load            # schedule everything via launchd
+make install-load            # schedule everything via launchd (macOS only)
 ```
 
-`make install` symlinks `daimon`/`daimonctl` into `~/.local/bin`; `make help` lists targets.
+`make install` symlinks `daimon`/`daimonctl` into `~/.local/bin` (ensure it's on your
+PATH); `make help` lists targets.
+
+### Shared vs machine-local config
+
+Each daemon splits its config in two: **`daemon.toml`** (committed — shared defaults,
+schedule, task inputs) and **`daemon.local.toml`** (gitignored — your `working_dir`
+and any per-machine overrides). `daimon init` copies every `*.example` into place;
+edit the `.local.toml` copies and never commit them. Source-wide settings (e.g. your
+Shortcut `owner`/`team`) live the same way in `profiles/<name>/profile.local.toml`.
+API tokens are never stored in these files — use `gh auth login` and
+`$SHORTCUT_API_TOKEN`.
 
 ## Adding a daemon
 
@@ -93,3 +124,12 @@ and bash syntax across all libs.
 `lib/` framework · `backends/` agent CLIs · `daemons/` the daemons · `daimon/`
 sync (plists + skills) · `tui/` control panel · `skills/` management commands ·
 `config/` defaults + hooks · `docs/`.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev setup and workflow, and
+[docs/writing-a-daemon.md](docs/writing-a-daemon.md) to build your own daemon.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

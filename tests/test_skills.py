@@ -57,7 +57,12 @@ class SkillsTest(unittest.TestCase):
 
     def test_output_conventions_attached_to_comment_daemons(self):
         cfg = config.Config.load()
-        for slug in ("review-prs", "story-reviewer", "reply-to-pr-comments", "reply-to-story-comments"):
+        for slug in (
+            "review-prs",
+            "story-reviewer",
+            "reply-to-pr-comments",
+            "reply-to-story-comments",
+        ):
             if slug not in cfg.discover():
                 continue
             with self.subTest(daemon=slug):

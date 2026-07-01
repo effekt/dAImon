@@ -1,0 +1,16 @@
+# Copy to profile.local.toml (gitignored). Shortcut settings shared by every
+# daemon that uses the shortcut source. The API token is NOT set here — export
+# $SHORTCUT_API_TOKEN or store it in ~/.config/shortcut-cli/config.json.
+[defaults]
+team = "Your Team Name"
+# Scopes daemons to stories you own or requested. Find your member id via the
+# Shortcut API (GET /api/v3/member). Blank = every story is in scope.
+owner = "your-shortcut-member-uuid"
+
+# Override only if your workflow states / labels differ from profile.toml defaults:
+# triage_state = "To Do"
+# in_progress_state = "In Development"
+# ready_label = "ai-ready"
+# assist_label = "ai-assist"
+# human_label = "ai-human"
+# skip_label = "no-ai"
