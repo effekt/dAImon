@@ -12,4 +12,3 @@ repos = []
 bot_marker = "🤖"
 # How much detail the posted assessment carries: full (sectioned template) or compact.
 verbosity = "full"
-

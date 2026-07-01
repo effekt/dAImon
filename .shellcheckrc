@@ -4,3 +4,7 @@
 disable=SC1091
 disable=SC2034
 disable=SC2015
+# SC2329 (v0.11.0+): "function never invoked" — false-positives on sourced-lib
+# functions and on the gh()/tmux() mocks in the bats tests, which are called
+# indirectly by the code under test.
+disable=SC2329
