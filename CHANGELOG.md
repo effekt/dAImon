@@ -1,52 +1,6 @@
 # Changelog
 
-All notable changes to this project are documented here. The format is based on
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-### Added
-- `daimon init [slug ...]` — choose which daemons run on this machine (the rest go to
-  `[daemons].disabled`) and scaffold their machine-local config from the tracked
-  `*.example` files. Bare invocation prompts interactively.
-- `daemon.local.toml.example` for every daemon and `profiles/shortcut/profile.local.toml.example`.
-- Configurable output for the review/reply daemons: `review_mode`
-  (`approve` | `request_changes` | `comment`) and `verbosity` (`full` | `compact`),
-  a shared `references/output-conventions.md` (severity tiers, tone, reply taxonomy),
-  and structured review bodies with a findings table.
-- Contributor scaffolding: `CONTRIBUTING.md`, issue/PR templates, README badges,
-  a Prerequisites section, and a macOS-only note.
-- Conventional-commit enforcement: a `pr-title` CI check validates PR titles, and
-  merges are squash-only (the PR title becomes the commit), keeping `main`'s log
-  conventional. Merged branches auto-delete.
-
-### Changed
-- `review-prs`: `review_mode` replaces `auto_approve`; non-blocking suggestions no
-  longer force `REQUEST_CHANGES`.
-- `doctor` now reports the platform and prints config-validation errors inline.
-- TUI config editor and detail view now separate daemon-owned inputs from
-  profile-provided fields; editing a profile field writes to the shared
-  `profiles/<name>/profile.local.toml` instead of the daemon's local file.
-- TUI log panel shows a bounded, newest-first tail (reads only the end of the
-  file) instead of re-reading the whole log oldest-first on every refresh.
-- TUI manage menu is now the complete, grouped command list (adds run/attach/
-  configure/new), and dropped the no-op "source" field from the config editor.
-- TUI refresh queries tmux/launchctl once per cycle instead of once per daemon
-  row, and loads config once per refresh instead of twice.
-- TUI daemon list conveys state with distinct glyphs (● running, ▶ loaded,
-  ◇ registered, – off) plus a legend, so status no longer relies on colour alone.
-
-### Fixed
-- TUI config save no longer copies profile defaults (owner, team, labels…) into
-  each daemon's `daemon.local.toml`, which caused per-daemon divergence.
-- Duplicating a daemon no longer crashes when the target name already exists, and
-  no longer copies the source's `daemon.local.toml` (working_dir) into the clone.
-- `story-reviewer` now marks its comments with the bot marker, so
-  `reply-to-story-comments` can find and reply to them.
-
-## [0.1.0]
-
-Initial release — the launchd-scheduled daemon runner, the `claude` backend, the
-Textual TUI, and the reference daemons (`pr-manager`, `review-prs`, `work-queue`,
-`story-reviewer`, `reply-to-pr-comments`, `reply-to-story-comments`).
+All notable changes are recorded here. Entries below are generated from
+[Conventional Commits](https://www.conventionalcommits.org/) by
+[release-please](https://github.com/googleapis/release-please); the version follows
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
