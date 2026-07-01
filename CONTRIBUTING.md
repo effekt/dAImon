@@ -9,6 +9,7 @@ daemon, see [docs/writing-a-daemon.md](docs/writing-a-daemon.md).
 ```bash
 git clone <your-fork> && cd dAImon
 uv sync                 # dev tools: ruff, pyright (the runtime itself is stdlib-only)
+uv run pre-commit install  # run lint / typecheck / doc-regen on every commit
 make doctor             # confirm your toolchain (python 3.12+, tmux, gh, jq, claude)
 ```
 
@@ -16,8 +17,9 @@ make doctor             # confirm your toolchain (python 3.12+, tmux, gh, jq, cl
 
 ```bash
 make test               # bash syntax, python unittests, shellcheck, bats
-make lint               # ruff check + ruff format --check
+make lint               # ruff check + ruff format --check + shellcheck
 make typecheck          # pyright
+make docs               # regenerate per-daemon READMEs (if you touched a daemon)
 ```
 
 CI runs the same checks on every pull request (`.github/workflows/ci.yml`); a green
@@ -32,6 +34,9 @@ CI runs the same checks on every pull request (`.github/workflows/ci.yml`); a gr
   `*.local.toml.example`, not a real value.
 - **Keep daemons self-contained** — a daemon is a folder under `daemons/<slug>/`; the
   framework auto-discovers it. Run `daimon sync` after editing a `daemon.toml` or skill.
+- **Daemon READMEs are generated** — `daemons/*/README.md` and `daemons/README.md`
+  are built from each `daemon.toml` + `SKILL.md`. Don't hand-edit them; change the
+  metadata and run `make docs`. CI (`tests/test_docs.py`) fails if they're stale.
 - Match the style of the surrounding code; keep functions small and comments scarce.
 
 ## Pull requests
