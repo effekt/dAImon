@@ -1,0 +1,31 @@
+name: docs-reminder
+
+# Advisory only (never fails): nudges you to review the narrative docs when a PR
+# changes code but touches none of them. Generated daemon READMEs are enforced
+# separately by tests/test_docs.py.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Remind about docs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          files="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          code="$(printf '%s\n' "$files" | grep -E '^(lib|daemons|backends|tui|daimon)/' || true)"
+          docs="$(printf '%s\n' "$files" | grep -E '(^docs/|(^|/)README\.md$|^AGENTS\.md$|^CONTRIBUTING\.md$)' || true)"
+          if [ -n "$code" ] && [ -z "$docs" ]; then
+            echo "::warning::Code changed but no docs were updated — confirm README / CONTRIBUTING / docs/ are still accurate. Reminder only, not a failure."
+          else
+            echo "docs reminder: nothing to flag"
+          fi

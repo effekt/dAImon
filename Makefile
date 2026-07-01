@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 BIN := ./bin/daimon
 
-.PHONY: help install install-load doctor sync validate status tui test lint fmt typecheck docs
+.PHONY: help install install-load doctor sync validate status tui test lint fmt typecheck docs check
 
 help:
 	@echo "dAImon — make targets:"
@@ -17,6 +17,7 @@ help:
 	@echo "  make fmt            ruff format + autofix (writes changes)"
 	@echo "  make typecheck      pyright"
 	@echo "  make docs           regenerate per-daemon README.md files"
+	@echo "  make check          everything CI runs (test + lint + typecheck + docs/link checks)"
 
 install:
 	@$(BIN) install
@@ -56,3 +57,7 @@ typecheck:
 
 docs:
 	@python3 -m daimon.gen_docs
+
+check: test lint typecheck
+	@python3 -m daimon.gen_docs --check
+	@python3 -m daimon.check_links
