@@ -83,6 +83,12 @@ daimon init story-reviewer reply-to-story-comments   # run only these two
 daimon init                                          # interactive picker (default: all)
 ```
 
+## Daemons
+
+The reference daemons live under [`daemons/`](daemons/) — see the
+[daemons index](daemons/README.md) for what each does and how it's configured
+(every daemon has its own generated README).
+
 ## Adding a daemon
 
 Two ways, both producing the same `daemons/<slug>/` folder:

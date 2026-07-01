@@ -75,8 +75,12 @@ restating them in each skill.
 daimon config validate
 daimon run my-daemon      # one gated run now
 daimon sync               # regenerate plist + skill
+make docs                 # regenerate the daemon's README (from daemon.toml + SKILL.md)
 daimon tui                # enable scheduling with [e]
 ```
+
+Each daemon's `README.md` is generated — never hand-edit it; edit `daemon.toml` /
+`SKILL.md` and run `make docs`. CI fails if it's stale.
 
 ## Tips
 
