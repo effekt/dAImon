@@ -1,6 +1,8 @@
 """Per-panel content for the selected daemon, as Textual markup. Status is
 conveyed by symbol + text (never colour alone)."""
 
+from pathlib import Path
+
 import state
 from _lib import schedule_fmt
 
@@ -49,9 +51,21 @@ def render_procs(cfg, slug: str) -> str:
     return "\n".join([f"[dim]{len(procs)} procs · {total:.0f} MB total[/dim]"] + rows)
 
 
-def render_log(cfg, slug: str, n: int = 200) -> str:
+def _tail(path: Path, n: int, blocksize: int = 65536) -> list[str]:
+    """Read only the tail of the file (last ~blocksize bytes), then the last n lines —
+    avoids re-reading a multi-MB log on every refresh."""
+    size = path.stat().st_size
+    with path.open("rb") as f:
+        f.seek(max(0, size - blocksize))
+        data = f.read()
+    return data.decode("utf-8", errors="replace").splitlines()[-n:]
+
+
+def render_log(cfg, slug: str, n: int = 40) -> str:
     path = cfg.state_dir / "logs" / f"{slug}.log"
     if not path.exists():
         return "[dim](no log yet)[/dim]"
-    tail = path.read_text(errors="replace").splitlines()[-n:]
-    return "\n".join(f"[dim]{ln}[/dim]" for ln in tail) or "[dim](empty)[/dim]"
+    lines = _tail(path, n)
+    if not lines:
+        return "[dim](empty)[/dim]"
+    return "\n".join(f"[dim]{ln[:240]}[/dim]" for ln in reversed(lines))
