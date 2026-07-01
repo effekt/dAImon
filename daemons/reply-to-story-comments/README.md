@@ -15,7 +15,7 @@ Respond to human replies on your bot comments on Shortcut stories, and re-trigge
 | Input | Default | Notes |
 |-------|---------|-------|
 | `bot_marker` | `🤖` |  |
-| `verbosity` | `full` | full → reply includes a one-line rationale; compact → terse reply. |
+| `verbosity` | `full` | full → when a change was made, the reply names the files/changes touched plus a brief rationale; compact → a terse one-line outcome. |
 
 ## Gate
 

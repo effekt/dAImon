@@ -31,7 +31,8 @@ For every thread with a new reply:
 3. Post your response, prefixed with the bot marker `{{inputs.bot_marker}}`, opening
    with the intent prefix from the reply taxonomy in **Output conventions** below —
    `Fixed — …`, `Acknowledged — …`, or `Respectfully disagree — …`. Detail follows
-   `{{inputs.verbosity}}`: `full` adds a one-line rationale, `compact` stays terse.
+   `{{inputs.verbosity}}`: `full` — when you made a change, name the files/changes
+   touched and give a brief rationale; `compact` — a terse one-line outcome.
    **Timing:** a reply that claims a code change is posted only *after* the commit
    is pushed; explanation-only replies post immediately.
 
