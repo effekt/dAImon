@@ -4,7 +4,7 @@
 # installed as a wheel. The runtime core under lib/ stays dependency-free (stdlib
 # only — tomllib) and is invoked as plain scripts by the bash layer, so nothing
 # here changes how daemons run. pyproject exists to (a) pin the dev toolchain and
-# (b) centralize ruff / pyright config. The version mirrors the VERSION file.
+# (b) centralize ruff / pyright config. The version is bumped by release-please.
 [project]
 name = "daimon"
 version = "0.1.0"
