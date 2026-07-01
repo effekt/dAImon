@@ -11,5 +11,6 @@ required_inputs = ["bot_marker", "assist_label"]
 
 [inputs]
 bot_marker = "🤖"
-# full → reply includes a one-line rationale; compact → terse reply.
+# full → when a change was made, the reply names the files/changes touched plus a
+# brief rationale; compact → a terse one-line outcome.
 verbosity = "full"

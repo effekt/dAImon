@@ -50,7 +50,8 @@ For every story with a new human reply:
    opening with the intent prefix from the reply taxonomy in **Output conventions**
    below — `Acknowledged — …` or `Respectfully disagree — …` (use `Fixed — …` only
    when you actually landed a change). Detail follows `{{inputs.verbosity}}`: `full`
-   adds a one-line rationale, `compact` stays terse.
+   — when you made a change, name the files/changes touched and give a brief
+   rationale; `compact` — a terse one-line outcome.
 
 ## 3. Re-trigger triage when an awaiting-input question is answered
 
