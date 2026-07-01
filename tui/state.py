@@ -23,8 +23,16 @@ def candidate_sessions(cfg, slug: str) -> list[str]:
     return [f"{ns}-{slug}", f"{ns}-{slug}-claude"]
 
 
-def running_session(cfg, slug: str) -> str | None:
-    live = sh("tmux", "ls", "-F", "#{session_name}").splitlines()
+def live_sessions() -> set[str]:
+    return set(sh("tmux", "ls", "-F", "#{session_name}").splitlines())
+
+
+def loaded_labels_text() -> str:
+    return sh("launchctl", "list")
+
+
+def running_session(cfg, slug: str, sessions: set[str] | None = None) -> str | None:
+    live = sessions if sessions is not None else live_sessions()
     for s in candidate_sessions(cfg, slug):
         if s in live:
             return s
@@ -37,8 +45,9 @@ def session_runtime(session: str) -> str:
     )
 
 
-def launchd_loaded(label: str) -> bool:
-    return any(label in line for line in sh("launchctl", "list").splitlines())
+def launchd_loaded(label: str, text: str | None = None) -> bool:
+    listing = text if text is not None else sh("launchctl", "list")
+    return any(label in line for line in listing.splitlines())
 
 
 def plist_path(cfg, slug: str) -> Path:

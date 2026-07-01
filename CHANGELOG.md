@@ -29,10 +29,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   file) instead of re-reading the whole log oldest-first on every refresh.
 - TUI manage menu is now the complete, grouped command list (adds run/attach/
   configure/new), and dropped the no-op "source" field from the config editor.
+- TUI refresh queries tmux/launchctl once per cycle instead of once per daemon
+  row, and loads config once per refresh instead of twice.
 
 ### Fixed
 - TUI config save no longer copies profile defaults (owner, team, labels…) into
   each daemon's `daemon.local.toml`, which caused per-daemon divergence.
+- Duplicating a daemon no longer crashes when the target name already exists, and
+  no longer copies the source's `daemon.local.toml` (working_dir) into the clone.
 - `story-reviewer` now marks its comments with the bot marker, so
   `reply-to-story-comments` can find and reply to them.
 
