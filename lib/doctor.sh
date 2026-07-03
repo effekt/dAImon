@@ -9,6 +9,7 @@ ok()   { echo "  ok    $1"; }
 warn() { echo "  warn  $1"; WARN=1; }
 bad()  { echo "  FAIL  $1"; FAIL=1; }
 have() { command -v "$1" >/dev/null 2>&1; }
+claude_trusts() { python3 "$DAIMON_LIB_DIR/claude_trust.py" "$1" 2>/dev/null; }
 
 echo "platform"
 [ "$(uname)" = "Darwin" ] && ok "macOS — launchd scheduling available" \
@@ -39,19 +40,36 @@ else
 fi
 
 echo "daemons"
-needs_shortcut=0
+needs_shortcut=0; needs_codex=0
 for slug in $(cfg daemons); do
   wd="$(cfg daemon "$slug" working_dir)"
   cmd="$(cfg daemon "$slug" command | sed 's#^/##')"
+  be="$(cfg daemon "$slug" backend)"
   [ "$(cfg daemon "$slug" source 2>/dev/null)" = "shortcut" ] && needs_shortcut=1
+  case " $be $(cfg daemon "$slug" mcp 2>/dev/null) " in *" codex "*) needs_codex=1 ;; esac
   msg="$slug"
   if [ "$wd" = "$DAIMON_INSTALL_ROOT" ]; then msg="$msg [working_dir not set — point it at your repo]"
-  elif [ ! -d "$wd" ]; then msg="$msg [working_dir missing: $wd]"; fi
+  elif [ ! -d "$wd" ]; then msg="$msg [working_dir missing: $wd]"
+  elif [ "$be" = "claude" ] && ! claude_trusts "$wd"; then
+    msg="$msg [working_dir not trusted by claude — first run hangs on the trust prompt; open claude there once]"
+  fi
   [ -f "$HOME/.claude/skills/$cmd/SKILL.md" ] || msg="$msg [skill not synced — run: daimon sync]"
   ( set -u; eval "$(cfg env "$slug")" ) >/dev/null 2>&1 \
     || msg="$msg [inputs do not eval cleanly — run: daimon validate]"
   [ "$msg" = "$slug" ] && ok "$slug" || warn "$msg"
 done
+
+if [ "$needs_codex" = 1 ]; then
+  echo "codex"
+  codex_bin="${DAIMON_CODEX_BIN:-codex}"
+  if have "$codex_bin"; then
+    ok "codex $("$codex_bin" --version 2>/dev/null | awk '{print $NF}')"
+    "$codex_bin" login status >/dev/null 2>&1 && ok "codex authenticated" \
+      || warn "codex not authenticated (codex login) — codex-backed daemons fail; mcp second-opinion falls back"
+  else
+    warn "codex not on PATH (set DAIMON_CODEX_BIN) — codex-backed daemons fail; mcp second-opinion falls back"
+  fi
+fi
 
 if [ "$needs_shortcut" = 1 ]; then
   echo "shortcut"
