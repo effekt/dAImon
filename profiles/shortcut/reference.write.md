@@ -81,3 +81,17 @@ curl -s -X PUT "https://api.app.shortcut.com/api/v3/stories/<id>" -H "Shortcut-T
 Look up the numeric `workflow_state_id` for a state name via
 `GET /api/v3/workflows`, then `PUT /api/v3/stories/{id}` with
 `{"workflow_state_id": <id>}`.
+
+### Create a story
+
+`POST /api/v3/stories` with `{"name", "description", "workflow_state_id"}` (resolve
+the id for `{{inputs.triage_state}}` from `GET /api/v3/workflows`). Leave off any
+assessment label so a triage daemon still picks it up. Set `group_id`/`team` and
+`requested_by_id` if your workflow needs them.
+
+```bash
+STATE=$(curl -s https://api.app.shortcut.com/api/v3/workflows -H "Shortcut-Token: $TOKEN" \
+  | python3 -c "import sys,json;print(next(s['id'] for w in json.load(sys.stdin) for s in w['states'] if s['name']=='{{inputs.triage_state}}'))")
+curl -s -X POST https://api.app.shortcut.com/api/v3/stories -H "Shortcut-Token: $TOKEN" \
+  -H "Content-Type: application/json" -d "{\"name\":\"…\",\"description\":\"…\",\"workflow_state_id\":$STATE}"
+```

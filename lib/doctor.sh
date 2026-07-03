@@ -40,12 +40,16 @@ else
 fi
 
 echo "daemons"
-needs_shortcut=0; needs_codex=0
+needs_shortcut=0; needs_codex=0; needs_datadog=0
 for slug in $(cfg daemons); do
   wd="$(cfg daemon "$slug" working_dir)"
   cmd="$(cfg daemon "$slug" command | sed 's#^/##')"
   be="$(cfg daemon "$slug" backend)"
-  [ "$(cfg daemon "$slug" source 2>/dev/null)" = "shortcut" ] && needs_shortcut=1
+  # Check the whole sources list, not just the primary: a daemon that reads one
+  # source and writes another (e.g. datadog-log-reviewer) depends on both tools.
+  srcs=" $(cfg daemon "$slug" sources 2>/dev/null) "
+  case "$srcs" in *" shortcut "*) needs_shortcut=1 ;; esac
+  case "$srcs" in *" datadog "*) needs_datadog=1 ;; esac
   case " $be $(cfg daemon "$slug" mcp 2>/dev/null) " in *" codex "*) needs_codex=1 ;; esac
   msg="$slug"
   if [ "$wd" = "$DAIMON_INSTALL_ROOT" ]; then msg="$msg [working_dir not set — point it at your repo]"
@@ -76,6 +80,20 @@ if [ "$needs_shortcut" = 1 ]; then
   source "$DAIMON_INSTALL_ROOT/profiles/shortcut/lib.sh"
   [ -n "$(shortcut_token)" ] && ok "API token resolves" \
     || warn "no token (~/.config/short/config.json or \$SHORTCUT_API_TOKEN)"
+fi
+
+if [ "$needs_datadog" = 1 ]; then
+  echo "datadog"
+  if have pup; then
+    ok "pup"
+    if pup auth status --output json 2>/dev/null | grep -qE '"authenticated"[[:space:]]*:[[:space:]]*true'; then
+      ok "pup authenticated"
+    else
+      warn "pup not authenticated (pup auth login) — datadog gate fails closed, so the daemon never fires"
+    fi
+  else
+    warn "pup not installed (make tooling, or brew install datadog-labs/pack/pup) — datadog daemons never fire"
+  fi
 fi
 
 echo ""
