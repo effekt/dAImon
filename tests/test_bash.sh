@@ -49,4 +49,13 @@ python3 -c "import json;json.dump({'messages':[{'to':'foo'},{'to':'bar'}]},open(
 DAEMON_NAME=foo source "$ROOT/lib/inbox.sh"
 check "$HAS_INBOX_MESSAGES" "1" "inbox counts messages for daemon"
 
+source "$ROOT/backends/claude.sh"
+unset DAIMON_MCP_CONFIG
+case "$(backend_cli_args opus 1 sess)" in *--mcp-config*) mcp=1;; *) mcp=0;; esac
+check "$mcp" "0" "claude backend omits --mcp-config when unset"
+export DAIMON_MCP_CONFIG="$TMP/mcp.json"
+case "$(backend_cli_args opus 1 sess)" in *"--mcp-config $TMP/mcp.json --strict-mcp-config"*) mcp=1;; *) mcp=0;; esac
+check "$mcp" "1" "claude backend appends --mcp-config + --strict when set"
+unset DAIMON_MCP_CONFIG
+
 exit "$fails"

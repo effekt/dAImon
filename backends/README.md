@@ -16,6 +16,14 @@ A backend must define these functions:
 | `backend_ready_regex` | `danger` | A regex `lib/launch.sh` greps the pane for to know the UI is ready. Echo empty to skip banner detection and use a fixed boot delay instead. |
 | `backend_completion_mode` | — | `hook` (a Stop-hook touches the sentinel; precise) or `idle` (no hook; completion inferred from heartbeat staleness). |
 
+## MCP config
+
+When a daemon opts into MCP servers (`[daemon].mcp`), the launcher writes a
+`.mcp.json`-style file and exports `DAIMON_MCP_CONFIG` with its path before
+calling `backend_cli_args`. A backend that supports MCP should read that env var
+and pass the file to its CLI's MCP flag (empty/unset means no MCP). The `claude`
+backend maps it to `--mcp-config <file> --strict-mcp-config`.
+
 ## How the launcher uses them
 
 `lib/launch.sh` exports `DAIMON_SENTINEL`, `DAIMON_HEARTBEAT`, and `DAIMON_WAIT`,

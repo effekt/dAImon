@@ -30,6 +30,7 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 | `danger` | bool | `true` | Allow the backend to skip its permission/approval prompts (run-dangerous). |
 | `stuck_after` | int (sec) | `2700` | Idle-gap reaper. A run is killed only after this many seconds with **no agent activity** (heartbeat stale). This is **not** a max runtime — healthy runs may last hours. |
 | `ready_timeout` | int (sec) | `20` | How long to wait for the backend's ready banner before driving input. |
+| `mcp` | string[] | `[]` | MCP servers to attach to daemon sessions (opt-in). Known: `codex`. Requires `danger = true`. Set here for fleet-wide, or per-daemon under `[daemon]`. |
 
 ### `[throttle]`
 
@@ -64,7 +65,8 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 | `danger` | bool | Override run-dangerous for this daemon. |
 | `stuck_after` | int (sec) | Override the idle-gap reaper. |
 | `command` | string | The slash-command typed into the agent session (e.g. `/review-prs`). |
-| `working_dir` | path | Directory the agent launches in (a trusted folder). May be a single repo, or a **parent directory containing several repos** — the agent `cd`s into the one a work item concerns, picking up that repo's `CLAUDE.md`/conventions/`gh` context on the way in. This is per-machine, so the committed `daemon.toml` omits it and **you set it in `daemon.local.toml`** (or the TUI); if unset it falls back to `install_root` and `daimon doctor` warns. Optionally scope which repos with an `[inputs].repos` allowlist (e.g. `["hub"]`); empty = all repos under the directory. There is no separate `repo` setting — `gh` infers it from the repo the agent enters. |
+| `working_dir` | path | Directory the agent launches in (a trusted folder). May be a single repo, or a **parent directory containing several repos** — the agent `cd`s into the one a work item concerns, picking up that repo's `CLAUDE.md`/conventions/`gh` context on the way in. This is per-machine, so the committed `daemon.toml` omits it and **you set it in `daemon.local.toml`** (or the TUI); if unset it falls back to `install_root` and `daimon doctor` warns. Optionally scope which repos with an `[inputs].repos` allowlist (e.g. `["api"]`); empty = all repos under the directory. There is no separate `repo` setting — `gh` infers it from the repo the agent enters. |
+| `mcp` | string[] | MCP servers for this daemon's session (overrides `[defaults].mcp`). Known: `codex` — also attaches the `references/codex-review.md` second-opinion protocol to the skill. Requires `danger = true`. |
 | `source` | string | Name of a [source profile](#source-profiles) (folder under `profiles/`) describing the work-item backend, e.g. `shortcut`. Optional; omit for daemons that only act on the repo (PR daemons). |
 | `schedule` | table | One of: `{ interval = 1200 }` (seconds), `{ minutes = [8, 38] }` (minutes past each hour), or `{ daily = "13:02", tz = "UTC" }`. |
 

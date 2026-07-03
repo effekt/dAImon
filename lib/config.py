@@ -22,6 +22,10 @@ import toml_emit  # noqa: E402
 
 BACKENDS = ("claude",)
 
+MCP_SERVERS = {
+    "codex": {"command": "codex", "args": ["mcp-server"]},
+}
+
 CORE_DEFAULTS = {
     "namespace": "daimon",
     "state_dir": "~/.local/state/daimon",
@@ -36,6 +40,7 @@ DEFAULT_DEFAULTS = {
     "danger": True,
     "stuck_after": 2700,
     "ready_timeout": 20,
+    "mcp": [],
 }
 THROTTLE_DEFAULTS = {
     "exempt": [],
@@ -175,7 +180,14 @@ class Config:
         merged["working_dir"] = str(expand(wd)) if wd else str(self.install_root)
         ri = merged.get("required_inputs", [])
         merged["required_inputs"] = list(ri) if isinstance(ri, list) else [ri]
+        mcp = merged.get("mcp", [])
+        merged["mcp"] = [mcp] if isinstance(mcp, str) else list(mcp)
         return merged
+
+    def mcp_config(self, slug: str) -> dict:
+        names = self.daemon(slug)["mcp"]
+        servers = {n: MCP_SERVERS[n] for n in names if n in MCP_SERVERS}
+        return {"mcpServers": servers} if servers else {}
 
     def backends(self, slug: str) -> list[str]:
         return [self.daemon(slug)["backend"]]
@@ -303,6 +315,8 @@ def render_skill(cfg: Config, slug: str) -> str:
         text = _append_ref(text, cfg.profiles_dir() / source / "reference.md")
         if source in d["write_sources"]:
             text = _append_ref(text, cfg.profiles_dir() / source / "reference.write.md")
+    if "codex" in d["mcp"]:
+        text = _append_ref(text, cfg.install_root / "references" / "codex-review.md")
     if "bot_marker" in d["inputs"]:
         text = _append_ref(text, cfg.install_root / "references" / "skill-conventions.md")
         text = _append_ref(text, cfg.install_root / "references" / "output-conventions.md")
@@ -331,6 +345,22 @@ def _required_input_errors(cfg: Config, slug: str) -> list[str]:
         f"{slug}: required input '{key}' is missing or empty"
         for key in _missing_required_inputs(cfg, slug)
     ]
+
+
+def _mcp_errors(cfg: Config, slug: str) -> list[str]:
+    merged = cfg.daemon(slug)
+    names = merged["mcp"]
+    errors = [
+        f"{slug}: unknown mcp server '{n}' (known: {', '.join(MCP_SERVERS)})"
+        for n in names
+        if n not in MCP_SERVERS
+    ]
+    if names and not merged["danger"]:
+        errors.append(
+            f"{slug}: mcp requires danger=true — a non-interactive session "
+            f"cannot answer an MCP tool-permission prompt"
+        )
+    return errors
 
 
 def validate(cfg: Config) -> list[str]:
@@ -369,6 +399,7 @@ def validate(cfg: Config) -> list[str]:
                 )
         else:
             errors.extend(_required_input_errors(cfg, slug))
+            errors.extend(_mcp_errors(cfg, slug))
     for slug in cfg.disabled:
         if slug not in {p.parent.name for p in cfg.daemons_dir().glob("*/daemon.toml")}:
             errors.append(f"[daemons].disabled references unknown daemon: {slug}")
@@ -441,6 +472,7 @@ def daemon_schema() -> dict:
             },
             "working_dir": {"type": "string"},
             "learning": {"type": "boolean"},
+            "mcp": {"type": "array", "items": {"type": "string", "enum": list(MCP_SERVERS)}},
             "required_inputs": {
                 "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]
             },
@@ -472,6 +504,7 @@ def bundle_daemon_env(cfg: Config, slug: str) -> str:
         ("DAIMON_D_STUCK_AFTER", d["stuck_after"]),
         ("DAIMON_D_WORKING_DIR", d["working_dir"]),
         ("DAIMON_D_BACKENDS", be_list),
+        ("DAIMON_D_MCP", d["mcp"]),
         ("DAIMON_READY_TIMEOUT", cfg.defaults["ready_timeout"]),
     ]
     pairs += [(f"DAIMON_D_MODEL_{be.upper()}", cfg.model_for(slug, be)) for be in be_list]
@@ -501,6 +534,8 @@ def main(argv: list[str]) -> int:
     e.add_argument("slug")
     de = sub.add_parser("daemon-env")
     de.add_argument("slug")
+    mc = sub.add_parser("mcp-config")
+    mc.add_argument("slug")
     vi = sub.add_parser("validate-inputs")
     vi.add_argument("slug")
     sub.add_parser("validate")
@@ -552,6 +587,9 @@ def main(argv: list[str]) -> int:
         return 0
     if args.cmd == "daemon-env":
         print(bundle_daemon_env(cfg, args.slug), end="")
+        return 0
+    if args.cmd == "mcp-config":
+        print(json.dumps(cfg.mcp_config(args.slug), indent=2))
         return 0
     if args.cmd == "validate-inputs":
         missing = _missing_required_inputs(cfg, args.slug)
