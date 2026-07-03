@@ -41,7 +41,8 @@ source "$(dirname "$0")/../../profiles/github/lib.sh"
 
 `profiles/github/lib.sh` provides fail-closed gate helpers (`gh_pr_json`,
 `gh_pr_count`, `gh_search_pr_count`, `load_seen_state`); `profiles/shortcut/lib.sh`
-is the equivalent for story gates.
+is the equivalent for story gates. To wire up a new external system, see
+[writing-a-source.md](writing-a-source.md).
 
 ## 3. `skill/SKILL.md`
 
