@@ -12,7 +12,8 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, OptionList, Select, Static, Switch
 from textual.widgets.option_list import Option
 
-BACKENDS = ["claude"]
+BACKENDS: list[str] = list(config.BACKENDS)
+MCP_SERVERS: list[str] = list(config.MCP_SERVERS)
 
 
 class _HasValue(Protocol):
@@ -41,7 +42,6 @@ class ConfigScreen(ModalScreen):
         prov = cfg.input_provenance(slug)
         self.daemon_inputs = prov["daemon"]
         self.profile_inputs = prov["profiles"]
-        self.claude_models = models.list_models("claude")
 
     def _init_model(self, kind: str):
         m = self.d["model"]
@@ -72,11 +72,25 @@ class ConfigScreen(ModalScreen):
         yield Label("backend")
         yield self._select("f-backend", BACKENDS, d["backend"])
         yield Label("model")
-        yield self._select("f-model", self.claude_models, self._init_model("claude"))
+        yield self._select(
+            "f-model", models.list_models(d["backend"]), self._init_model(d["backend"])
+        )
         yield Label("run dangerously")
         yield Switch(value=bool(d["danger"]), id="f-danger")
         yield Label("stuck_after (s)")
         yield Input(value=str(d["stuck_after"]), id="f-stuck")
+        for server in MCP_SERVERS:
+            yield Label(f"mcp: {server}")
+            yield Switch(value=server in d["mcp"], id=f"f-mcp-{server}")
+
+    def on_select_changed(self, event: Select.Changed) -> None:
+        if event.select.id != "f-backend" or event.value is Select.BLANK:
+            return
+        model_sel = cast(Select, self.query_one("#f-model"))
+        opts = models.list_models(str(event.value))
+        model_sel.set_options((m, m) for m in opts)
+        init = self._init_model(str(event.value))
+        model_sel.value = init if init in opts else (opts[0] if opts else Select.BLANK)
 
     @staticmethod
     def _show(val) -> str:
@@ -113,6 +127,7 @@ class ConfigScreen(ModalScreen):
             "model": self._value("f-model"),
             "danger": self._value("f-danger"),
             "stuck_after": int(self._value("f-stuck")),
+            "mcp": [s for s in MCP_SERVERS if self._value(f"f-mcp-{s}")],
         }
         inputs = {k: self._coerce(v, self._value(f"in-{k}")) for k, v in self.daemon_inputs.items()}
         self.cfg.update_local(self.slug, daemon, inputs or None)
