@@ -13,9 +13,22 @@ WLOG="$(logs_dir)/watchdog.log"
 
 wlog() { log_event watchdog "$1" "$2" >> "$WLOG"; }
 
-slug_of_session() {  # strips the namespace prefix and any -<backend> suffix
-  local s="${1#"${DAIMON_NS}"-}"
-  s="${s%-claude}"; echo "$s"
+KNOWN_SLUGS="$(cfg daemons)"
+KNOWN_BACKENDS="$(cfg backends-all)"
+
+_is_known_slug() {  # slug -> 0 if it's a discovered daemon
+  local s="$1" known
+  for known in $KNOWN_SLUGS; do [ "$s" = "$known" ] && return 0; done
+  return 1
+}
+
+slug_of_session() {  # namespace-stripped session name -> daemon slug
+  local s="${1#"${DAIMON_NS}"-}" be base
+  for be in $KNOWN_BACKENDS; do
+    base="${s%-"$be"}"
+    [ "$base" != "$s" ] && _is_known_slug "$base" && { echo "$base"; return; }
+  done
+  echo "$s"
 }
 
 # 1. Orphaned/stuck agent sessions.

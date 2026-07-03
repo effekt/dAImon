@@ -166,6 +166,12 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(self.cfg.backends("alpha"), ["claude"])
         self.assertEqual(self.cfg.backends("beta"), ["claude"])
 
+    def test_backends_all_lists_every_known_backend(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            config.main(["backends-all"])
+        self.assertEqual(buf.getvalue().split(), list(config.BACKENDS))
+
     def test_model_scalar_and_table(self):
         self.assertEqual(self.cfg.model_for("alpha", "claude"), "opus")
         self.assertEqual(self.cfg.model_for("beta", "claude"), "opus")
