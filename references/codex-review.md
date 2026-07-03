@@ -1,37 +1,42 @@
 # Second opinion (Codex)
 
 This daemon runs with OpenAI **Codex** attached as a second reviewer, exposed
-through the `mcp__codex__codex` MCP tool. Use it as an independent check on the
-code you review or write — two models catch more than one, and a finding both
-agents raise is high-signal.
+through the `mcp__codex__codex` MCP tool. Use it as an independent check on your
+own conclusions — two models catch more than one, and a point both raise is
+high-signal.
 
 ## When to consult Codex
 
-Whenever a step above has you **review a diff or finalize a code change** — a PR
-review verdict, a pre-PR self-review, or a fix you are about to push — get a
-Codex pass first, **unless** the change is INERT (only comments / strings / docs
-/ tests, no logic). Skip Codex for INERT diffs; it is not worth the latency.
+Before you finalize the judgment this skill exists to produce — a PR review
+verdict, a pre-PR self-review, a fix you are about to push, or a work-item
+assessment/label — get a Codex pass first. Skip it only when the change is INERT
+(comments / strings / docs / tests, no logic) or the item is trivial; it is not
+worth the latency there.
 
 ## How to run it
 
-Call `mcp__codex__codex` **once**, with a read-only sandbox and a prompt that
-hands Codex the diff and asks for findings:
+Call `mcp__codex__codex` **once**, with a read-only sandbox, handing Codex the
+same context you worked from and asking for an independent take:
 
-- Prompt shape: "Review the diff below for correctness bugs, security issues, and
-  clear quality problems. Report each finding as `file:line — [category] problem`,
-  or `No findings.` Be conservative — only high-confidence issues. \<diff\>"
-- Give it the same diff you reviewed (`gh pr diff <n>`, `git diff`, etc.).
-- Sandbox **read-only**: Codex analyzes, never edits, fetches, or runs anything.
+- **Reviewing a change** — give it the diff (`gh pr diff <n>`, `git diff`) and
+  ask: "Review this diff for correctness bugs, security issues, and clear quality
+  problems. Report each as `file:line — [category] problem`, or `No findings.`
+  Be conservative — only high-confidence issues."
+- **Assessing a work item** — give it the item text and the code areas you found,
+  and ask for its own read: feasibility, complexity, affected areas you may have
+  missed, and whether it is fully specified or needs human input.
 
-## Merging findings
+Sandbox **read-only**: Codex analyzes, never edits, fetches, or runs anything.
 
-Fold Codex's findings into your own before this skill's verdict/decision step:
+## Merging its take
 
-- A finding **either** agent raises with high confidence stands — include it.
-- A finding **both** raise is confirmed — weight it accordingly.
-- Dedupe overlap (same `file:line` + issue) into one finding.
-- You remain the decider: apply this skill's own severity and verdict rules to
-  the merged set. Do not defer the final call to Codex.
+Fold Codex's take into your own before this skill's verdict/label step:
+
+- A finding **either** of you raises with high confidence stands — include it.
+- A point **both** raise is confirmed — weight it accordingly.
+- Dedupe overlap (same `file:line` + issue, or the same concern) into one.
+- You remain the decider: apply this skill's own rules to the merged result. Do
+  not defer the final call to Codex.
 
 ## When Codex is unavailable (fallback)
 
@@ -41,5 +46,5 @@ Codex is a bonus, never a blocker.
 - If it still fails — or the error mentions a **usage / quota limit**, which will
   not clear on retry — proceed with your own analysis alone. Do not defer,
   re-queue, or skip the item.
-- When you post a review or PR that would normally carry a Codex pass but did
-  not, note it briefly: `_Single-agent review — Codex unavailable this run._`
+- When you post something that would normally carry a Codex pass but did not, note
+  it briefly: `_Single-agent — Codex unavailable this run._`
