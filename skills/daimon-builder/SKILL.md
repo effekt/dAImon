@@ -21,8 +21,11 @@ Ask for whatever isn't already clear. Keep it to a few focused questions:
   Confirm it's installed/configured; if it's an MCP, note the server name.
 - **Filter / scope** — repo, labels, query, etc. — whatever narrows the work set.
 - **Schedule** — `{ interval = N }` seconds, `{ minutes = [..] }`, or `{ daily = "HH:MM" }`.
-- **Backend** — `claude` (the only built-in). Offer the available models with
-  `daimon models claude` and let them pick.
+- **Backend** — `claude` (interactive) or `codex` (one-shot `codex exec`). Offer
+  the models with `daimon models <backend>` and let them pick; on `codex`, set the
+  model as a table (`model = { codex = "..." }`).
+- **MCP** — optionally attach an MCP server (opt-in; e.g. `mcp = ["codex"]` gives a
+  Claude daemon a Codex second opinion). Requires danger on.
 - **Danger** — whether to run with permissions/approvals skipped (default: inherit `[defaults]`).
 
 ## 2. Write the files
