@@ -6,9 +6,10 @@ backend_bin() {
 }
 
 backend_cli_args() {  # model danger(0/1) session_name -> args after the binary
-  local model="$1" danger="$2" session_name="$3" flag=""
+  local model="$1" danger="$2" session_name="$3" flag="" mcp=""
   [ "$danger" = "1" ] && flag="--dangerously-skip-permissions"
-  printf '%s --model %s -n %s' "$flag" "$model" "$session_name"
+  [ -n "${DAIMON_MCP_CONFIG:-}" ] && mcp="--mcp-config ${DAIMON_MCP_CONFIG} --strict-mcp-config"
+  printf '%s --model %s -n %s %s' "$flag" "$model" "$session_name" "$mcp"
 }
 
 backend_ready_regex() {  # 1 if danger -> bypass banner, else the idle input prompt

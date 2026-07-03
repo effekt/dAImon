@@ -207,6 +207,50 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(env["DAIMON_READY_TIMEOUT"], "20")
         self.assertEqual(env["DAIMON_D_MODEL_CLAUDE"], self.cfg.model_for("alpha", "claude"))
 
+    def test_mcp_absent_by_default(self):
+        self.assertEqual(self.cfg.daemon("alpha")["mcp"], [])
+        self.assertEqual(self.cfg.mcp_config("alpha"), {})
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            config.main(["daemon-env", "alpha"])
+        env = self._parse_env_output(buf.getvalue())
+        self.assertEqual(env["DAIMON_D_MCP"], "")
+
+    def test_mcp_opt_in_exports_and_renders_config(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            mcp = ["codex"]
+        """,
+        )
+        cfg = config.Config.load()
+        self.assertEqual(cfg.daemon("alpha")["mcp"], ["codex"])
+        self.assertEqual(
+            cfg.mcp_config("alpha"),
+            {"mcpServers": {"codex": config.MCP_SERVERS["codex"]}},
+        )
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            config.main(["daemon-env", "alpha"])
+        self.assertEqual(self._parse_env_output(buf.getvalue())["DAIMON_D_MCP"], "codex")
+
+    def test_mcp_inherited_from_defaults(self):
+        write(
+            self.root / "config" / "daimon.toml",
+            f"""
+            [core]
+            install_root = "{self.root}"
+            state_dir = "{self.root}/state"
+            namespace = "testns"
+            [defaults]
+            mcp = ["codex"]
+        """,
+        )
+        self.assertEqual(config.Config.load().daemon("alpha")["mcp"], ["codex"])
+
     def test_discover_memoized_and_invalidated_on_write(self):
         first = self.cfg.discover()
         self.assertIs(first, self.cfg.discover())
@@ -285,6 +329,27 @@ class ConfigTest(unittest.TestCase):
         out = config.render_skill(config.Config.load(), "alpha")
         self.assertNotIn("LEARNING PROTOCOL BODY", out)
 
+    def test_codex_review_ref_appended_when_mcp_enabled(self):
+        write(self.root / "references" / "codex-review.md", "CODEX SECOND OPINION BODY\n")
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            mcp = ["codex"]
+            [inputs]
+            repo = "me/alpha"
+        """,
+        )
+        out = config.render_skill(config.Config.load(), "alpha")
+        self.assertIn("CODEX SECOND OPINION BODY", out)
+
+    def test_codex_review_ref_skipped_without_mcp(self):
+        write(self.root / "references" / "codex-review.md", "CODEX SECOND OPINION BODY\n")
+        out = config.render_skill(self.cfg, "alpha")
+        self.assertNotIn("CODEX SECOND OPINION BODY", out)
+
     def test_conventions_appended_for_bot_marker_daemons(self):
         write(self.root / "references" / "skill-conventions.md", "PREFIX {{inputs.bot_marker}}\n")
         write(
@@ -354,6 +419,33 @@ class ConfigTest(unittest.TestCase):
         )
         errs = config.validate(config.Config.load())
         self.assertTrue(any("command" in e for e in errs))
+
+    def test_validate_catches_unknown_mcp_server(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            mcp = ["nope"]
+        """,
+        )
+        errs = config.validate(config.Config.load())
+        self.assertTrue(any("unknown mcp server 'nope'" in e for e in errs))
+
+    def test_validate_catches_mcp_without_danger(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            danger = false
+            mcp = ["codex"]
+        """,
+        )
+        errs = config.validate(config.Config.load())
+        self.assertTrue(any("mcp requires danger=true" in e for e in errs))
 
 
 if __name__ == "__main__":

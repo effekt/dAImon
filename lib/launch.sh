@@ -19,6 +19,7 @@ DANGER="$DAIMON_D_DANGER"
 STUCK_AFTER="$DAIMON_D_STUCK_AFTER"
 WORKING_DIR="$DAIMON_D_WORKING_DIR"
 READY_TIMEOUT="$DAIMON_READY_TIMEOUT"
+MCP="$DAIMON_D_MCP"
 read -r -a BACKENDS <<< "$DAIMON_D_BACKENDS"
 MULTI=0; [ "${#BACKENDS[@]}" -gt 1 ] && MULTI=1
 
@@ -62,6 +63,13 @@ run_one_backend() {
   trap cleanup_be RETURN
 
   rm -f "$SENTINEL" "$WAITF"; : > "$HEARTBEAT"
+
+  local mcp_file=""
+  if [ -n "$MCP" ]; then
+    mcp_file="$(mcp_config_file "$SLUG")"
+    cfg mcp-config "$SLUG" > "$mcp_file"
+  fi
+  export DAIMON_MCP_CONFIG="$mcp_file"
 
   local bin args
   bin="$(backend_bin)"

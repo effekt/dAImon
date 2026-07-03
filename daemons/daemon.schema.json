@@ -128,6 +128,15 @@
         "learning": {
           "type": "boolean"
         },
+        "mcp": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "codex"
+            ]
+          }
+        },
         "required_inputs": {
           "oneOf": [
             {
