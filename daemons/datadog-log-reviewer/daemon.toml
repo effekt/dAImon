@@ -1,0 +1,20 @@
+[daemon]
+backend = "claude"
+schedule = { interval = 1800 }
+command = "/datadog-log-reviewer"
+stuck_after = 1800
+required_inputs = ["log_query"]
+# Reads Datadog logs, writes Shortcut stories. A new story in the triage state is
+# picked up by story-reviewer automatically, closing the loop into work-queue.
+sources = ["datadog", { name = "shortcut", write = true }]
+
+[inputs]
+# Datadog log-search query the gate and skill run. Scope it to your service and
+# the error level you care about, e.g. "status:error service:web env:prod".
+log_query = "status:error service:CHANGE_ME"
+# Prefix on every Shortcut story this daemon creates, so its stories are
+# identifiable and reply/triage daemons can tell them apart.
+bot_marker = "🤖"
+# Most new error clusters to file as stories in a single run — caps the blast
+# radius of a log spike. Clusters beyond this wait for the next run.
+max_new_stories = 5

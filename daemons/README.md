@@ -4,6 +4,7 @@
 
 | Daemon | Schedule | Description |
 |--------|----------|-------------|
+| [datadog-log-reviewer](datadog-log-reviewer/) | 1800s | Review recent Datadog error logs, cluster them by root cause, and file one Shortcut story per new cluster for triage. |
 | [dependency-reviewer](dependency-reviewer/) | :13,43 | Triage dependency-bot PRs — auto-merge only low-risk bumps, and leave everything risky with a summary for a human. |
 | [pr-manager](pr-manager/) | :3,23,43 | Shepherd your open pull requests to merge — merge approved ones, resolve conflicts, fix failing CI, and address change requests. |
 | [reply-to-pr-comments](reply-to-pr-comments/) | :17,47 | Respond to replies on your bot comments on GitHub PRs, and re-trigger review when feedback is addressed. |
