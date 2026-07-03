@@ -25,7 +25,7 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
-| `backend` | enum | `claude` | Agent CLI that drives the session. `claude` is the only built-in backend; add more via `backends/<name>.sh`. |
+| `backend` | enum | `claude` | Agent CLI that drives the session: `claude` (interactive) or `codex` (one-shot `codex exec`). Add more via `backends/<name>.sh`. |
 | `model` | string | `opus` | Passed to the backend as its model flag. |
 | `danger` | bool | `true` | Allow the backend to skip its permission/approval prompts (run-dangerous). |
 | `stuck_after` | int (sec) | `2700` | Idle-gap reaper. A run is killed only after this many seconds with **no agent activity** (heartbeat stale). This is **not** a max runtime — healthy runs may last hours. |
@@ -60,7 +60,7 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 
 | Key | Type | Meaning |
 |-----|------|---------|
-| `backend` | enum | Override the default backend for this daemon. |
+| `backend` | enum | Override the default backend (`claude` or `codex`) for this daemon. On `codex`, set a Codex model via the `model` table (e.g. `{ codex = "gpt-5.3-codex" }`) — a plain `opus`/`sonnet`/`haiku` falls back to Codex's own default. |
 | `model` | string | Override the default model. |
 | `danger` | bool | Override run-dangerous for this daemon. |
 | `stuck_after` | int (sec) | Override the idle-gap reaper. |

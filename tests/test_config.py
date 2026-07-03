@@ -420,6 +420,24 @@ class ConfigTest(unittest.TestCase):
         errs = config.validate(config.Config.load())
         self.assertTrue(any("command" in e for e in errs))
 
+    def test_codex_backend_validates_and_resolves_model(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            backend = "codex"
+            model = { codex = "gpt-5.3-codex", default = "opus" }
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            [inputs]
+            repo = "me/alpha"
+        """,
+        )
+        cfg = config.Config.load()
+        self.assertEqual(config.validate(cfg), [])
+        self.assertEqual(cfg.backends("alpha"), ["codex"])
+        self.assertEqual(cfg.model_for("alpha", "codex"), "gpt-5.3-codex")
+
     def test_validate_catches_unknown_mcp_server(self):
         write(
             self.root / "daemons" / "alpha" / "daemon.toml",
