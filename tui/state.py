@@ -84,6 +84,8 @@ def _label(cmd: str) -> str:
     low = cmd.lower()
     if "claude" in low:
         return "claude"
+    if "codex" in low:
+        return "codex"
     if "mcp" in low or "npx" in low:
         return "mcp"
     if "node" in low:

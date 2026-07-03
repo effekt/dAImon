@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import schedule_fmt  # noqa: E402
 import toml_emit  # noqa: E402
 
-BACKENDS = ("claude",)
+BACKENDS = ("claude", "codex")
 
 MCP_SERVERS = {
     "codex": {"command": "codex", "args": ["mcp-server"]},

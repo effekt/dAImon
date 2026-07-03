@@ -13,6 +13,7 @@ def render_config(cfg, slug: str) -> str:
         f"[dim]backend [/dim] {d['backend']}",
         f"[dim]model   [/dim] {d['model']}",
         f"[dim]source  [/dim] {d.get('source') or '—'}",
+        *([f"[dim]mcp     [/dim] {', '.join(d['mcp'])}"] if d.get("mcp") else []),
         f"[dim]schedule[/dim] {schedule_fmt.display(d['schedule'])}",
         f"[dim]danger  [/dim] {'on' if d['danger'] else 'off'}",
         f"[dim]stuck   [/dim] {d['stuck_after']}s",

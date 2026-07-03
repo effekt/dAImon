@@ -27,9 +27,10 @@ records_dir()     { echo "$DAIMON_STATE_DIR/state"; }
 state_file()      { echo "$DAIMON_STATE_DIR/state/$1.json"; }
 mcp_dir()         { echo "$DAIMON_STATE_DIR/mcp"; }
 mcp_config_file() { echo "$(mcp_dir)/$1.json"; }
+prompts_dir()     { echo "$DAIMON_STATE_DIR/prompts"; }
 
 ensure_state_dirs() {
-  mkdir -p "$(logs_dir)" "$(transcripts_dir)" "$(queues_dir)" "$(runtime_dir)" "$(records_dir)" "$(mcp_dir)"
+  mkdir -p "$(logs_dir)" "$(transcripts_dir)" "$(queues_dir)" "$(runtime_dir)" "$(records_dir)" "$(mcp_dir)" "$(prompts_dir)"
 }
 
 now_epoch() { date +%s; }

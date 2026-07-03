@@ -58,4 +58,19 @@ case "$(backend_cli_args opus 1 sess)" in *"--mcp-config $TMP/mcp.json --strict-
 check "$mcp" "1" "claude backend appends --mcp-config + --strict when set"
 unset DAIMON_MCP_CONFIG
 
+export DAIMON_D_WORKING_DIR="/tmp/x.y/repo"
+source "$ROOT/backends/codex.sh"
+check "$(backend_completion_mode)" "oneshot" "codex backend is oneshot"
+check "$(backend_ready_regex 1)" "" "codex backend has no ready banner"
+A="$(backend_cli_args gpt-5.3-codex 1 sess)"
+# the trust arg must survive tmux's `sh -c` as one arg with TOML quotes intact,
+# even for a path containing a dot
+if sh -c "printf '%s\n' $A" | grep -qxF 'projects."/tmp/x.y/repo".trust_level="trusted"'; then t=1; else t=0; fi
+check "$t" "1" "codex trust arg survives sh -c quoted"
+case "$(backend_cli_args opus 1 sess)" in *"-m "*) m=1;; *) m=0;; esac
+check "$m" "0" "codex drops -m for a claude-model default"
+case "$A" in *"-m gpt-5.3-codex"*) m=1;; *) m=0;; esac
+check "$m" "1" "codex passes -m for a codex model"
+unset DAIMON_D_WORKING_DIR
+
 exit "$fails"

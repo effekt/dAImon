@@ -2,8 +2,9 @@
 
 A backend teaches dAImon how to drive one agent CLI inside a tmux session. Each
 backend is a bash file (`backends/<name>.sh`) sourced by `lib/launch.sh`, selected
-per daemon with `[daemon].backend`. `claude` is the only backend shipped today;
-add another by dropping in `backends/<name>.sh` that implements the contract below.
+per daemon with `[daemon].backend`. Two ship today — `claude` (interactive) and
+`codex` (one-shot `codex exec`) — add another by dropping in `backends/<name>.sh`
+that implements the contract below.
 
 ## Contract
 
@@ -14,7 +15,18 @@ A backend must define these functions:
 | `backend_bin` | — | Absolute path to the CLI (honor `DAIMON_<NAME>_BIN` override). |
 | `backend_cli_args` | `model danger session_name` | The argument string placed after the binary. `danger` is `1`/`0`; map it to the CLI's run-dangerous flag (empty when `0`). |
 | `backend_ready_regex` | `danger` | A regex `lib/launch.sh` greps the pane for to know the UI is ready. Echo empty to skip banner detection and use a fixed boot delay instead. |
-| `backend_completion_mode` | — | `hook` (a Stop-hook touches the sentinel; precise) or `idle` (no hook; completion inferred from heartbeat staleness). |
+| `backend_completion_mode` | — | `hook` (a Stop-hook touches the sentinel; precise), `idle` (no hook; completion inferred from heartbeat staleness), or `oneshot` (see below). |
+
+## One-shot backends
+
+A `oneshot` backend is non-interactive: it takes its whole task on stdin and
+exits when done, instead of accepting a typed command in a live UI. For these the
+launcher renders the daemon's skill to a prompt file and pipes it into the process
+(`<env> exec <bin> <cli_args> < prompt`), skips the ready-banner wait and the
+command-typing, and treats **process exit** as completion (heartbeat staleness is
+only the hang safety-net). `codex` is one — it runs `codex exec`. A oneshot
+backend's `backend_ready_regex` is unused, and its `backend_cli_args` may read
+`DAIMON_D_WORKING_DIR` (e.g. `codex` trusts it inline to avoid a boot prompt).
 
 ## MCP config
 
