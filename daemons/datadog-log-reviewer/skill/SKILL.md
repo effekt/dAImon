@@ -53,11 +53,11 @@ occurrence count first); leave the rest for the next run. For each:
 1. **Investigate briefly.** The stack/source location usually names a file — open
    it in the repo and read enough to describe the likely cause. Do not attempt a
    fix here; that's `work-queue`'s job downstream.
-2. **Create a Shortcut story** via `POST /api/v3/stories` (base URL + token header
-   are in **Source: Shortcut** below; verify field names against the API). Set its
-   workflow state to the triage state (`{{inputs.triage_state}}` — resolve its
-   `workflow_state_id`) and give it **no** assessment label, so `story-reviewer`
-   picks it up. Body:
+2. **File a work item** in your write source — see **Source: … — writing** below
+   for the exact create call (this daemon is source-agnostic: whichever tracker is
+   configured as the write source provides it). Put it in that source's triage
+   state (`{{inputs.triage_state}}`) with **no** assessment label, so the triage
+   daemon picks it up. Body:
 
    ```markdown
    {{inputs.bot_marker}} **Datadog error — <service> (<env>)**

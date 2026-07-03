@@ -1,12 +1,13 @@
 .DEFAULT_GOAL := help
 BIN := ./bin/daimon
 
-.PHONY: help install install-load doctor sync validate status tui test lint fmt typecheck docs check
+.PHONY: help install install-load tooling doctor sync validate status tui test lint fmt typecheck docs check
 
 help:
 	@echo "dAImon — make targets:"
 	@echo "  make install        install hooks, TUI venv, skills, plists (not scheduled)"
 	@echo "  make install-load   install and load the launchd jobs (schedules them)"
+	@echo "  make tooling        install external CLIs the daemons need (pup, …)"
 	@echo "  make doctor         preflight checks (tools, auth, hooks, config)"
 	@echo "  make sync           regenerate plists + skills from config"
 	@echo "  make validate       validate configuration"
@@ -24,6 +25,13 @@ install:
 
 install-load:
 	@$(BIN) install --load
+
+tooling:
+	@command -v pup >/dev/null 2>&1 && echo "pup already installed" \
+	  || { echo "installing pup (Datadog CLI) via brew…"; brew install datadog-labs/pack/pup; }
+	@echo "→ authenticate Datadog once: pup auth login   (creds stored under ~/.config/pup, inherited by launchd)"
+	@command -v gh >/dev/null 2>&1 || echo "note: gh not on PATH — https://cli.github.com"
+	@$(BIN) doctor
 
 doctor:
 	@$(BIN) doctor
