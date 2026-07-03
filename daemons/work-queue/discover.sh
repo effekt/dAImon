@@ -11,20 +11,7 @@ source "$(dirname "$0")/../../profiles/github/lib.sh"
 base="label:\"$DAIMON_INPUT_READY_LABEL\" \
   !label:\"$DAIMON_INPUT_SKIP_LABEL\" !state:\"$DAIMON_INPUT_IN_PROGRESS_STATE\""
 
-if [ -z "${DAIMON_INPUT_OWNER:-}" ]; then
-  ready=$(shortcut_count "$base")
-else
-  mention="$(shortcut_mention "$DAIMON_INPUT_OWNER")"
-  if [ -z "$mention" ]; then
-    # An owner is configured but unresolvable: fail closed rather than widen the
-    # gate to the whole workspace, which would let work-queue implement others' stories.
-    echo "discover: could not resolve owner mention for $DAIMON_INPUT_OWNER" >&2
-    exit 1
-  fi
-  owned=$(shortcut_count "owner:$mention $base")
-  requested=$(shortcut_count "requester:$mention $base")
-  ready=$(( ${owned:-0} + ${requested:-0} ))
-fi
+ready=$(shortcut_owner_count "$base") || exit 1
 
 open_prs=$(gh_search_pr_count --author=@me --state=open)
 

@@ -33,3 +33,19 @@ shortcut_mention() {
   curl -s "https://api.app.shortcut.com/api/v3/members/$1" -H "Shortcut-Token: $token" \
     | python3 -c "import sys,json;m=json.load(sys.stdin);p=m.get('profile') or {};print(p.get('mention_name') or m.get('mention_name') or '')" 2>/dev/null
 }
+
+# shortcut_owner_count "<base query>" -> story count scoped to $DAIMON_INPUT_OWNER
+# (owner + requester), or workspace-wide if OWNER is unset. When OWNER is set but
+# its mention can't be resolved it writes to stderr and returns 1, so run.sh
+# surfaces a discover_error rather than letting the gate silently widen to the
+# whole workspace and touch others' stories.
+shortcut_owner_count() {
+  local base="$1"
+  if [ -z "${DAIMON_INPUT_OWNER:-}" ]; then shortcut_count "$base"; return; fi
+  local mention; mention="$(shortcut_mention "$DAIMON_INPUT_OWNER")"
+  if [ -z "$mention" ]; then
+    echo "discover: could not resolve owner mention for $DAIMON_INPUT_OWNER" >&2
+    return 1
+  fi
+  echo $(( $(shortcut_count "owner:$mention $base") + $(shortcut_count "requester:$mention $base") ))
+}
