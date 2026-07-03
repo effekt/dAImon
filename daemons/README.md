@@ -4,6 +4,7 @@
 
 | Daemon | Schedule | Description |
 |--------|----------|-------------|
+| [dependency-reviewer](dependency-reviewer/) | :13,43 | Triage dependency-bot PRs — auto-merge only low-risk bumps, and leave everything risky with a summary for a human. |
 | [pr-manager](pr-manager/) | :3,23,43 | Shepherd your open pull requests to merge — merge approved ones, resolve conflicts, fix failing CI, and address change requests. |
 | [reply-to-pr-comments](reply-to-pr-comments/) | :17,47 | Respond to replies on your bot comments on GitHub PRs, and re-trigger review when feedback is addressed. |
 | [reply-to-story-comments](reply-to-story-comments/) | :17,47 | Respond to human replies on your bot comments on Shortcut stories, and re-trigger triage when an awaiting-input question is answered. |

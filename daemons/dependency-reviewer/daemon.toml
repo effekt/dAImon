@@ -1,0 +1,35 @@
+[daemon]
+backend = "claude"
+model = "sonnet"
+schedule = { minutes = [13, 43] }
+command = "/dependency-reviewer"
+stuck_after = 1800
+required_inputs = ["bot_author", "base"]
+
+[inputs]
+# The PR author to triage. GitHub's Dependabot is "app/dependabot"; for Renovate
+# use "app/renovate". Only PRs from this author are ever touched.
+bot_author = "app/dependabot"
+# Branch merges target.
+base = "main"
+# Prefix on every comment this daemon posts, so a human can tell its comments apart.
+bot_marker = "🤖"
+# How a merged PR is merged: squash | merge | rebase.
+merge_method = "squash"
+# Semver bump levels eligible for auto-merge. A bump above this tier (e.g. major)
+# is never auto-merged — it is summarized and left for a human. Set to ["patch"]
+# to be stricter.
+automerge_levels = ["patch", "minor"]
+# Only auto-merge when CI is fully green. Off would let unchecked bumps merge —
+# a deliberate opt-out, not a default.
+require_green = true
+# Packages that are NEVER auto-merged regardless of bump level — matched against
+# the updated dependency name (case-insensitive substring / glob). Auth, session,
+# crypto, and framework/runtime cores land here: a bump gets a risk summary and
+# waits for a human. Extend per repo in daemon.local.toml.
+high_risk_packages = [
+  "next-auth", "@auth/*", "@next-auth/*", "next", "react", "react-dom",
+  "passport*", "jose", "jsonwebtoken", "oauth*", "openid-client",
+  "bcrypt*", "argon2", "crypto*", "helmet", "csrf*", "cookie",
+  "express-session", "typescript",
+]
