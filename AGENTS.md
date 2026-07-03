@@ -7,6 +7,7 @@ dAImon *is* and how to operate it, see [README.md](README.md).
 
 - [docs/architecture.md](docs/architecture.md) — how the pieces fit.
 - [docs/writing-a-daemon.md](docs/writing-a-daemon.md) — add or change a daemon.
+- [docs/writing-a-source.md](docs/writing-a-source.md) — add a source profile (GitHub, Shortcut, Datadog, …).
 - [docs/configuration.md](docs/configuration.md) — every config field.
 - [docs/troubleshooting.md](docs/troubleshooting.md) — common failures and fixes.
 - `lib/` framework · `backends/` agent CLIs · `daemons/` the daemons · `daimon/`
