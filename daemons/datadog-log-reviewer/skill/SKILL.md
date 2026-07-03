@@ -57,7 +57,8 @@ occurrence count first); leave the rest for the next run. For each:
    for the exact create call (this daemon is source-agnostic: whichever tracker is
    configured as the write source provides it). Put it in that source's triage
    state (`{{inputs.triage_state}}`) with **no** assessment label, so the triage
-   daemon picks it up. Body:
+   daemon picks it up, and group it under the configured epic/parent if the write
+   source defines one. Body:
 
    ```markdown
    {{inputs.bot_marker}} **Datadog error — <service> (<env>)**

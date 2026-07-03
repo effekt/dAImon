@@ -86,8 +86,9 @@ Look up the numeric `workflow_state_id` for a state name via
 
 `POST /api/v3/stories` with `{"name", "description", "workflow_state_id"}` (resolve
 the id for `{{inputs.triage_state}}` from `GET /api/v3/workflows`). Leave off any
-assessment label so a triage daemon still picks it up. Set `group_id`/`team` and
-`requested_by_id` if your workflow needs them.
+assessment label so a triage daemon still picks it up. When `{{inputs.epic_id}}`
+is non-empty, set `epic_id` to it so filed stories group under that epic. Set
+`group_id`/`team` and `requested_by_id` if your workflow needs them.
 
 ```bash
 STATE=$(curl -s https://api.app.shortcut.com/api/v3/workflows -H "Shortcut-Token: $TOKEN" \
