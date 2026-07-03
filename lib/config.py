@@ -525,6 +525,7 @@ def main(argv: list[str]) -> int:
     sub.add_parser("daemons")
     b = sub.add_parser("backends")
     b.add_argument("slug")
+    sub.add_parser("backends-all")
     m = sub.add_parser("model")
     m.add_argument("slug")
     m.add_argument("backend")
@@ -572,6 +573,9 @@ def main(argv: list[str]) -> int:
         return 0
     if args.cmd == "backends":
         print(" ".join(cfg.backends(args.slug)))
+        return 0
+    if args.cmd == "backends-all":
+        print(" ".join(BACKENDS))
         return 0
     if args.cmd == "model":
         print(cfg.model_for(args.slug, args.backend))

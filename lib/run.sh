@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Generic per-daemon wrapper invoked by launchd (or `daimon run <slug>`):
-# gate on throttle/budget, check the inbox, run the daemon's discovery step, and
-# launch the agent only if there is work.
+# gate on throttle, check the inbox, gate on hourly budget, run the daemon's
+# discovery step, and launch the agent only if there is work.
 set -uo pipefail
 
 SLUG="${1:?usage: run.sh <slug>}"
@@ -22,6 +22,13 @@ if [ "${HAS_INBOX_MESSAGES:-0}" -gt 0 ]; then
   log_event "$SLUG" inbox "$HAS_INBOX_MESSAGES message(s); launching" >> "$OPLOG"
   exec bash "$DAIMON_LIB_DIR/launch.sh" "$SLUG"
 fi
+
+# Soft hourly cost cap on autonomous (discovery-driven) launches. Sits after the
+# inbox check so an explicitly queued message is never deferred; the count is
+# recorded in launch.sh's budget_record.
+source "$DAIMON_LIB_DIR/budget.sh"
+budget_check
+if [ "${BUDGET_OVER:-0}" -eq 1 ]; then log_event "$SLUG" skip "$BUDGET_REASON" >> "$OPLOG"; exit 0; fi
 
 DISCOVER="$DAIMON_INSTALL_ROOT/daemons/$SLUG/discover.sh"
 if [ -f "$DISCOVER" ]; then

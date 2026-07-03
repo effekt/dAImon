@@ -36,6 +36,12 @@ budget_record foo
 budget_record foo
 check "$(budget_total_this_hour)" "2" "budget counts launches"
 
+budget_check
+check "$BUDGET_OVER" "0" "budget under cap -> run"
+for _ in 1 2 3 4 5 6 7; do budget_record foo; done   # 9 launches == 80% of cap 12
+budget_check
+check "$BUDGET_OVER" "1" "budget at defer threshold -> skip"
+
 DAEMON_NAME=foo source "$ROOT/lib/throttle.sh"
 check "$SHOULD_SKIP" "0" "throttle off -> run"
 
