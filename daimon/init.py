@@ -174,12 +174,14 @@ def _resolve_working_dir(auto_default: str, interactive: bool) -> str:
             return auto_default
         return ""
     print(f"current directory: {cwd}")
-    resp = input(f"working_dir for selected daemons [{cwd}]: ").strip()
+    if _is_install_root(cwd):
+        print("current directory is the dAImon install root, not a target repo")
+        resp = input("working_dir for selected daemons (blank to keep placeholders): ").strip()
+    else:
+        resp = input(f"working_dir for selected daemons [{cwd}]: ").strip()
     working_dir = _normalize_working_dir(resp) if resp else cwd
     if _is_install_root(working_dir):
-        print(
-            "not using dAImon install root as working_dir; run init from the target repo or type its path"
-        )
+        print("not using dAImon install root as working_dir; type a target repo path")
         return ""
     return working_dir
 
