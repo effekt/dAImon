@@ -109,6 +109,27 @@ class ConfigureWorkingDirsTest(unittest.TestCase):
         old_cwd = Path.cwd()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            target = root / "target"
+            target.mkdir()
+            init.INSTALL_ROOT = root / "daimon"
+            local = init.INSTALL_ROOT / "one" / "daemon.local.toml"
+            local.parent.mkdir(parents=True)
+            local.write_text('[daemon]\nworking_dir = "~/code/your-repo"\n')
+            os.chdir(target)
+            try:
+                with patch("builtins.input", return_value=""):
+                    init._configure_working_dirs([local], "", True)
+                local_text = local.read_text()
+            finally:
+                os.chdir(old_cwd)
+                init.INSTALL_ROOT = old_root
+        self.assertIn(f'working_dir = "{target.resolve()}"', local_text)
+
+    def test_blank_prompt_keeps_placeholder_from_install_root(self):
+        old_root = init.INSTALL_ROOT
+        old_cwd = Path.cwd()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
             init.INSTALL_ROOT = root
             local = root / "one" / "daemon.local.toml"
             local.parent.mkdir()
@@ -121,7 +142,20 @@ class ConfigureWorkingDirsTest(unittest.TestCase):
             finally:
                 os.chdir(old_cwd)
                 init.INSTALL_ROOT = old_root
-        self.assertIn(f'working_dir = "{root.resolve()}"', local_text)
+        self.assertIn('working_dir = "~/code/your-repo"', local_text)
+
+    def test_install_root_value_needs_working_dir(self):
+        old_root = init.INSTALL_ROOT
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            init.INSTALL_ROOT = root
+            local = root / "one" / "daemon.local.toml"
+            local.parent.mkdir()
+            local.write_text(f'[daemon]\nworking_dir = "{root}"\n')
+            try:
+                self.assertTrue(init._needs_working_dir(local))
+            finally:
+                init.INSTALL_ROOT = old_root
 
 
 if __name__ == "__main__":

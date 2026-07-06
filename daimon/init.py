@@ -153,9 +153,13 @@ def _normalize_working_dir(value: str) -> str:
     return str(path.resolve())
 
 
+def _is_install_root(value: str) -> bool:
+    return bool(value) and Path(value).expanduser().resolve() == INSTALL_ROOT.resolve()
+
+
 def _needs_working_dir(path: Path) -> bool:
     value = _raw_working_dir(path)
-    return not value or value in PLACEHOLDER_WORKING_DIRS
+    return not value or value in PLACEHOLDER_WORKING_DIRS or _is_install_root(value)
 
 
 def _set_working_dir(path: Path, working_dir: str) -> None:
@@ -171,9 +175,13 @@ def _resolve_working_dir(auto_default: str, interactive: bool) -> str:
         return ""
     print(f"current directory: {cwd}")
     resp = input(f"working_dir for selected daemons [{cwd}]: ").strip()
-    if not resp:
-        return cwd
-    return _normalize_working_dir(resp)
+    working_dir = _normalize_working_dir(resp) if resp else cwd
+    if _is_install_root(working_dir):
+        print(
+            "not using dAImon install root as working_dir; run init from the target repo or type its path"
+        )
+        return ""
+    return working_dir
 
 
 def _configure_working_dirs(local_paths: list[Path], default: str, interactive: bool) -> None:
