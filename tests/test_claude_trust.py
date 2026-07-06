@@ -36,18 +36,18 @@ class ClaudeTrustTest(unittest.TestCase):
         self._write({"/other": {"hasTrustDialogAccepted": True}})
         self.assertFalse(claude_trust.is_trusted("/repo"))
 
-    def test_trusted_parent(self):
+    def test_trusted_parent_does_not_trust_child(self):
         self._write({"/repo": {"hasTrustDialogAccepted": True}})
-        self.assertTrue(claude_trust.is_trusted("/repo/child"))
+        self.assertFalse(claude_trust.is_trusted("/repo/child"))
 
-    def test_untrusted_child_overrides_trusted_parent(self):
+    def test_exact_child_trust(self):
         self._write(
             {
                 "/repo": {"hasTrustDialogAccepted": True},
-                "/repo/child": {"hasTrustDialogAccepted": False},
+                "/repo/child": {"hasTrustDialogAccepted": True},
             }
         )
-        self.assertFalse(claude_trust.is_trusted("/repo/child"))
+        self.assertTrue(claude_trust.is_trusted("/repo/child"))
 
     def test_untrusted_parent_does_not_trust_child(self):
         self._write({"/repo": {"hasTrustDialogAccepted": False}})
