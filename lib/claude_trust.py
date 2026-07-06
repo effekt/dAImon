@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from pathlib import Path
 
 
 def is_trusted(directory: str) -> bool:
@@ -20,7 +21,16 @@ def is_trusted(directory: str) -> bool:
             data = json.load(fh)
     except (OSError, json.JSONDecodeError):
         return False
-    return bool(data.get("projects", {}).get(directory, {}).get("hasTrustDialogAccepted"))
+    projects = data.get("projects", {})
+    if not isinstance(projects, dict):
+        return False
+
+    path = Path(directory).expanduser().resolve()
+    for candidate in (path, *path.parents):
+        project = projects.get(str(candidate))
+        if isinstance(project, dict) and "hasTrustDialogAccepted" in project:
+            return bool(project.get("hasTrustDialogAccepted"))
+    return False
 
 
 if __name__ == "__main__":
