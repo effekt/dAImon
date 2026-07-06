@@ -9,12 +9,15 @@ active set without changing what's disabled."""
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import shutil
 import sys
+import tomllib
 from pathlib import Path
 
 INSTALL_ROOT = Path(__file__).resolve().parent.parent
+PLACEHOLDER_WORKING_DIRS = {"~/code", "~/code/your-repo"}
 
 
 def _import_config():
@@ -67,7 +70,7 @@ def set_disabled_text(text: str, disabled: list[str]) -> str:
     return result + "\n" if text.endswith("\n") else result
 
 
-def _scaffold(example: Path) -> None:
+def _scaffold(example: Path) -> Path:
     dest = example.with_suffix("")  # drop the trailing .example
     rel = dest.relative_to(INSTALL_ROOT)
     if dest.exists():
@@ -75,6 +78,99 @@ def _scaffold(example: Path) -> None:
     else:
         shutil.copy(example, dest)
         print(f"  new   {rel}")
+    return dest
+
+
+def set_working_dir_text(text: str, working_dir: str) -> str:
+    """Rewrite `working_dir = ...` under `[daemon]`, preserving the rest of the file."""
+    new_value = json.dumps(working_dir)
+    out: list[str] = []
+    in_daemon = False
+    done = False
+    for ln in text.splitlines():
+        stripped = ln.strip()
+        is_header = (
+            stripped.startswith("[") and stripped.endswith("]") and not stripped.startswith("[[")
+        )
+        if is_header:
+            if in_daemon and not done:
+                out.append(f"working_dir = {new_value}")
+                done = True
+            in_daemon = stripped == "[daemon]"
+            out.append(ln)
+            continue
+        if in_daemon and not done:
+            m = re.match(r"(\s*)working_dir\s*=", ln)
+            if m:
+                comment = ""
+                hash_at = ln.find("#")
+                if hash_at >= 0:
+                    comment = " " + ln[hash_at:].strip()
+                out.append(f"{m.group(1)}working_dir = {new_value}{comment}")
+                done = True
+                continue
+        out.append(ln)
+    if in_daemon and not done:
+        out.append(f"working_dir = {new_value}")
+        done = True
+    if not done:
+        if out and out[-1].strip():
+            out.append("")
+        out += ["[daemon]", f"working_dir = {new_value}"]
+    result = "\n".join(out)
+    return result + "\n" if text.endswith("\n") else result
+
+
+def _raw_working_dir(path: Path) -> str:
+    try:
+        with open(path, "rb") as fh:
+            raw = tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError):
+        return ""
+    value = raw.get("daemon", {}).get("working_dir", "")
+    return value if isinstance(value, str) else ""
+
+
+def _git_root(path: Path) -> Path | None:
+    cur = path.resolve()
+    for candidate in (cur, *cur.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return None
+
+
+def _cwd_working_dir_default() -> str:
+    git_root = _git_root(Path.cwd())
+    if git_root is None or git_root == INSTALL_ROOT.resolve():
+        return ""
+    return str(git_root)
+
+
+def _needs_working_dir(path: Path) -> bool:
+    value = _raw_working_dir(path)
+    return not value or value in PLACEHOLDER_WORKING_DIRS
+
+
+def _set_working_dir(path: Path, working_dir: str) -> None:
+    path.write_text(set_working_dir_text(path.read_text(), working_dir))
+
+
+def _configure_working_dir(slug: str, local_path: Path, default: str, interactive: bool) -> None:
+    if not _needs_working_dir(local_path):
+        return
+    rel = local_path.relative_to(INSTALL_ROOT)
+    if default:
+        _set_working_dir(local_path, default)
+        print(f"  set   {rel} working_dir = {default} (from cwd)")
+        return
+    if not interactive:
+        return
+    resp = input(f"  working_dir for {slug}: ").strip()
+    if not resp:
+        print(f"  keep  {rel} working_dir placeholder")
+        return
+    _set_working_dir(local_path, resp)
+    print(f"  set   {rel} working_dir = {resp}")
 
 
 def _resolve_selection(
@@ -124,17 +220,20 @@ def main(argv: list[str]) -> int:
     print("scaffolding local config for active daemons:")
     cfg = cfg_mod.Config.load()  # reload so newly-enabled daemons are discoverable
     sources: set[str] = set()
+    default_working_dir = _cwd_working_dir_default()
+    interactive = sys.stdin.isatty()
     for slug in selected:
         ex = INSTALL_ROOT / "daemons" / slug / "daemon.local.toml.example"
         if ex.exists():
-            _scaffold(ex)
+            local_path = _scaffold(ex)
+            _configure_working_dir(slug, local_path, default_working_dir, interactive)
         sources.update(cfg.daemon(slug)["sources"])
     for src in sorted(sources):
         ex = INSTALL_ROOT / "profiles" / src / "profile.local.toml.example"
         if ex.exists():
             _scaffold(ex)
 
-    print("\nnext: set working_dir in each daemons/*/daemon.local.toml, then run 'daimon doctor'.")
+    print("\nnext: review daemons/*/daemon.local.toml, then run 'daimon doctor'.")
     return 0
 
 

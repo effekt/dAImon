@@ -49,5 +49,30 @@ class SetDisabledTest(unittest.TestCase):
         self.assertFalse(init.set_disabled_text("[daemons]\ndisabled = []", []).endswith("\n"))
 
 
+class SetWorkingDirTest(unittest.TestCase):
+    def test_replaces_in_daemon_section(self):
+        text = '[daemon]\nworking_dir = "~/code/your-repo"   # keep comment\n\n[inputs]\nbase = "main"\n'
+        out = init.set_working_dir_text(text, "/tmp/repo")
+        self.assertIn('working_dir = "/tmp/repo" # keep comment', out)
+        self.assertIn('[inputs]\nbase = "main"', out)
+        self.assertEqual(out.count("working_dir ="), 1)
+
+    def test_adds_to_existing_daemon_section(self):
+        text = '[daemon]\ncommand = "/review-prs"\n'
+        out = init.set_working_dir_text(text, "/tmp/repo")
+        self.assertIn('command = "/review-prs"', out)
+        self.assertIn('working_dir = "/tmp/repo"', out)
+
+    def test_adds_daemon_section_when_absent(self):
+        text = '[inputs]\nbase = "main"\n'
+        out = init.set_working_dir_text(text, "/tmp/repo")
+        self.assertIn("[daemon]", out)
+        self.assertIn('working_dir = "/tmp/repo"', out)
+
+    def test_escapes_toml_string(self):
+        out = init.set_working_dir_text("[daemon]\n", '/tmp/repo "quoted"')
+        self.assertIn('working_dir = "/tmp/repo \\"quoted\\""', out)
+
+
 if __name__ == "__main__":
     unittest.main()
