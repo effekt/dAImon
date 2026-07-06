@@ -126,9 +126,6 @@
         "working_dir": {
           "type": "string"
         },
-        "allow_install_root_working_dir": {
-          "type": "boolean"
-        },
         "learning": {
           "type": "boolean"
         },

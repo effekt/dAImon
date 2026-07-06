@@ -43,9 +43,9 @@ echo "daemons"
 needs_shortcut=0; needs_codex=0; needs_datadog=0
 for slug in $(cfg daemons); do
   wd="$(cfg daemon "$slug" working_dir)"
+  wd_configured="$(cfg daemon "$slug" working_dir_configured)"
   cmd="$(cfg daemon "$slug" command | sed 's#^/##')"
   be="$(cfg daemon "$slug" backend)"
-  allow_install_root="$(cfg daemon "$slug" allow_install_root_working_dir)"
   # Check the whole sources list, not just the primary: a daemon that reads one
   # source and writes another (e.g. datadog-log-reviewer) depends on both tools.
   srcs=" $(cfg daemon "$slug" sources 2>/dev/null) "
@@ -53,7 +53,7 @@ for slug in $(cfg daemons); do
   case "$srcs" in *" datadog "*) needs_datadog=1 ;; esac
   case " $be $(cfg daemon "$slug" mcp 2>/dev/null) " in *" codex "*) needs_codex=1 ;; esac
   msg="$slug"
-  if [ "$wd" = "$DAIMON_INSTALL_ROOT" ] && [ "$allow_install_root" != "1" ]; then
+  if [ "$wd_configured" != "1" ]; then
     msg="$msg [working_dir not set — point it at your repo]"
   elif [ ! -d "$wd" ]; then msg="$msg [working_dir missing: $wd]"
   elif [ "$be" = "claude" ] && ! claude_trusts "$wd"; then

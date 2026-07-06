@@ -137,15 +137,6 @@ def _raw_working_dir(path: Path) -> str:
     return value if isinstance(value, str) else ""
 
 
-def _allows_install_root_working_dir(path: Path) -> bool:
-    value = _raw_daemon(path).get("allow_install_root_working_dir", False)
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        return value.lower() == "true"
-    return False
-
-
 def _git_root(path: Path) -> Path | None:
     cur = path.resolve()
     for candidate in (cur, *cur.parents):
@@ -174,53 +165,12 @@ def _is_install_root(value: str) -> bool:
 
 def _needs_working_dir(path: Path) -> bool:
     value = _raw_working_dir(path)
-    return (
-        not value
-        or value in PLACEHOLDER_WORKING_DIRS
-        or (_is_install_root(value) and not _allows_install_root_working_dir(path))
-    )
+    return not value or value in PLACEHOLDER_WORKING_DIRS
 
 
 def _set_working_dir(path: Path, working_dir: str) -> None:
     text = set_working_dir_text(path.read_text(), working_dir)
-    if _is_install_root(working_dir):
-        text = set_daemon_bool_text(text, "allow_install_root_working_dir", True)
     path.write_text(text)
-
-
-def set_daemon_bool_text(text: str, key: str, value: bool) -> str:
-    """Rewrite a boolean field under `[daemon]`, preserving the rest of the file."""
-    new_line = f"{key} = {'true' if value else 'false'}"
-    out: list[str] = []
-    in_daemon = False
-    done = False
-    for ln in text.splitlines():
-        stripped = ln.strip()
-        is_header = (
-            stripped.startswith("[") and stripped.endswith("]") and not stripped.startswith("[[")
-        )
-        if is_header:
-            if in_daemon and not done:
-                out.append(new_line)
-                done = True
-            in_daemon = stripped == "[daemon]"
-            out.append(ln)
-            continue
-        if in_daemon and not done and re.match(rf"\s*{re.escape(key)}\s*=", ln):
-            indent = re.match(r"(\s*)", ln).group(1)
-            out.append(f"{indent}{new_line}")
-            done = True
-            continue
-        out.append(ln)
-    if in_daemon and not done:
-        out.append(new_line)
-        done = True
-    if not done:
-        if out and out[-1].strip():
-            out.append("")
-        out += ["[daemon]", new_line]
-    result = "\n".join(out)
-    return result + "\n" if text.endswith("\n") else result
 
 
 def _resolve_working_dir(auto_default: str, interactive: bool) -> str:

@@ -14,8 +14,7 @@ gitignored `daemon.local.toml`; unset, it defaults to the dAImon install root.
 Run `daimon init <slug>` from the target repo and accept the prompt, or type the
 target path when prompted. `daimon doctor` flags daemons whose `working_dir` is
 unset or missing. If you intentionally want daemons to operate on dAImon itself,
-accepting the install-root prompt records `allow_install_root_working_dir = true`
-in the local daemon config so `doctor` can distinguish that from an unset value.
+accept the install-root prompt so `init` writes that directory explicitly.
 
 ## The agent never finishes / hangs
 
