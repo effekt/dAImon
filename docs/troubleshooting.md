@@ -9,10 +9,11 @@ Run `daimon doctor` first — it checks most of the below and points at the fix.
 
 ## A daemon runs against the wrong repo (or dAImon itself)
 
-`working_dir` isn't set. Each daemon needs it in its gitignored
-`daemon.local.toml`; unset, it defaults to the dAImon install root. Run
-`daimon init <slug>` to scaffold the file, then set `working_dir` to the target
-repo. `daimon doctor` flags daemons whose `working_dir` is unset or missing.
+`working_dir` isn't set or points at the wrong place. Each daemon needs it in its
+gitignored `daemon.local.toml`; unset, it defaults to the dAImon install root.
+Run `daimon init <slug>` from the target repo and accept the prompt, or type the
+target path when prompted. `daimon doctor` flags daemons whose `working_dir` is
+unset or missing.
 
 ## The agent never finishes / hangs
 
