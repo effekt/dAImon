@@ -1,7 +1,10 @@
 import importlib.util
+import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -72,6 +75,53 @@ class SetWorkingDirTest(unittest.TestCase):
     def test_escapes_toml_string(self):
         out = init.set_working_dir_text("[daemon]\n", '/tmp/repo "quoted"')
         self.assertIn('working_dir = "/tmp/repo \\"quoted\\""', out)
+
+
+class ConfigureWorkingDirsTest(unittest.TestCase):
+    def test_prompts_once_and_sets_all_placeholders(self):
+        old_root = init.INSTALL_ROOT
+        old_cwd = Path.cwd()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            init.INSTALL_ROOT = root
+            first = root / "one" / "daemon.local.toml"
+            second = root / "two" / "daemon.local.toml"
+            first.parent.mkdir()
+            second.parent.mkdir()
+            first.write_text('[daemon]\nworking_dir = "~/code/your-repo"\n')
+            second.write_text('[daemon]\nworking_dir = "~/code"\n')
+            os.chdir(root)
+            try:
+                with patch("builtins.input", return_value="/tmp/target") as prompt:
+                    init._configure_working_dirs([first, second], "", True)
+                first_text = first.read_text()
+                second_text = second.read_text()
+            finally:
+                os.chdir(old_cwd)
+                init.INSTALL_ROOT = old_root
+        self.assertEqual(prompt.call_count, 1)
+        expected = Path("/tmp/target").resolve()
+        self.assertIn(f'working_dir = "{expected}"', first_text)
+        self.assertIn(f'working_dir = "{expected}"', second_text)
+
+    def test_blank_prompt_uses_current_directory_for_all(self):
+        old_root = init.INSTALL_ROOT
+        old_cwd = Path.cwd()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            init.INSTALL_ROOT = root
+            local = root / "one" / "daemon.local.toml"
+            local.parent.mkdir()
+            local.write_text('[daemon]\nworking_dir = "~/code/your-repo"\n')
+            os.chdir(root)
+            try:
+                with patch("builtins.input", return_value=""):
+                    init._configure_working_dirs([local], "", True)
+                local_text = local.read_text()
+            finally:
+                os.chdir(old_cwd)
+                init.INSTALL_ROOT = old_root
+        self.assertIn(f'working_dir = "{root.resolve()}"', local_text)
 
 
 if __name__ == "__main__":

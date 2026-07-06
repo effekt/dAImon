@@ -146,6 +146,13 @@ def _cwd_working_dir_default() -> str:
     return str(git_root)
 
 
+def _normalize_working_dir(value: str) -> str:
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    return str(path.resolve())
+
+
 def _needs_working_dir(path: Path) -> bool:
     value = _raw_working_dir(path)
     return not value or value in PLACEHOLDER_WORKING_DIRS
@@ -155,22 +162,32 @@ def _set_working_dir(path: Path, working_dir: str) -> None:
     path.write_text(set_working_dir_text(path.read_text(), working_dir))
 
 
-def _configure_working_dir(slug: str, local_path: Path, default: str, interactive: bool) -> None:
-    if not _needs_working_dir(local_path):
-        return
-    rel = local_path.relative_to(INSTALL_ROOT)
-    if default:
-        _set_working_dir(local_path, default)
-        print(f"  set   {rel} working_dir = {default} (from cwd)")
-        return
+def _resolve_working_dir(auto_default: str, interactive: bool) -> str:
+    cwd = str(Path.cwd().resolve())
     if not interactive:
-        return
-    resp = input(f"  working_dir for {slug}: ").strip()
+        if auto_default:
+            print(f"using working_dir for selected daemons: {auto_default} (from cwd)")
+            return auto_default
+        return ""
+    print(f"current directory: {cwd}")
+    resp = input(f"working_dir for selected daemons [{cwd}]: ").strip()
     if not resp:
-        print(f"  keep  {rel} working_dir placeholder")
+        return cwd
+    return _normalize_working_dir(resp)
+
+
+def _configure_working_dirs(local_paths: list[Path], default: str, interactive: bool) -> None:
+    pending = [path for path in local_paths if _needs_working_dir(path)]
+    if not pending:
         return
-    _set_working_dir(local_path, resp)
-    print(f"  set   {rel} working_dir = {resp}")
+    working_dir = _resolve_working_dir(default, interactive)
+    if not working_dir:
+        for path in pending:
+            print(f"  keep  {path.relative_to(INSTALL_ROOT)} working_dir placeholder")
+        return
+    for path in pending:
+        _set_working_dir(path, working_dir)
+        print(f"  set   {path.relative_to(INSTALL_ROOT)} working_dir = {working_dir}")
 
 
 def _resolve_selection(
@@ -222,12 +239,14 @@ def main(argv: list[str]) -> int:
     sources: set[str] = set()
     default_working_dir = _cwd_working_dir_default()
     interactive = sys.stdin.isatty()
+    local_paths: list[Path] = []
     for slug in selected:
         ex = INSTALL_ROOT / "daemons" / slug / "daemon.local.toml.example"
         if ex.exists():
             local_path = _scaffold(ex)
-            _configure_working_dir(slug, local_path, default_working_dir, interactive)
+            local_paths.append(local_path)
         sources.update(cfg.daemon(slug)["sources"])
+    _configure_working_dirs(local_paths, default_working_dir, interactive)
     for src in sorted(sources):
         ex = INSTALL_ROOT / "profiles" / src / "profile.local.toml.example"
         if ex.exists():
