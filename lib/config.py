@@ -41,6 +41,7 @@ DEFAULT_DEFAULTS = {
     "stuck_after": 2700,
     "ready_timeout": 20,
     "mcp": [],
+    "allow_install_root_working_dir": False,
 }
 THROTTLE_DEFAULTS = {
     "exempt": [],
@@ -471,6 +472,7 @@ def daemon_schema() -> dict:
                 },
             },
             "working_dir": {"type": "string"},
+            "allow_install_root_working_dir": {"type": "boolean"},
             "learning": {"type": "boolean"},
             "mcp": {"type": "array", "items": {"type": "string", "enum": list(MCP_SERVERS)}},
             "required_inputs": {

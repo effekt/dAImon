@@ -125,7 +125,7 @@ class ConfigureWorkingDirsTest(unittest.TestCase):
                 init.INSTALL_ROOT = old_root
         self.assertIn(f'working_dir = "{target.resolve()}"', local_text)
 
-    def test_blank_prompt_keeps_placeholder_from_install_root(self):
+    def test_blank_prompt_marks_install_root_explicit(self):
         old_root = init.INSTALL_ROOT
         old_cwd = Path.cwd()
         with tempfile.TemporaryDirectory() as tmp:
@@ -142,9 +142,10 @@ class ConfigureWorkingDirsTest(unittest.TestCase):
             finally:
                 os.chdir(old_cwd)
                 init.INSTALL_ROOT = old_root
-        self.assertIn('working_dir = "~/code/your-repo"', local_text)
+        self.assertIn(f'working_dir = "{root.resolve()}"', local_text)
+        self.assertIn("allow_install_root_working_dir = true", local_text)
 
-    def test_install_root_value_needs_working_dir(self):
+    def test_install_root_value_needs_working_dir_without_opt_in(self):
         old_root = init.INSTALL_ROOT
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -156,6 +157,27 @@ class ConfigureWorkingDirsTest(unittest.TestCase):
                 self.assertTrue(init._needs_working_dir(local))
             finally:
                 init.INSTALL_ROOT = old_root
+
+    def test_install_root_value_with_opt_in_does_not_need_working_dir(self):
+        old_root = init.INSTALL_ROOT
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            init.INSTALL_ROOT = root
+            local = root / "one" / "daemon.local.toml"
+            local.parent.mkdir()
+            local.write_text(
+                f'[daemon]\nworking_dir = "{root}"\nallow_install_root_working_dir = true\n'
+            )
+            try:
+                self.assertFalse(init._needs_working_dir(local))
+            finally:
+                init.INSTALL_ROOT = old_root
+
+    def test_set_daemon_bool_replaces_in_daemon_section(self):
+        text = '[daemon]\nallow_install_root_working_dir = false\n\n[inputs]\nbase = "main"\n'
+        out = init.set_daemon_bool_text(text, "allow_install_root_working_dir", True)
+        self.assertIn("allow_install_root_working_dir = true", out)
+        self.assertEqual(out.count("allow_install_root_working_dir ="), 1)
 
 
 if __name__ == "__main__":

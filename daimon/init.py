@@ -121,14 +121,29 @@ def set_working_dir_text(text: str, working_dir: str) -> str:
     return result + "\n" if text.endswith("\n") else result
 
 
-def _raw_working_dir(path: Path) -> str:
+def _raw_daemon(path: Path) -> dict:
     try:
         with open(path, "rb") as fh:
             raw = tomllib.load(fh)
     except (OSError, tomllib.TOMLDecodeError):
-        return ""
-    value = raw.get("daemon", {}).get("working_dir", "")
+        return {}
+    daemon = raw.get("daemon", {})
+    return daemon if isinstance(daemon, dict) else {}
+
+
+def _raw_working_dir(path: Path) -> str:
+    daemon = _raw_daemon(path)
+    value = daemon.get("working_dir", "")
     return value if isinstance(value, str) else ""
+
+
+def _allows_install_root_working_dir(path: Path) -> bool:
+    value = _raw_daemon(path).get("allow_install_root_working_dir", False)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return False
 
 
 def _git_root(path: Path) -> Path | None:
@@ -159,11 +174,53 @@ def _is_install_root(value: str) -> bool:
 
 def _needs_working_dir(path: Path) -> bool:
     value = _raw_working_dir(path)
-    return not value or value in PLACEHOLDER_WORKING_DIRS or _is_install_root(value)
+    return (
+        not value
+        or value in PLACEHOLDER_WORKING_DIRS
+        or (_is_install_root(value) and not _allows_install_root_working_dir(path))
+    )
 
 
 def _set_working_dir(path: Path, working_dir: str) -> None:
-    path.write_text(set_working_dir_text(path.read_text(), working_dir))
+    text = set_working_dir_text(path.read_text(), working_dir)
+    if _is_install_root(working_dir):
+        text = set_daemon_bool_text(text, "allow_install_root_working_dir", True)
+    path.write_text(text)
+
+
+def set_daemon_bool_text(text: str, key: str, value: bool) -> str:
+    """Rewrite a boolean field under `[daemon]`, preserving the rest of the file."""
+    new_line = f"{key} = {'true' if value else 'false'}"
+    out: list[str] = []
+    in_daemon = False
+    done = False
+    for ln in text.splitlines():
+        stripped = ln.strip()
+        is_header = (
+            stripped.startswith("[") and stripped.endswith("]") and not stripped.startswith("[[")
+        )
+        if is_header:
+            if in_daemon and not done:
+                out.append(new_line)
+                done = True
+            in_daemon = stripped == "[daemon]"
+            out.append(ln)
+            continue
+        if in_daemon and not done and re.match(rf"\s*{re.escape(key)}\s*=", ln):
+            indent = re.match(r"(\s*)", ln).group(1)
+            out.append(f"{indent}{new_line}")
+            done = True
+            continue
+        out.append(ln)
+    if in_daemon and not done:
+        out.append(new_line)
+        done = True
+    if not done:
+        if out and out[-1].strip():
+            out.append("")
+        out += ["[daemon]", new_line]
+    result = "\n".join(out)
+    return result + "\n" if text.endswith("\n") else result
 
 
 def _resolve_working_dir(auto_default: str, interactive: bool) -> str:
@@ -175,14 +232,12 @@ def _resolve_working_dir(auto_default: str, interactive: bool) -> str:
         return ""
     print(f"current directory: {cwd}")
     if _is_install_root(cwd):
-        print("current directory is the dAImon install root, not a target repo")
-        resp = input("working_dir for selected daemons (blank to keep placeholders): ").strip()
+        print("current directory is the dAImon install root")
+        print("use this only if you want daemons to operate on dAImon itself")
+        resp = input(f"working_dir for selected daemons [{cwd}]: ").strip()
     else:
         resp = input(f"working_dir for selected daemons [{cwd}]: ").strip()
     working_dir = _normalize_working_dir(resp) if resp else cwd
-    if _is_install_root(working_dir):
-        print("not using dAImon install root as working_dir; type a target repo path")
-        return ""
     return working_dir
 
 
