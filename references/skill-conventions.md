@@ -12,26 +12,25 @@ a human's. The reply daemons (`reply-to-pr-comments`, `reply-to-story-comments`)
 only act on replies to comments carrying this marker, and no daemon should ever
 act on its own comments.
 
-## Track what you've handled in `$DAIMON_STATE_FILE`
+## Track what you've handled with `daimon state`
 
-`$DAIMON_STATE_FILE` is your durable JSON memory across runs. Read it at the start
-and skip any item already handled at its current commit/state; write the updated
-record at the end. Key each record by the item **and** the commit or state it was
-at, so an unchanged item is never reprocessed and a changed one always is.
-
-It is an **absolute path outside the repo** (under the daemon's state dir), already
-set in your environment. Read and write it exactly, always **expanding** the
-variable — double-quote it so the shell substitutes the path:
+Your durable JSON memory across runs is stored outside the repo, under the
+configured state dir. **Access it only through the `daimon state` command** — pass
+JSON, never a path — so your record always lands in the right place no matter what
+directory you're running in:
 
 ```bash
-echo "$DAIMON_STATE_FILE"          # confirm it's set to an absolute path first
-cat "$DAIMON_STATE_FILE" 2>/dev/null || echo '[]'   # read
-printf '%s' "$new_json" > "$DAIMON_STATE_FILE"       # write
+daimon state get                    # read your record (empty output if none yet)
+printf '%s' "$new_json" | daimon state set   # write it (validated + atomic)
 ```
 
-You run inside a git repository. **Never write state anywhere inside it.** Do not
-write to a single-quoted `'$DAIMON_STATE_FILE'` (that creates a file literally
-named `$DAIMON_STATE_FILE` in the cwd), do not invent a `.daimon/` or `state/`
-directory in the working tree, and do not name a file by date. If
-`$DAIMON_STATE_FILE` is somehow empty, stop and report it — do not fall back to a
-path in the repo. The only state file you touch is the one at `$DAIMON_STATE_FILE`.
+`get`/`set` default to your own daemon; pass a slug to read another's, e.g.
+`daimon state get review-prs`. Read your record at the start and skip any item
+already handled at its current commit/state; write the updated record at the end.
+Key each record by the item **and** the commit or state it was at, so an unchanged
+item is never reprocessed and a changed one always is.
+
+You run inside a git repository. **Never write state into it** — do not `cat` or
+redirect a state-file path yourself, do not invent a `.daimon/` or `state/`
+directory in the working tree, and do not name a file by date. `daimon state` is
+the only thing that touches the state file.

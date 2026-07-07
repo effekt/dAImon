@@ -67,7 +67,7 @@ positives) and writing lessons at the end (so the next run is smarter). Set
 
 A daemon that posts comments (it has a `bot_marker` input) additionally gets
 `references/skill-conventions.md` appended — the marker-every-comment and
-durable-state-in `$DAIMON_STATE_FILE` conventions — so you inherit them instead of
+durable-state-via-`daimon state` conventions — so you inherit them instead of
 restating them in each skill.
 
 ## Activate
