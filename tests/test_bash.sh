@@ -79,4 +79,12 @@ case "$A" in *"-m gpt-5.3-codex"*) m=1;; *) m=0;; esac
 check "$m" "1" "codex passes -m for a codex model"
 unset DAIMON_D_WORKING_DIR
 
+echo '[{"n":1}]' | DAIMON_SLUG=st bash "$ROOT/lib/state.sh" set
+check "$(DAIMON_SLUG=st bash "$ROOT/lib/state.sh" get)" '[{"n":1}]' "state set/get roundtrip"
+echo 'not json' | DAIMON_SLUG=st bash "$ROOT/lib/state.sh" set 2>/dev/null
+check "$?" "2" "state set rejects invalid json"
+check "$(DAIMON_SLUG=st bash "$ROOT/lib/state.sh" get)" '[{"n":1}]' "state unchanged after rejected set"
+echo '{"a":2}' | bash "$ROOT/lib/state.sh" set other
+check "$(bash "$ROOT/lib/state.sh" get other)" '{"a":2}' "state get/set honors an explicit slug"
+
 exit "$fails"

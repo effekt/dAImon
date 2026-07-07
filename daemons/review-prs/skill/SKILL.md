@@ -18,7 +18,7 @@ gh pr list --search "{{inputs.filter}}" --json number,title,headRefName,headRefO
 ```
 
 Skip any PR you have already reviewed at its current head commit. Your durable
-record is the JSON array at `$DAIMON_STATE_FILE` (`[{number, headSha, verdict}]`)
+record is the JSON array from `daimon state get` (`[{number, headSha, verdict}]`)
 — read it at the start, skip PRs whose number + head SHA you've already recorded,
 and write back the ones you act on this run. (Submitting a review also clears the
 `review-requested` flag, so most already-done PRs simply won't appear. A removed
@@ -109,5 +109,5 @@ Write the body per `{{inputs.verbosity}}`:
 
 ## 5. Finish
 
-Record each acted-on PR as `{number, headSha, verdict}` in `$DAIMON_STATE_FILE`.
+Record each acted-on PR as `{number, headSha, verdict}` with `daimon state set`.
 Keep the summary short: each PR, its verdict, and its blocking/suggestion counts.

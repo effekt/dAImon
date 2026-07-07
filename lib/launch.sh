@@ -82,7 +82,7 @@ run_one_backend() {
   fi
   local tfile; tfile="$(transcripts_dir)/${SLUG}-${be}-$(date -u +%Y%m%dT%H%M%SZ).log"
   tmux new-session -d -s "$session" -c "$WORKING_DIR" -x 220 -y 50 \
-    "DAIMON_SENTINEL='$SENTINEL' DAIMON_HEARTBEAT='$HEARTBEAT' DAIMON_WAIT='$WAITF' DAIMON_STATE_DIR='$DAIMON_STATE_DIR' DAIMON_SLUG='$SLUG' DAIMON_STATE_FILE='$DAIMON_STATE_DIR/state/$SLUG.json' exec '$bin' $args $stdin"
+    "PATH=\"$DAIMON_INSTALL_ROOT/bin:\$PATH\" DAIMON_SENTINEL='$SENTINEL' DAIMON_HEARTBEAT='$HEARTBEAT' DAIMON_WAIT='$WAITF' DAIMON_STATE_DIR='$DAIMON_STATE_DIR' DAIMON_SLUG='$SLUG' DAIMON_STATE_FILE='$DAIMON_STATE_DIR/state/$SLUG.json' exec '$bin' $args $stdin"
   tmux set-option -t "$session" prefix2 C-a 2>/dev/null || true
   # A oneshot process can exit before the completion loop's final capture, so
   # stream the pane to the transcript live instead of grabbing it at the end.

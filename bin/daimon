@@ -27,6 +27,7 @@ usage: daimon <command> [args]
   sync               regenerate plists + render skills
   daemons            list discovered daemons
   state <slug>       show a daemon's work-tracking record (--clear to reset)
+                     (get [slug] / set [slug] read/write raw JSON — used by agents)
   models <backend>   list available models (claude|codex)
   config <args...>   pass through to the config core (validate|get|daemon|...)
   validate           validate configuration
@@ -47,7 +48,7 @@ case "$CMD" in
   new)       exec claude "/daimon-builder" ;;
   sync)      exec python3 -m daimon.sync "$@" ;;
   daemons)   exec python3 "$LIB/config.py" daemons ;;
-  state)     exec bash "$LIB/state-show.sh" "$@" ;;
+  state)     exec bash "$LIB/state.sh" "$@" ;;
   models)    exec python3 "$LIB/models.py" "$@" ;;
   config)    exec python3 "$LIB/config.py" "$@" ;;
   validate)  exec python3 "$LIB/config.py" validate ;;
