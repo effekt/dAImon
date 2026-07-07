@@ -151,3 +151,13 @@ run_one_backend() {
 for be in "${BACKENDS[@]}"; do
   run_one_backend "$be" || { log_event "$SLUG" chain_stop "backend $be failed" >> "$OPLOG"; break; }
 done
+
+# Remove state an agent leaked into the repo. The first path is literal: an
+# unexpanded write to '$DAIMON_STATE_FILE' creates a file by that exact name.
+if [ -n "$WORKING_DIR" ] && [ -d "$WORKING_DIR" ]; then
+  # shellcheck disable=SC2016  # the single-quoted $DAIMON_STATE_FILE is a literal filename
+  for stray in "$WORKING_DIR/"'$DAIMON_STATE_FILE' "$WORKING_DIR/.daimon"; do
+    [ -e "$stray" ] && rm -rf "$stray" \
+      && log_event "$SLUG" cleanup "removed leaked repo artifact ${stray##*/}" >> "$OPLOG"
+  done
+fi
