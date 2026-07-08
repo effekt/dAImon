@@ -5,6 +5,7 @@ import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "lib"))
@@ -58,6 +59,13 @@ class MaterializeTest(unittest.TestCase):
         skill = self.home / ".claude" / "skills" / "alpha" / "SKILL.md"
         self.assertTrue(skill.exists())
         self.assertIn("Hi.", skill.read_text())
+
+    def test_materialize_creates_launch_agents_on_macos(self):
+        agents = self.home / "Library" / "LaunchAgents"
+        self.assertFalse(agents.exists())
+        with patch.object(self.sync.sys, "platform", "darwin"):
+            self.sync.materialize(self.config)
+        self.assertTrue((agents / "com.testns.alpha.plist").exists())
 
 
 if __name__ == "__main__":

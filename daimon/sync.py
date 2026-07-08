@@ -27,6 +27,8 @@ def materialize(cfg_mod):
     schema_path.write_text(json.dumps(cfg_mod.daemon_schema(), indent=2) + "\n")
     skills_root = Path(os.path.expanduser("~/.claude/skills"))
     agents = Path(os.path.expanduser("~/Library/LaunchAgents"))
+    if sys.platform == "darwin":
+        agents.mkdir(parents=True, exist_ok=True)
     ns = cfg.core["namespace"]
     for slug in cfg.discover():
         cmd = cfg.daemon(slug)["command"].lstrip("/")

@@ -118,6 +118,34 @@ class ConfigTest(unittest.TestCase):
     def test_per_daemon_override(self):
         self.assertEqual(self.cfg.daemon("alpha")["stuck_after"], 600)
 
+    def test_working_dir_unset_falls_back_but_is_not_configured(self):
+        daemon = self.cfg.daemon("alpha")
+        self.assertEqual(daemon["working_dir"], str(self.root.resolve()))
+        self.assertFalse(daemon["working_dir_configured"])
+
+    def test_working_dir_placeholder_is_not_configured(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.local.toml",
+            """
+            [daemon]
+            working_dir = "~/code/your-repo"
+            """,
+        )
+        daemon = config.Config.load().daemon("alpha")
+        self.assertFalse(daemon["working_dir_configured"])
+
+    def test_explicit_install_root_working_dir_is_configured(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.local.toml",
+            f"""
+            [daemon]
+            working_dir = "{self.root}"
+            """,
+        )
+        daemon = config.Config.load().daemon("alpha")
+        self.assertEqual(daemon["working_dir"], str(self.root.resolve()))
+        self.assertTrue(daemon["working_dir_configured"])
+
     def _make_sourced_daemon(self):
         write(
             self.root / "profiles" / "sc" / "profile.toml",

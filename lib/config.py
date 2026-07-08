@@ -42,6 +42,7 @@ DEFAULT_DEFAULTS = {
     "ready_timeout": 20,
     "mcp": [],
 }
+PLACEHOLDER_WORKING_DIRS = {"~/code", "~/code/your-repo"}
 THROTTLE_DEFAULTS = {
     "exempt": [],
     "moderate_mod": 2,
@@ -177,6 +178,7 @@ class Config:
         merged["source"] = specs[0]["name"] if specs else ""
         merged["slug"] = slug
         wd = merged.get("working_dir")
+        merged["working_dir_configured"] = bool(wd) and wd not in PLACEHOLDER_WORKING_DIRS
         merged["working_dir"] = str(expand(wd)) if wd else str(self.install_root)
         ri = merged.get("required_inputs", [])
         merged["required_inputs"] = list(ri) if isinstance(ri, list) else [ri]

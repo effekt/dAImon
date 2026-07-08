@@ -41,10 +41,23 @@ echo "linked daimon + daimonctl into ~/.local/bin (ensure it is on your PATH)"
 PYTHONPATH="$ROOT" python3 -m daimon.sync
 
 if [ "$LOAD" -eq 1 ]; then
+  load_fail=0
   for slug in $(python3 "$ROOT/lib/config.py" daemons) watchdog; do
     plist="$HOME/Library/LaunchAgents/com.${DAIMON_NS}.${slug}.plist"
-    [ -f "$plist" ] && launchctl bootstrap "gui/$(id -u)" "$plist" 2>/dev/null && echo "loaded $slug"
+    if [ ! -f "$plist" ]; then
+      echo "missing plist for $slug: $plist" >&2
+      load_fail=1
+      continue
+    fi
+    launchctl bootout "gui/$(id -u)" "$plist" >/dev/null 2>&1 || true
+    if launchctl bootstrap "gui/$(id -u)" "$plist" 2>/dev/null; then
+      echo "loaded $slug"
+    else
+      echo "failed to load $slug from $plist" >&2
+      load_fail=1
+    fi
   done
+  [ "$load_fail" -eq 0 ] || exit 1
 else
   echo "plists generated (not loaded). Run 'daimon install --load' to schedule, or load individually."
 fi

@@ -58,13 +58,13 @@ macOS: `brew install python@3.12 tmux gh jq` (plus the [Claude CLI](https://docs
 git clone <your-fork> ~/dev/dAImon
 cd ~/dev/dAImon
 make install                 # hooks, TUI venv, skills, plists (not scheduled); puts `daimon` on PATH
-daimon init                  # pick which daemons to run + scaffold their local config
-$EDITOR ~/.config/daimon/daimon.toml                       # globals: install_root, state_dir, defaults
-$EDITOR daemons/review-prs/daemon.local.toml               # set working_dir to your repo (gitignored)
-make doctor                  # verify tools, gh auth, hooks, config
-make validate
+cd /path/to/your-target-repo # repo the daemon should operate on
+daimon init review-prs       # pick daemons + accept/change the working_dir prompt
+$EDITOR ~/.config/daimon/daimon.toml                       # optional globals: state_dir, defaults
+daimon doctor                # verify tools, gh auth, hooks, config
+daimon validate
 daimon run review-prs        # one gated run, now — watch with `daimon tui`
-make install-load            # schedule everything via launchd (macOS only)
+daimon install --load        # schedule everything via launchd (macOS only)
 ```
 
 `make install` symlinks `daimon`/`daimonctl` into `~/.local/bin` (ensure it's on your
@@ -81,7 +81,10 @@ use `gh auth login` and `$SHORTCUT_API_TOKEN`.
 
 `daimon init` defines which daemons run on this machine: name the ones you want and
 the rest are added to `[daemons].disabled` (excluded from sync and scheduling), and
-the chosen ones get their `.local.toml` scaffolded from the tracked examples.
+the chosen ones get their `.local.toml` scaffolded from the tracked examples. It
+prompts once for `working_dir`, defaulting to the current directory; press Enter to
+use it for all selected daemons with placeholder paths, or type a different repo or
+workspace path.
 
 ```bash
 daimon init story-reviewer reply-to-story-comments   # run only these two

@@ -2,7 +2,6 @@
 # Field reference: docs/configuration.md. Validate with `daimon config validate`.
 
 [core]
-install_root = "~/dev/dAImon"
 state_dir = "~/.local/state/daimon"
 namespace = "daimon"
 timezone = "UTC"
