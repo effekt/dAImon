@@ -19,7 +19,7 @@ dependencies = []
 dev = [
     "ruff>=0.15.21",
     "pyright>=1.1.390",
-    "pre-commit>=4.0",
+    "pre-commit>=4.6.1",
     "textual>=0.85",
     "jsonschema>=4.20",
 ]
