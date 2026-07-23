@@ -14,3 +14,4 @@ human_label = "ai-human"
 priority_label = "ai-priority"
 skip_label = "no-ai"
 epic_id = ""
+exclude_epics = []

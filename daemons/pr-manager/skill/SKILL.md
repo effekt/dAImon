@@ -168,6 +168,30 @@ Remove the worktree when done: `git -C "$ROOT" worktree remove --force ".worktre
 
 ## 5. Pushing
 
+### Check the PR's declared scope first
+
+Some PRs are opened by a daemon that recorded which paths the change is allowed to
+affect, because this repo derives what it builds and deploys from the change
+itself. You have no allowlist of your own — the scope belongs to the PR, so ask
+for it by PR. From inside the worktree, before pushing:
+
+```bash
+daimon check-scope --pr <pr-url> origin/{{inputs.base}}
+```
+
+- **exit 0** — the PR declares no scope (the common case, nothing to enforce), or
+  your fix stayed inside it. Push normally.
+- **exit 1** — your fix reaches outside what this PR may affect. **Do not push.**
+  Drop the out-of-scope edits and re-run the check. If the fix genuinely cannot be
+  made without them, leave the PR untouched, comment with the exact `check-scope`
+  output prefixed by `{{inputs.bot_marker}}`, and move on to the next PR.
+- **exit 2** — it could not tell. Treat that as a refusal to push and say why.
+
+Pushing past a failed check is how one migration becomes a release of unrelated
+apps. Never edit or work around the guard to get a push through.
+
+### Then push
+
 Run `git push` as a **standalone** command (not chained), allowing a long timeout
 — pre-push hooks can legitimately take a minute or more. Treat the push as failed
 only on `remote: Permission to … denied` (real auth failure — report, don't

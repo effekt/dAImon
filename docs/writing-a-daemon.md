@@ -60,6 +60,27 @@ Find work in {{inputs.source}} via `{{inputs.access}}` matching {{inputs.filter}
 For each item: <do the work>. Record what you handled so the next run skips it.
 ```
 
+A daemon whose agent commits to a shared repo can declare an `allowed_paths` input
+— a list of path prefixes — and call `daimon check-scope [base-ref]` from inside
+its worktree. It exits non-zero if the branch reaches outside them. This matters
+where CI derives its build/deploy set from the change: a stray edit turns one
+change into a release of unrelated apps.
+
+In a Turborepo it asks `turbo ls --affected`, so it judges the **affected
+workspace graph** rather than the literal diff — that catches an edit confined to
+allowed paths that still fans out into other apps through a shared dependency.
+Elsewhere it falls back to matching changed files against the same prefixes;
+`--paths` forces that mode. With no `allowed_paths` set it is a no-op, so it costs
+nothing to call.
+
+A limit only helps while the daemon that set it is alive, and a pull request
+outlives the run that opened it. So a daemon that records `allowed_paths`
+alongside a `pr_url` in its state makes that scope durable: any **other** daemon
+later pushing to the same PR runs `daimon check-scope --pr <url>`, which resolves
+the allowlist from whichever daemon recorded that PR. The shepherding daemon needs
+no allowlist of its own — the scope belongs to the pull request and travels with
+it. A PR nobody recorded declares no scope, and the check is a no-op.
+
 Every rendered skill also gets `references/learning.md` appended — a protocol for
 reading this project's Claude memory at the start of a run (to skip known false
 positives) and writing lessons at the end (so the next run is smarter). Set
