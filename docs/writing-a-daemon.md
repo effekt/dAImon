@@ -104,6 +104,22 @@ daimon tui                # enable scheduling with [e]
 Each daemon's `README.md` is generated — never hand-edit it; edit `daemon.toml` /
 `SKILL.md` and run `make docs`. CI fails if it's stale.
 
+## Keeping a daemon out of the repo
+
+A daemon that only makes sense on your machine — one wired to a private tracker,
+epic, or repo — can stay out of git entirely. Add it to `.git/info/exclude`
+(local, uncommitted) rather than `.gitignore`, which is shared:
+
+```bash
+echo 'daemons/<slug>/' >> "$(git rev-parse --git-dir)/info/exclude"
+```
+
+`make docs` leaves an excluded daemon out of the committed `daemons/README.md`
+index, so generating docs never dirties a tracked file with a name that isn't in
+the repo. It still writes that daemon's own `README.md`, which lives inside the
+excluded folder and stays local. Everything else — discovery, `daimon sync`,
+scheduling — treats it exactly like any other daemon.
+
 ## Tips
 
 - One daemon targets one repo. Cover many repos with one daemon each.
