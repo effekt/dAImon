@@ -129,6 +129,8 @@ daimon sync              regenerate plists + render skills
 daimon kill <slug|all>   hard-kill a run
 daimon ps <slug|all>     process tree
 daimon watchdog          sweep orphans + leaked MCP + old logs
+daimon check-scope [ref] fail if the branch reaches outside allowed_paths
+                         (--pr <url> takes the scope from the PR's own record)
 daimon tui               control panel
 ```
 

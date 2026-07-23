@@ -28,6 +28,7 @@ usage: daimon <command> [args]
   daemons            list discovered daemons
   state <slug>       show a daemon's work-tracking record (--clear to reset)
                      (get [slug] / set [slug] read/write raw JSON — used by agents)
+  check-scope [base] fail if the branch touches paths outside allowed_paths
   models <backend>   list available models (claude|codex)
   config <args...>   pass through to the config core (validate|get|daemon|...)
   validate           validate configuration
@@ -49,6 +50,7 @@ case "$CMD" in
   sync)      exec python3 -m daimon.sync "$@" ;;
   daemons)   exec python3 "$LIB/config.py" daemons ;;
   state)     exec bash "$LIB/state.sh" "$@" ;;
+  check-scope) exec bash "$LIB/check-scope.sh" "$@" ;;
   models)    exec python3 "$LIB/models.py" "$@" ;;
   config)    exec python3 "$LIB/config.py" "$@" ;;
   validate)  exec python3 "$LIB/config.py" validate ;;
