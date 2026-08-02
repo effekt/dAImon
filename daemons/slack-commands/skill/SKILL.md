@@ -27,18 +27,31 @@ Read every `*.md` in `{{inputs.commands_dir}}` then
 `{{inputs.local_commands_dir}}` (paths relative to the dAImon install root;
 a local plugin with the same `name` replaces the shared one). Each plugin has
 frontmatter — `name`, `match` (prefix the command text must start with),
-`mutating` (bool), `description` — and a body that is the runbook to follow.
+`mutating` (bool), optional `admin` (bool), `description` — and a body that
+is the runbook to follow.
 
 ## 3. Handle each message
+
+Authorization has two tiers:
+
+- **Admins** — the Slack user IDs in `{{inputs.mutate_allowlist}}` (config
+  is the root of trust; only a machine edit changes it).
+- **Granted users** — the `grants` array in this daemon's state
+  (`daimon state get`), managed from Slack by admins via the `access`
+  plugin. The effective mutate allowlist is admins ∪ grants.
+
+Per message:
 
 1. Match `command` against the plugins: case-insensitive, longest `match`
    prefix wins; the remainder of the text is the arguments.
 2. **No match** → reply with the command list (`name` — description per
-   plugin, mutating ones marked "restricted").
-3. **`mutating: true`** and `user` is not in `{{inputs.mutate_allowlist}}`
-   → reply that the command is restricted and who to ask; do NOT execute
-   any part of the runbook.
-4. Otherwise follow the plugin's runbook with the arguments. Runbooks run
+   plugin, mutating ones marked "restricted", admin ones "admins only").
+3. **`admin: true`** and `user` is not an admin → reply "admins only"; do
+   NOT execute. Grants do not confer admin.
+4. **`mutating: true`** and `user` is not in the effective allowlist →
+   reply that the command is restricted and that an admin can grant access
+   with `access grant @them`; do NOT execute any part of the runbook.
+5. Otherwise follow the plugin's runbook with the arguments. Runbooks run
    from `working_dir`.
 
 ## 4. Reply
