@@ -44,5 +44,12 @@ engine's whole run — forward, nudge, exit.
 
 ## 3. Finish
 
-`daimon state set` with the updated per-channel `last_ts` map (merged over
-the existing record). Summarize: how many forwarded, from which channels.
+`daimon state set` with the updated per-channel map, EXACTLY this shape —
+timestamps nested under a `last_ts` key, never at the top level (the
+scripted gate reads this same record):
+
+```json
+{"last_ts": {"<channel id>": "<newest ts>", "...": "..."}}
+```
+
+Summarize: how many forwarded, from which channels.
