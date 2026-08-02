@@ -17,3 +17,9 @@ watch_channels = ["CHANGE_ME"]
 trigger_prefix = "?"
 # Daemon whose inbox receives the commands (the plugin engine).
 target = "slack-commands"
+# Command that prints a Slack token with channels:history/groups:history read
+# scope (e.g. `security find-generic-password -s slack-watch -w`, a doppler
+# get, or an env echo). When set, discover.sh polls and forwards entirely in
+# script and NO watcher agent ever launches — the model only runs to execute
+# actual commands. Empty = agent-based MCP polling fallback (costlier).
+token_command = ""

@@ -17,6 +17,7 @@ Poll Slack channels for trigger-prefixed command messages and forward them to th
 | `watch_channels` | `CHANGE_ME` | Channel IDs to watch. Only top-level messages starting with trigger_prefix are commands, so mixed-purpose channels (squad chat, feeds) are safe to watch — everything else is ignored. |
 | `trigger_prefix` | `?` |  |
 | `target` | `slack-commands` | Daemon whose inbox receives the commands (the plugin engine). |
+| `token_command` | — | Command that prints a Slack token with channels:history/groups:history read scope (e.g. `security find-generic-password -s slack-watch -w`, a doppler get, or an env echo). When set, discover.sh polls and forwards entirely in script and NO watcher agent ever launches — the model only runs to execute actual commands. Empty = agent-based MCP polling fallback (costlier). |
 
 ## Gate
 
