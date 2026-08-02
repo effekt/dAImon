@@ -38,6 +38,7 @@ usage: daimon <command> [args]
   ps <slug|all>      show a daemon's process tree
   tui                open the control panel
   install            install plists, hooks, and the TUI venv
+                     (--load schedules; --worklog adds the standup worklog hook)
 EOF
 }
 
