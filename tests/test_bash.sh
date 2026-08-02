@@ -20,6 +20,7 @@ severe_mod = 4
 [budget]
 hourly_cap = 12
 defer_at_pct = 80
+exempt = ["cheap-poller"]
 [daemons]
 disabled = []
 EOF
@@ -41,6 +42,10 @@ check "$BUDGET_OVER" "0" "budget under cap -> run"
 for _ in 1 2 3 4 5 6 7; do budget_record foo; done   # 9 launches == 80% of cap 12
 budget_check
 check "$BUDGET_OVER" "1" "budget at defer threshold -> skip"
+budget_check foo
+check "$BUDGET_OVER" "1" "budget over + non-exempt slug -> skip"
+budget_check cheap-poller
+check "$BUDGET_OVER" "0" "budget over + exempt slug -> run"
 
 DAEMON_NAME=foo source "$ROOT/lib/throttle.sh"
 check "$SHOULD_SKIP" "0" "throttle off -> run"

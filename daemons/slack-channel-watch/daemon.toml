@@ -1,10 +1,11 @@
 [daemon]
 backend = "claude"
-# Cheap poller: every tick reads the watched channels via the Slack MCP (no
-# bash-side Slack credential exists, so the gate IS the session — keep it on
-# a small model). discover.sh always launches.
 model = "haiku"
-schedule = { interval = 180 }
+# Without token_command every tick is a short-lived haiku session that just
+# reads the channels — add this daemon to [budget].exempt in your daimon.toml
+# so those polls don't consume the fleet's launch budget. With token_command
+# set, discover.sh polls in script (free, unbudgeted) and 30s is fine.
+schedule = { interval = 120 }
 command = "/slack-channel-watch"
 stuck_after = 600
 required_inputs = ["watch_channels"]

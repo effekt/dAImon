@@ -49,7 +49,7 @@ THROTTLE_DEFAULTS = {
     "severe_mod": 4,
     "severe_critical": [],
 }
-BUDGET_DEFAULTS = {"hourly_cap": 12, "defer_at_pct": 80}
+BUDGET_DEFAULTS = {"hourly_cap": 12, "defer_at_pct": 80, "exempt": []}
 
 DAEMON_FIELDS = ("backend", "model", "danger", "stuck_after", "command", "schedule")
 

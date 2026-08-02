@@ -28,8 +28,19 @@ except Exception: print(0)
 PY
 }
 
-budget_check() {  # sets BUDGET_OVER (0/1) and BUDGET_REASON
+_budget_exempt() {  # slug — in budget.exempt? (cheap high-frequency pollers)
+  local v="$1" item
+  for item in $(cfg get budget.exempt 2>/dev/null); do [ "$item" = "$v" ] && return 0; done
+  return 1
+}
+
+budget_check() {  # [slug] — sets BUDGET_OVER (0/1) and BUDGET_REASON
   local cap pct total threshold
+  if [ -n "${1:-}" ] && _budget_exempt "$1"; then
+    BUDGET_OVER=0
+    BUDGET_REASON=""
+    return
+  fi
   cap="$(cfg get budget.hourly_cap)"
   pct="$(cfg get budget.defer_at_pct)"
   total="$(budget_total_this_hour)"

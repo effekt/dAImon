@@ -5,7 +5,7 @@
 Poll Slack channels for trigger-prefixed command messages and forward them to the command daemon's inbox.
 
 - **Command:** `/slack-channel-watch`
-- **Schedule:** 180s
+- **Schedule:** 120s
 - **Source:** none
 - **Required inputs:** `watch_channels`
 - **Backend:** `claude`
