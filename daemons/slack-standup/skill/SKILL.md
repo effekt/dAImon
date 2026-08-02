@@ -77,10 +77,20 @@ an absent standup reads as a missed run.
 
 ## 4. Post and finish
 
-Post with the Slack MCP tool `slack_send_message` to `{{inputs.channel_id}}`.
-One message, posted directly — no draft, no thread. If the Slack tools are
-deferred, load them with ToolSearch first.
+Post with the Slack MCP tool `slack_send_message`. One message, posted
+directly — no draft, no thread. If the Slack tools are deferred, load them
+with ToolSearch first.
 
-Record `{"last_posted": "<today YYYY-MM-DD in {{inputs.tz}}>"}` with
-`daimon state set`. Summarize with the posted message's permalink (or channel +
-timestamp).
+**Test mode** — `test_mode` is `{{inputs.test_mode}}`:
+
+- `false` — post to `{{inputs.channel_id}}`, then record
+  `{"last_posted": "<today YYYY-MM-DD in {{inputs.tz}}>"}` with
+  `daimon state set`.
+- `true` — post to your own DM instead: use your own Slack user id as the
+  `channel_id` (the send tool's description states the logged-in user's id;
+  otherwise resolve yourself via `slack_search_users`). Prefix the message
+  with `:test_tube: _test run — would post to #{{inputs.channel_name}}_` on
+  its own line. Do **not** record state — a test must not block the day's
+  real run.
+
+Summarize with the posted message's permalink (or channel + timestamp).

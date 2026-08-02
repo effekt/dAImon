@@ -7,6 +7,8 @@ danger = true
 [inputs]
 channel_id = "C0123456789"
 channel_name = "my-standup-channel"
+# Start in test mode: posts go to your own DM until you flip this off.
+test_mode = true
 tracker_hints = """
 Query Shortcut with `shortcut-cli search "owner:me" 'state:"In Progress"'` and
 the ready state named "Ready for Development". Tickets are tagged [sc-NNNNN]

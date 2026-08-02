@@ -24,3 +24,6 @@ focus_hints = ""
 # Escape hatch: a skill that generates the whole standup (output posted
 # verbatim), replacing the built-in generator. Empty = use the built-in.
 standup_command = ""
+# Testing toggle: true = send to your own DM instead of channel_id and skip
+# state recording, so the next real run is unaffected. Flip off to go live.
+test_mode = false

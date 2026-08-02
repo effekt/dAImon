@@ -20,6 +20,7 @@ Generate the daily standup and post it to a Slack channel (Mon–Fri, once per d
 | `tracker_hints` | — | Free-text prompt paragraph: how to query the work tracker (CLI to run, owner handle, state names). Empty = skip tracker context and "next up". |
 | `focus_hints` | — | Free-text prompt paragraph: what else to look for — extra sections to split out, extra sources to check (audit logs, own Slack activity, session history), exclusions. Empty = default sections only. |
 | `standup_command` | — | Escape hatch: a skill that generates the whole standup (output posted verbatim), replacing the built-in generator. Empty = use the built-in. |
+| `test_mode` | `false` | Testing toggle: true = send to your own DM instead of channel_id and skip state recording, so the next real run is unaffected. Flip off to go live. |
 
 ## Gate
 
