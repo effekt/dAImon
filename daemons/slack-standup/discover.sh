@@ -8,6 +8,11 @@ set -uo pipefail
 
 source "$(dirname "$0")/../../lib/common.sh"
 
+# Test mode posts to the runner's own DM and records no state — the weekday
+# and once-per-day gates exist to protect the real channel, so neither
+# applies. Always launch.
+[ "${DAIMON_INPUT_TEST_MODE:-0}" = "1" ] && exit 0
+
 tz="${DAIMON_INPUT_TZ:-America/New_York}"
 
 dow="$(TZ="$tz" date +%u)"
