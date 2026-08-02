@@ -27,22 +27,36 @@ skill, so adding a command never touches this app.
 - **Authorization is central.** Mutating commands are gated on a Slack
   user-ID allowlist in the daemon's config, not in app code.
 
-## Setup
+## Setup (white-labeled per engineer)
+
+Each engineer registers their **own** Slack app from this shared code — the
+app's name and slash command come from your `.env`, so instances don't
+collide. Slash commands are workspace-global: pick one nobody else claimed
+(e.g. `/hub-sam`), or skip slash entirely and rely on @-mentions of your
+bot's unique name.
 
 1. Prereqs: [Slack CLI](https://docs.slack.dev/tools/slack-cli) (authed to
    your workspace), Node 18+, a dAImon install with the `slack-commands`
    daemon configured.
-2. `slack run` — installs the app to your workspace (workspace admin
+2. `cp .env.sample .env` and set `BRIDGE_NAME` (your app + bot name, e.g.
+   `hub-sam`) and `BRIDGE_SLASH_COMMAND`.
+3. `npm run manifest` — renders `manifest.json` from the template with your
+   identity.
+4. `slack run` — creates + installs *your* app to the workspace (admin
    approval may be required) and starts the local Socket Mode process.
-3. Try `/hub` in Slack for usage, or `@env-bridge help`.
+5. Try `<your-slash> help` in Slack, or `@<your-bot> help`.
 
 ## Configuration (env)
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `BRIDGE_SLASH_COMMAND` | `/hub` | Slash command to listen for (must match the manifest) |
+| `BRIDGE_NAME` | `env-bridge` | App + bot display name (make it yours) |
+| `BRIDGE_SLASH_COMMAND` | `/hub` | Slash command — must be workspace-unique |
 | `DAIMON_STATE_DIR` | `~/.local/state/daimon` | Where the daimon inbox lives |
 | `DAIMON_BIN` | `~/.local/bin/daimon` | The daimon CLI used to nudge the daemon |
+
+`manifest.json` is generated (`npm run manifest`) and untracked — the
+committed source of truth is `manifest.template.json`.
 
 ## Notes
 

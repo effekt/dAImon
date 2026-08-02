@@ -1,13 +1,14 @@
 {
   "name": "env-bridge",
   "version": "1.0.0",
-  "description": "A scaffold template for Slack apps",
+  "description": "Thin Slack → local-agent bridge (Socket Mode → dAImon inbox)",
   "type": "module",
   "main": "app.js",
   "scripts": {
     "dev": "node --watch app.js",
-    "lint": "npx @biomejs/biome check *.js listeners",
-    "lint:fix": "npx @biomejs/biome check --write *.js listeners",
+    "lint": "npx @biomejs/biome check *.js lib listeners scripts",
+    "lint:fix": "npx @biomejs/biome check --write *.js lib listeners scripts",
+    "manifest": "node scripts/generate-manifest.js",
     "start": "node app.js",
     "test": "node --test tests/**/*.spec.js"
   },
