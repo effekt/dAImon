@@ -72,6 +72,13 @@ check "$SHOULD_SKIP" "1" "throttle halt -> skip"
 DAEMON_NAME=exempted source "$ROOT/lib/throttle.sh"
 check "$SHOULD_SKIP" "0" "throttle halt + exempt -> run"
 
+# A null expires_at (written by the TUI) must read as "no expiry", not "None".
+python3 -c "import json;json.dump({'level':'halt','expires_at':None},open('$TMP/state/runtime/throttle.json','w'))"
+check "$(json_state get "$TMP/state/runtime/throttle.json" expires_at 0)" "0" "json_state get: null -> default"
+DAEMON_NAME=foo source "$ROOT/lib/throttle.sh" 2>"$TMP/throttle.err"
+check "$SHOULD_SKIP" "1" "throttle halt with null expiry -> skip"
+check "$(wc -c <"$TMP/throttle.err" | tr -d ' ')" "0" "throttle emits no stderr on null expiry"
+
 python3 -c "import json;json.dump({'messages':[{'to':'foo'},{'to':'bar'}]},open('$TMP/state/runtime/inbox.json','w'))"
 DAEMON_NAME=foo source "$ROOT/lib/inbox.sh"
 check "$HAS_INBOX_MESSAGES" "1" "inbox counts messages for daemon"
