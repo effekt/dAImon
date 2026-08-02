@@ -85,6 +85,17 @@ if [ "$needs_shortcut" = 1 ]; then
     || warn "no token (~/.config/short/config.json or \$SHORTCUT_API_TOKEN)"
 fi
 
+check_slack_mcp() {
+  # Both Slack daemons reach Slack ONLY through the Slack MCP plugin's tools;
+  # without it enabled and authorized they fail every run.
+  if grep -q '"slack@' "$HOME/.claude/settings.json" 2>/dev/null; then
+    ok "slack MCP plugin enabled"
+    echo "        (authorize once in an interactive claude session: /mcp)"
+  else
+    warn "slack MCP plugin not enabled — install it in claude (plugin install slack@claude-plugins-official) and authorize with /mcp"
+  fi
+}
+
 check_bridge_toolchain() {
   if have slack; then
     ok "slack CLI"
@@ -118,6 +129,7 @@ check_watch_token() {
 
 if [ -d "$DAIMON_INSTALL_ROOT/bridges/env-bridge" ]; then
   echo "slack bridge"
+  check_slack_mcp
   check_bridge_toolchain
   check_bridge_project
   check_watch_token

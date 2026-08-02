@@ -170,8 +170,10 @@ sync (plists + skills) · `tui/` control panel · `skills/` management commands 
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev setup and workflow, and
-[docs/writing-a-daemon.md](docs/writing-a-daemon.md) to build your own daemon.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev setup and workflow,
+[docs/writing-a-daemon.md](docs/writing-a-daemon.md) to build your own daemon,
+and [docs/slack-commands.md](docs/slack-commands.md) to drive your environment
+from Slack (`?epic-status 48227`) and write your own command plugins.
 
 ## License
 
