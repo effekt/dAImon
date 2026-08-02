@@ -38,13 +38,13 @@ bot's unique name.
 1. Prereqs: [Slack CLI](https://docs.slack.dev/tools/slack-cli) (authed to
    your workspace), Node 18+, a dAImon install with the `slack-commands`
    daemon configured.
-2. `cp .env.sample .env` and set `BRIDGE_NAME` (your app + bot name, e.g.
-   `hub-sam`) and `BRIDGE_SLASH_COMMAND`.
-3. `npm run manifest` — renders `manifest.json` from the template with your
-   identity.
-4. `slack run` — creates + installs *your* app to the workspace (admin
+2. `npm run setup` — checks the toolchain, asks for your app/bot name and
+   slash command, writes `.env`, and renders `manifest.json`. (Manual
+   equivalent: `cp .env.sample .env`, edit, `npm run manifest`.) The app
+   refuses to start until this has run.
+3. `slack run` — creates + installs *your* app to the workspace (admin
    approval may be required) and starts the local Socket Mode process.
-5. Try `<your-slash> help` in Slack, or `@<your-bot> help`.
+4. Try `<your-slash> help` in Slack, or `@<your-bot> help`.
 
 ## Configuration (env)
 

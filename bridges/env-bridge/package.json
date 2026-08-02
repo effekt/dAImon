@@ -9,6 +9,7 @@
     "lint": "npx @biomejs/biome check *.js lib listeners scripts",
     "lint:fix": "npx @biomejs/biome check --write *.js lib listeners scripts",
     "manifest": "node scripts/generate-manifest.js",
+    "setup": "node scripts/setup.js",
     "start": "node app.js",
     "test": "node --test tests/**/*.spec.js"
   },
