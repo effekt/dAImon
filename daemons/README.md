@@ -10,6 +10,7 @@
 | [reply-to-pr-comments](reply-to-pr-comments/) | :17,47 | Respond to replies on your bot comments on GitHub PRs, and re-trigger review when feedback is addressed. |
 | [reply-to-story-comments](reply-to-story-comments/) | :17,47 | Respond to human replies on your bot comments on Shortcut stories, and re-trigger triage when an awaiting-input question is answered. |
 | [review-prs](review-prs/) | 1200s | Review open pull requests assigned to you and cast a risk-gated decision — approve, request changes, or comment. |
+| [scheduled-command](scheduled-command/) | 16:00 | Placeholder — this daemon enqueues its command from the gate and never launches an agent. |
 | [slack-channel-watch](slack-channel-watch/) | 120s | Poll Slack channels for trigger-prefixed command messages and forward them to the command daemon's inbox. |
 | [slack-commands](slack-commands/) | 900s | Handle bridged Slack commands from the daimon inbox via plugin runbooks, with an allowlist gate on mutating commands. |
 | [slack-standup](slack-standup/) | 11:00 | Generate the daily standup and post it to a Slack channel (Mon–Fri, once per day). |
