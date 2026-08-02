@@ -15,6 +15,6 @@ Arguments: optional window — `today` (default), `yesterday`, or `Nd`.
 2. `gh run list --branch <default branch> --limit 5` — the newest completed
    run's conclusion is prod's deploy state; note an in-progress deploy if
    one is running.
-3. Reply: lead line `prod deploy <conclusion> ([run](link))`, then merged
+3. Reply: lead line `prod deploy <conclusion> ([run](https://run-link))`, then merged
    PRs as ticket-led bullets grouped by scope. If nothing merged in the
    window, say so in one line.
