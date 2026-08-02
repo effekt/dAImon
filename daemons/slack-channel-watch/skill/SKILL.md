@@ -36,8 +36,11 @@ preserving existing messages):
 ```
 
 `thread_ts` is the command message's own `ts`, so the reply threads under
-it. Then run `daimon run {{inputs.target}}` — the inbox gate launches the
-engine immediately.
+it. Then nudge the engine with `daimon run {{inputs.target}}` — the inbox
+gate launches it immediately. Run the nudge **in the background /
+fire-and-forget** (e.g. Bash `run_in_background`): `daimon run` blocks
+until the launched agent finishes, and you must not sit through the
+engine's whole run — forward, nudge, exit.
 
 ## 3. Finish
 
