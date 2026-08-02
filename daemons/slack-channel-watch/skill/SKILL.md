@@ -12,13 +12,16 @@ execute commands yourself.
 
 ## 1. Read new messages
 
-`daimon state get` → `last_ts`, a map of channel id → newest message
-timestamp already forwarded. For each watched channel, read it with the
-Slack MCP `slack_read_channel` (`oldest` = that channel's `last_ts`; load
-deferred tools via ToolSearch). A message is a command when it is: newer
-than `last_ts`, top-level (not a thread reply), from a human user, and its
-text starts with `{{inputs.trigger_prefix}}` — everything else in the
-channel is ignored, so mixed-purpose channels are safe.
+`daimon state get` → `last_ts`, a map of channel id → newest activity
+timestamp already seen. For each watched channel, read it with the Slack
+MCP `slack_read_channel` (load deferred tools via ToolSearch). A message
+is a command when it is: newer than `last_ts`, from a human user, and its
+text starts with `{{inputs.trigger_prefix}}` — everything else is ignored,
+so mixed-purpose channels are safe. Commands count **in threads too**: for
+any message whose thread has replies newer than `last_ts`, read the thread
+(`slack_read_thread`) and apply the same test to the replies. A channel
+with no recorded `last_ts` yet gets a baseline-only pass — record the
+newest timestamp, forward nothing old.
 
 If nothing qualifies anywhere, finish with a one-line "no new commands"
 (still advance `last_ts` per channel so old chatter isn't rescanned).
