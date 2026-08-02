@@ -26,9 +26,12 @@ Each taken message has: `command` (text), `channel`, optional `thread_ts`,
 Read every `*.md` in `{{inputs.commands_dir}}` then
 `{{inputs.local_commands_dir}}` (paths relative to the dAImon install root;
 a local plugin with the same `name` replaces the shared one). Each plugin has
-frontmatter — `name`, `match` (prefix the command text must start with),
-`mutating` (bool), optional `admin` (bool), `description` — and a body that
-is the runbook to follow.
+frontmatter — `name`, `match` (the command word), `mutating` (bool),
+optional `admin` (bool), `description` — and a body that is the runbook to
+follow. Command words are always a **single token**, named
+`{domain}-{action/topic}` (`staging-push`, `epic-status`, `bazaar-update`);
+a bare domain is acceptable only when it's unambiguous (`standup`, `help`).
+Everything after the first space is arguments.
 
 ## 3. Handle each message
 
@@ -42,8 +45,8 @@ Authorization has two tiers:
 
 Per message:
 
-1. Match `command` against the plugins: case-insensitive, longest `match`
-   prefix wins; the remainder of the text is the arguments.
+1. Match the command's **first word** against the plugins' `match` tokens,
+   case-insensitive; the rest of the text is the arguments.
 2. **No match** → reply with the command list (`name` — description per
    plugin, mutating ones marked "restricted", admin ones "admins only").
 3. **`admin: true`** and `user` is not an admin → reply "admins only"; do

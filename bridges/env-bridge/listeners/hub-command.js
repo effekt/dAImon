@@ -1,6 +1,6 @@
 import { enqueueCommand } from '../lib/enqueue.js';
 
-const USAGE = 'Usage: `/hub <command>` — try `standup`, `epic status <id>`, `staging status`, `daemon status`.';
+const USAGE = 'Usage: `/hub <command>` — try `help`, `standup`, `epic-status <id>`, `staging-status`, `daemon-status`.';
 
 export async function hubCommand({ command, ack, respond, logger }) {
   await ack();

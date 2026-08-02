@@ -1,6 +1,6 @@
 ---
-name: daemon status
-match: daemon status
+name: daemon-status
+match: daemon-status
 mutating: false
 description: Report the daimon fleet — what ran, what's scheduled, anything stuck.
 ---

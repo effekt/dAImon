@@ -22,7 +22,7 @@
       {
         "command": "{{BRIDGE_SLASH_COMMAND}}",
         "description": "Run an environment command",
-        "usage_hint": "help | standup | epic status <id> | staging status",
+        "usage_hint": "help | standup | epic-status <id> | staging-status",
         "should_escape": false
       }
     ]
