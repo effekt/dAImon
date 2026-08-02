@@ -1,0 +1,9 @@
+# Machine-specific overrides for slack-channel-watch. Copy to daemon.local.toml.
+[daemon]
+danger = true
+# Poll cadence (seconds) — command latency is at most this.
+schedule = { interval = 180 }
+
+[inputs]
+watch_channel_id = "C0123456789"
+watch_channel_name = "my-command-channel"
