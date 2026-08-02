@@ -17,7 +17,10 @@ Generate the daily standup and post it to a Slack channel (Mon–Fri, once per d
 | `channel_id` | `CHANGE_ME` | Slack channel the standup posts to. The Slack MCP tools come from the user-level `slack` plugin (already OAuth'd) — no daimon mcp entry needed. |
 | `channel_name` | `CHANGE_ME` |  |
 | `tz` | `America/New_York` | Timezone for the weekday / once-per-day gate — keep in sync with schedule tz. |
-| `standup_command` | `/standup` | Skill that generates the standup content; its output is posted verbatim. |
+| `github_user` | `CHANGE_ME` | GitHub handle whose merged/open PRs the built-in generator reports on. |
+| `tracker_hints` | — | Free-text prompt paragraph: how to query the work tracker (CLI to run, owner handle, state names). Empty = skip tracker context and "next up". |
+| `focus_hints` | — | Free-text prompt paragraph: what else to look for — extra sections to split out, extra sources to check (audit logs, own Slack activity, session history), exclusions. Empty = default sections only. |
+| `standup_command` | — | Escape hatch: a skill that generates the whole standup (output posted verbatim), replacing the built-in generator. Empty = use the built-in. |
 
 ## Gate
 

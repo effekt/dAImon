@@ -14,5 +14,15 @@ channel_id = "CHANGE_ME"
 channel_name = "CHANGE_ME"
 # Timezone for the weekday / once-per-day gate — keep in sync with schedule tz.
 tz = "America/New_York"
-# Skill that generates the standup content; its output is posted verbatim.
-standup_command = "/standup"
+# GitHub handle whose merged/open PRs the built-in generator reports on.
+github_user = "CHANGE_ME"
+# Free-text prompt paragraph: how to query the work tracker (CLI to run, owner
+# handle, state names). Empty = skip tracker context and "next up".
+tracker_hints = ""
+# Free-text prompt paragraph: what else to look for — extra sections to split
+# out, extra sources to check (audit logs, own Slack activity, session
+# history), exclusions. Empty = default sections only.
+focus_hints = ""
+# Escape hatch: a skill that generates the whole standup (output posted
+# verbatim), replacing the built-in generator. Empty = use the built-in.
+standup_command = ""
