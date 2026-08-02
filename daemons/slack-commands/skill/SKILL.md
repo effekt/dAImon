@@ -9,6 +9,13 @@ You are launched because a Slack bridge app queued command messages in the
 daimon inbox. Handle every queued message, reply in Slack, and finish. You
 run inside `working_dir`.
 
+**First action, unconditionally**: load the Slack tools with ToolSearch
+query
+`select:mcp__plugin_slack_slack__slack_send_message,mcp__plugin_slack_slack__slack_search_users`.
+They are deferred MCP tools — invisible until loaded, every session. Never
+substitute curl, the Slack CLI, or raw API calls for them; if loading or
+calling fails with an auth problem, report it and stop.
+
 ## 1. Drain the inbox
 
 Resolve the state dir (`daimon config paths` → `DAIMON_STATE_DIR`); the inbox
@@ -69,8 +76,8 @@ sequentially — authorization and side effects stay single-threaded.
 ## 4. Reply
 
 Reply with the Slack MCP tool `slack_send_message` to the message's
-`channel`, threading on `thread_ts` when present (load deferred tools with
-ToolSearch first). One concise reply per message: labeled links only (never
+`channel`, threading on `thread_ts` when present. One concise reply per
+message: labeled links only (never
 bare URLs), no timestamps, no closing offers. On a runbook failure, reply
 with the actual error rather than staying silent — a missing reply reads as
 a lost command.

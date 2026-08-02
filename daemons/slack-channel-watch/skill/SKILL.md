@@ -10,13 +10,23 @@ be installed: watch the channels in `{{inputs.watch_channels}}` and forward
 new command messages. Be fast and cheap — read, forward, exit. Never
 execute commands yourself.
 
+## 0. Load the Slack tools — FIRST action, before anything else
+
+Call ToolSearch with query
+`select:mcp__plugin_slack_slack__slack_read_channel,mcp__plugin_slack_slack__slack_read_thread`.
+The Slack MCP tools are deferred: they exist but are invisible until
+loaded, every session, so do this unconditionally as your first tool call.
+Do NOT try curl, the Slack CLI, raw API calls, or spawning agents to read
+Slack — the MCP tools are the only path. If loading fails or the calls
+error with an auth problem, report that and stop; do not improvise.
+
 ## 1. Read new messages
 
 `daimon state get` → `last_ts`, a map of channel id → newest activity
 timestamp already seen. For each watched channel, read the **most recent
 messages WITHOUT an `oldest` filter** (`slack_read_channel`, default
-limit; load deferred tools via ToolSearch). Never pass `oldest =
-last_ts`: thread replies don't appear in channel history, so a thread is
+limit). Never pass `oldest = last_ts`: thread replies don't appear in
+channel history, so a thread is
 only discoverable through its parent's reply metadata — and parents are
 usually older than the watermark. Filtering happens by timestamp
 comparison, not by the API window:
