@@ -26,6 +26,9 @@ forwarded="$(python3 "$(dirname "$0")/forward.py" \
 
 if [ "$forwarded" -gt 0 ]; then
   target="${DAIMON_INPUT_TARGET:-slack-commands}"
-  nohup "$DAIMON_INSTALL_ROOT/bin/daimon" run "$target" >/dev/null 2>&1 &
+  # Double-fork: the subshell exits immediately so the nudge reparents to
+  # init and survives this process (and any enclosing session) being
+  # reaped — the nudge's launch.sh must outlive us to reap the engine.
+  ( nohup "$DAIMON_INSTALL_ROOT/bin/daimon" run "$target" >/dev/null 2>&1 & )
 fi
 exit 1

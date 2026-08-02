@@ -61,11 +61,18 @@ preserving existing messages):
 ```
 
 `thread_ts` is the command message's own `ts`, so the reply threads under
-it. Then nudge the engine with `daimon run {{inputs.target}}` — the inbox
-gate launches it immediately. Run the nudge **in the background /
-fire-and-forget** (e.g. Bash `run_in_background`): `daimon run` blocks
-until the launched agent finishes, and you must not sit through the
-engine's whole run — forward, nudge, exit.
+it. Then nudge the engine — the inbox gate launches it immediately — with
+EXACTLY this double-forked form:
+
+```bash
+( nohup daimon run {{inputs.target}} >/dev/null 2>&1 & )
+```
+
+Never wait on it and never use a plain background job: `daimon run`
+blocks until the launched agent finishes AND it is the process that reaps
+the engine's session afterward. Your own session gets reaped the moment
+you finish, killing your children — the double fork reparents the nudge
+to init so it survives you and the engine gets cleaned up.
 
 ## 3. Finish
 
