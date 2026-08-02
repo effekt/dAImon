@@ -6,6 +6,9 @@ backend = "claude"
 # already in flight.
 schedule = { interval = 900 }
 command = "/slack-commands"
+# Command handling is short by construction: long work (the urgent-fix
+# path) is launched as a detached process the engine does not wait on, so
+# this only needs to cover replying to a burst of queries.
 stuck_after = 1800
 # Own launch budget: command handling must not be starved by other daemons
 # burning the global pool (inbox-nudged launches bypass budgets anyway;
