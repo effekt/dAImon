@@ -61,7 +61,9 @@ def main(argv: list[str]) -> int:
     cfg, skipped = materialize(cfg_mod, create_missing=create_missing)
     print(f"synced {len(cfg.discover())} daemon(s): plists + skills regenerated")
     if skipped:
-        print(f"unregistered (no plist, left alone): {', '.join(skipped)} — register via TUI `r` or `daimon sync --all`")
+        print(
+            f"unregistered (no plist, left alone): {', '.join(skipped)} — register via TUI `r` or `daimon sync --all`"
+        )
     return 0
 
 
