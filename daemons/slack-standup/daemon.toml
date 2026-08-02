@@ -1,0 +1,18 @@
+[daemon]
+backend = "claude"
+# Fires once daily; discover.sh gates to Mon–Fri and skips if today's standup
+# was already posted (launchd can re-fire on wake/missed runs).
+schedule = { daily = "11:00", tz = "America/New_York" }
+command = "/slack-standup"
+stuck_after = 1800
+required_inputs = ["channel_id"]
+
+[inputs]
+# Slack channel the standup posts to. The Slack MCP tools come from the
+# user-level `slack` plugin (already OAuth'd) — no daimon mcp entry needed.
+channel_id = "CHANGE_ME"
+channel_name = "CHANGE_ME"
+# Timezone for the weekday / once-per-day gate — keep in sync with schedule tz.
+tz = "America/New_York"
+# Skill that generates the standup content; its output is posted verbatim.
+standup_command = "/standup"

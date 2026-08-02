@@ -1,0 +1,9 @@
+# Machine-specific overrides for slack-standup. Copy to daemon.local.toml.
+[daemon]
+# Repo the standup is generated from.
+working_dir = "~/src/my-repo"
+danger = true
+
+[inputs]
+channel_id = "C0123456789"
+channel_name = "my-standup-channel"
