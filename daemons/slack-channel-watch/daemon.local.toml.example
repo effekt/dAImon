@@ -5,5 +5,6 @@ danger = true
 schedule = { interval = 180 }
 
 [inputs]
-watch_channel_id = "C0123456789"
-watch_channel_name = "my-command-channel"
+# Watch as many channels as you like; only ?-prefixed messages are commands.
+watch_channels = ["C0123456789", "C0987654321"]
+trigger_prefix = "?"

@@ -1,18 +1,19 @@
 [daemon]
 backend = "claude"
-# Cheap poller: every tick reads the watch channel via the Slack MCP (no
+# Cheap poller: every tick reads the watched channels via the Slack MCP (no
 # bash-side Slack credential exists, so the gate IS the session — keep it on
-# a small model). No discover.sh on purpose: run.sh launches every tick.
+# a small model). discover.sh always launches.
 model = "haiku"
 schedule = { interval = 180 }
 command = "/slack-channel-watch"
 stuck_after = 600
-required_inputs = ["watch_channel_id"]
+required_inputs = ["watch_channels"]
 
 [inputs]
-# Channel treated as the command inbox: every new top-level message is a
-# command. Use a dedicated channel — thread replies are ignored.
-watch_channel_id = "CHANGE_ME"
-watch_channel_name = "CHANGE_ME"
+# Channel IDs to watch. Only top-level messages starting with trigger_prefix
+# are commands, so mixed-purpose channels (squad chat, feeds) are safe to
+# watch — everything else is ignored.
+watch_channels = ["CHANGE_ME"]
+trigger_prefix = "?"
 # Daemon whose inbox receives the commands (the plugin engine).
 target = "slack-commands"

@@ -2,20 +2,20 @@
 
 # slack-channel-watch
 
-Poll a Slack channel for command messages and forward them to the command daemon's inbox.
+Poll Slack channels for trigger-prefixed command messages and forward them to the command daemon's inbox.
 
 - **Command:** `/slack-channel-watch`
 - **Schedule:** 180s
 - **Source:** none
-- **Required inputs:** `watch_channel_id`
+- **Required inputs:** `watch_channels`
 - **Backend:** `claude`
 
 ## Inputs
 
 | Input | Default | Notes |
 |-------|---------|-------|
-| `watch_channel_id` | `CHANGE_ME` | Channel treated as the command inbox: every new top-level message is a command. Use a dedicated channel — thread replies are ignored. |
-| `watch_channel_name` | `CHANGE_ME` |  |
+| `watch_channels` | `CHANGE_ME` | Channel IDs to watch. Only top-level messages starting with trigger_prefix are commands, so mixed-purpose channels (squad chat, feeds) are safe to watch — everything else is ignored. |
+| `trigger_prefix` | `?` |  |
 | `target` | `slack-commands` | Daemon whose inbox receives the commands (the plugin engine). |
 
 ## Gate

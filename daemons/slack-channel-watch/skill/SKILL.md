@@ -1,35 +1,37 @@
 ---
 name: slack-channel-watch
-description: Poll a Slack channel for command messages and forward them to the command daemon's inbox.
+description: Poll Slack channels for trigger-prefixed command messages and forward them to the command daemon's inbox.
 ---
 
 # slack-channel-watch
 
 Front door for the `{{inputs.target}}` plugin engine when no Slack app can
-be installed: watch **#{{inputs.watch_channel_name}}**
-(`{{inputs.watch_channel_id}}`) and forward new command messages. Be fast
-and cheap — read, forward, exit. Never execute commands yourself.
+be installed: watch the channels in `{{inputs.watch_channels}}` and forward
+new command messages. Be fast and cheap — read, forward, exit. Never
+execute commands yourself.
 
 ## 1. Read new messages
 
-`daimon state get` → `last_ts` (the newest message timestamp already
-forwarded). Read the channel with the Slack MCP `slack_read_channel`
-(`oldest` = `last_ts`; load deferred tools via ToolSearch). Keep only
-messages that are: newer than `last_ts`, top-level (not thread replies),
-from a human user, and not obvious acks/bot output. Each remaining
-message's text is a command.
+`daimon state get` → `last_ts`, a map of channel id → newest message
+timestamp already forwarded. For each watched channel, read it with the
+Slack MCP `slack_read_channel` (`oldest` = that channel's `last_ts`; load
+deferred tools via ToolSearch). A message is a command when it is: newer
+than `last_ts`, top-level (not a thread reply), from a human user, and its
+text starts with `{{inputs.trigger_prefix}}` — everything else in the
+channel is ignored, so mixed-purpose channels are safe.
 
-If there are none, record nothing and finish with a one-line "no new
-messages".
+If nothing qualifies anywhere, finish with a one-line "no new commands"
+(still advance `last_ts` per channel so old chatter isn't rescanned).
 
 ## 2. Forward
 
-Resolve the state dir (`daimon config paths` → `DAIMON_STATE_DIR`). Append
-one entry per command to `$DAIMON_STATE_DIR/runtime/inbox.json`
-(`{"messages": [...]}`, preserving existing messages):
+Strip the trigger prefix from each command's text. Resolve the state dir
+(`daimon config paths` → `DAIMON_STATE_DIR`) and append one entry per
+command to `$DAIMON_STATE_DIR/runtime/inbox.json` (`{"messages": [...]}`,
+preserving existing messages):
 
 ```json
-{"to": "{{inputs.target}}", "command": "<text>", "channel": "{{inputs.watch_channel_id}}",
+{"to": "{{inputs.target}}", "command": "<text without prefix>", "channel": "<message's channel id>",
  "thread_ts": "<message ts>", "user": "<author user id>", "via": "channel"}
 ```
 
@@ -39,5 +41,5 @@ engine immediately.
 
 ## 3. Finish
 
-`daimon state set` with `last_ts` = the newest forwarded message's `ts`
-(merged over the existing record). Summarize: how many forwarded.
+`daimon state set` with the updated per-channel `last_ts` map (merged over
+the existing record). Summarize: how many forwarded, from which channels.
