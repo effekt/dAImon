@@ -7,6 +7,10 @@ import state
 from _lib import schedule_fmt
 
 
+def _input_fmt(v) -> str:
+    return ("on" if v else "off") if isinstance(v, bool) else str(v)
+
+
 def render_config(cfg, slug: str) -> str:
     d = cfg.daemon(slug)
     lines = [
@@ -23,10 +27,10 @@ def render_config(cfg, slug: str) -> str:
     prov = cfg.input_provenance(slug)
     if prov["daemon"]:
         lines.append("[dim]── inputs ──────[/dim]")
-        lines += [f"[dim]{k:<12}[/dim] {v}" for k, v in prov["daemon"].items()]
+        lines += [f"[dim]{k:<12}[/dim] {_input_fmt(v)}" for k, v in prov["daemon"].items()]
     for name, fields in prov["profiles"].items():
         lines.append(f"[dim]── profile: {name} ──[/dim]")
-        lines += [f"[dim]{k:<12}[/dim] {v}" for k, v in fields.items()]
+        lines += [f"[dim]{k:<12}[/dim] {_input_fmt(v)}" for k, v in fields.items()]
     return "\n".join(lines)
 
 
