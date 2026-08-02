@@ -24,7 +24,7 @@ usage: daimon <command> [args]
   launch <slug>      launch the agent now, bypassing gates
   watchdog           sweep orphan sessions, leaked MCP servers, old logs
   new                scaffold a new daemon (opens /daimon-builder in Claude)
-  sync               regenerate plists + render skills
+  sync [--all]       render skills + refresh registered plists (--all also creates missing ones)
   daemons            list discovered daemons
   state <slug>       show a daemon's work-tracking record (--clear to reset)
                      (get [slug] / set [slug] read/write raw JSON — used by agents)
