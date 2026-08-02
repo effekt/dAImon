@@ -85,6 +85,7 @@ class ForwardTest(unittest.TestCase):
         self.assertEqual(count, 1)
         entry = _read(self.inbox)["messages"][0]
         self.assertEqual(entry["command"], "help")
+        self.assertEqual(entry["ts"], "2.0")
         self.assertEqual(entry["thread_ts"], "2.0")
         self.assertEqual(_read(self.state)["last_ts"], {"C1": "3.0"})
 
@@ -95,6 +96,7 @@ class ForwardTest(unittest.TestCase):
         self.assertEqual(count, 1)
         entry = _read(self.inbox)["messages"][0]
         self.assertEqual(entry["command"], "staging status")
+        self.assertEqual(entry["ts"], "6.0")
         self.assertEqual(entry["thread_ts"], "2.0")
         self.assertEqual(_read(self.state)["last_ts"], {"C1": "6.0"})
 

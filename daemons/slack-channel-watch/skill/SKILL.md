@@ -57,8 +57,12 @@ preserving existing messages):
 
 ```json
 {"to": "{{inputs.target}}", "command": "<text without prefix>", "channel": "<message's channel id>",
- "thread_ts": "<message ts>", "user": "<author user id>", "via": "channel"}
+ "ts": "<the command message's OWN ts>", "thread_ts": "<parent ts for replies, own ts for top-level>",
+ "user": "<author user id>", "via": "channel"}
 ```
+
+`ts` is the engine's dedupe key — always the command message's own
+timestamp, never the parent's.
 
 `thread_ts` is the command message's own `ts`, so the reply threads under
 it. Then nudge the engine — the inbox gate launches it immediately — with
@@ -83,5 +87,11 @@ scripted gate reads this same record):
 ```json
 {"last_ts": {"<channel id>": "<newest ts>", "...": "..."}}
 ```
+
+The new watermark per channel is the MAX across everything you saw this
+tick: top-level message timestamps AND every thread's newest reply
+timestamp — even for channels/threads where nothing was forwarded. A
+watermark that lags a thread reply re-forwards that command on every
+tick.
 
 Summarize: how many forwarded, from which channels.

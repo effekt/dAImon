@@ -25,8 +25,16 @@ every message with `to == "slack-commands"` and rewrite the file with exactly
 those removed (other daemons' messages stay). If none were queued, report
 "inbox empty" and stop.
 
-Each taken message has: `command` (text), `channel`, optional `thread_ts`,
-`user` (Slack user ID of the requester), `via`.
+Each taken message has: `command` (text), `channel`, `ts` (the command
+message's own timestamp), optional `thread_ts`, `user` (Slack user ID of
+the requester), `via`.
+
+**Dedupe before handling**: drop any message whose `(channel, ts)` pair
+already appears in the `handled` list in this daemon's state — watchers
+can re-forward on watermark bugs, and running a command twice (a second
+staging push, a duplicate standup post) is worse than dropping a
+duplicate. Note dropped duplicates in the summary; do not reply to them
+in Slack.
 
 ## 2. Load command plugins
 
@@ -85,5 +93,7 @@ a lost command.
 ## 5. Finish
 
 Append the handled commands to `daimon state set` as
-`{"handled": [{"command", "user", "ok"}]}` merged over the previous record.
-Summarize what was handled and how each reply went.
+`{"handled": [{"command", "user", "channel", "ts", "ok"}]}` merged over the
+previous record — `channel` + `ts` are the dedupe key, so they are
+mandatory. Keep only the newest ~100 handled entries. Summarize what was
+handled and how each reply went.

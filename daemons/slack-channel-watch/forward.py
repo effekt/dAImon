@@ -68,7 +68,9 @@ def to_inbox_entry(msg: dict, channel: str, prefix: str, target: str) -> dict:
     return {
         "to": target,
         "command": msg["text"][len(prefix) :].strip(),
-        # replies thread under their parent; top-level under themselves
+        # the message's own ts is the engine's dedupe key;
+        # replies thread under their parent, top-level under themselves
+        "ts": msg["ts"],
         "thread_ts": msg.get("thread_ts") or msg["ts"],
         "channel": channel,
         "user": msg["user"],
