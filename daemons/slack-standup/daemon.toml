@@ -14,8 +14,6 @@ channel_id = "CHANGE_ME"
 channel_name = "CHANGE_ME"
 # Timezone for the weekday / once-per-day gate — keep in sync with schedule tz.
 tz = "America/New_York"
-# GitHub handle whose merged/open PRs the built-in generator reports on.
-github_user = "CHANGE_ME"
 # Free-text prompt paragraph: how to query the work tracker (CLI to run, owner
 # handle, state names). Empty = skip tracker context and "next up".
 tracker_hints = ""

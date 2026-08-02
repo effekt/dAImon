@@ -26,9 +26,9 @@ steps below.
 1. **Window** — shipped work since the start of yesterday (in
    `{{inputs.tz}}`); use the current date from the environment, never
    hardcoded. Also compute `STALE_CUTOFF` = 7 days back.
-2. **Merged PRs** — `gh pr list --state merged --author {{inputs.github_user}}`
-   filtered to the window.
-3. **Open PRs** — `gh pr list --state open --author {{inputs.github_user}}`;
+2. **Merged PRs** — `gh pr list --state merged --author "@me"` filtered to
+   the window.
+3. **Open PRs** — `gh pr list --state open --author "@me"`;
    keep every non-draft, drop drafts untouched since `STALE_CUTOFF` (note them
    in one trailing italic aside).
 4. **Tracker context** — follow these instructions if present (how to query
@@ -48,20 +48,20 @@ steps below.
 
 ## 3. Format
 
-A single Slack-markdown message (`**bold**`, `[text](url)`, `- ` bullets,
-emoji shortcodes; no `#` headers, tables, or `---` rules):
+A single Slack-markdown message (`**bold**`, `[text](https://url)`, `- `
+bullets, emoji shortcodes; no `#` headers, tables, or `---` rules):
 
 - Lead line: `:calendar: **Standup — <weekday M/D>**`.
 - Sections, each `:emoji: **Title**` + bullets; omit empty ones, blank line
   between: `:white_check_mark: **Shipped**`, any section the focus hints call
   for, `:construction: **In progress**` (one-clause status per item; :no_entry:
   + reason when blocked), `:arrow_right: **Next up**` (top 1–2).
-- Bullet shape — ticket-led: `[<ticket-id>](ticket-url): <title, truncated to
-  ~60 chars at a word boundary> ([#NNNN](pr-url))`. Several PRs on one ticket
-  → one bullet, PR links listed together. PR with no ticket → PR title only.
-  Ticket with no PR → drop the parens.
-- Links are always labeled (`[text](url)`), never bare URLs — bare URLs make
-  Slack attach link previews; the message must post without any.
+- Bullet shape — ticket-led: `[<ticket-id>](https://ticket-url): <title,
+  truncated to ~60 chars at a word boundary> ([#NNNN](https://pr-url))`.
+  Several PRs on one ticket → one bullet, PR links listed together. PR with
+  no ticket → PR title only. Ticket with no PR → drop the parens.
+- Links are always labeled (`[text](https://url)`), never bare URLs — bare
+  URLs make Slack attach link previews; the message must post without any.
 - Never include timestamps or times of day; dates come only from the lead
   line. One line per item. No closing offers.
 
