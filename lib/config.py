@@ -49,7 +49,7 @@ THROTTLE_DEFAULTS = {
     "severe_mod": 4,
     "severe_critical": [],
 }
-BUDGET_DEFAULTS = {"hourly_cap": 12, "defer_at_pct": 80}
+BUDGET_DEFAULTS = {"hourly_cap": 12, "defer_at_pct": 80, "exempt": []}
 
 DAEMON_FIELDS = ("backend", "model", "danger", "stuck_after", "command", "schedule")
 
@@ -452,6 +452,7 @@ def daemon_schema() -> dict:
             "danger": {"type": "boolean"},
             "stuck_after": {"type": "integer", "minimum": 1},
             "ready_timeout": {"type": "integer", "minimum": 1},
+            "hourly_cap": {"type": "integer", "minimum": 1},
             "command": {"type": "string", "pattern": "^/"},
             "schedule": schedule,
             "source": {"type": "string"},

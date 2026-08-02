@@ -10,6 +10,7 @@ throttle_level() {  # echoes the active level, honoring expiry
   file="$(_throttle_file)"
   level="$(json_state get "$file" level off)"
   exp="$(json_state get "$file" expires_at 0)"; exp="${exp%.*}"
+  case "$exp" in ''|*[!0-9]*) exp=0 ;; esac  # any non-numeric reads as "no expiry"
   if [ "${exp:-0}" -gt 0 ] && [ "$(now_epoch)" -gt "$exp" ]; then echo off; else echo "$level"; fi
 }
 

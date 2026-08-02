@@ -6,9 +6,19 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# Sandbox install root with one daemon carrying its own hourly_cap, so the
+# per-daemon budget branch has something to resolve against.
+mkdir -p "$TMP/inst/daemons/capped"
+cat > "$TMP/inst/daemons/capped/daemon.toml" <<EOF
+[daemon]
+schedule = { interval = 60 }
+command = "/capped"
+hourly_cap = 2
+EOF
+
 cat > "$TMP/daimon.toml" <<EOF
 [core]
-install_root = "$ROOT"
+install_root = "$TMP/inst"
 state_dir = "$TMP/state"
 namespace = "datest"
 [defaults]
@@ -20,6 +30,7 @@ severe_mod = 4
 [budget]
 hourly_cap = 12
 defer_at_pct = 80
+exempt = ["cheap-poller"]
 [daemons]
 disabled = []
 EOF
@@ -41,6 +52,16 @@ check "$BUDGET_OVER" "0" "budget under cap -> run"
 for _ in 1 2 3 4 5 6 7; do budget_record foo; done   # 9 launches == 80% of cap 12
 budget_check
 check "$BUDGET_OVER" "1" "budget at defer threshold -> skip"
+budget_check foo
+check "$BUDGET_OVER" "1" "budget over + non-exempt slug -> skip"
+budget_check cheap-poller
+check "$BUDGET_OVER" "0" "budget over + exempt slug -> run"
+budget_check capped   # own hourly_cap=2, has 0 launches; global pool is over
+check "$BUDGET_OVER" "0" "own-cap daemon under its cap -> run despite global"
+budget_record capped
+budget_record capped
+budget_check capped
+check "$BUDGET_OVER" "1" "own-cap daemon at its cap -> skip"
 
 DAEMON_NAME=foo source "$ROOT/lib/throttle.sh"
 check "$SHOULD_SKIP" "0" "throttle off -> run"
@@ -50,6 +71,13 @@ DAEMON_NAME=foo source "$ROOT/lib/throttle.sh"
 check "$SHOULD_SKIP" "1" "throttle halt -> skip"
 DAEMON_NAME=exempted source "$ROOT/lib/throttle.sh"
 check "$SHOULD_SKIP" "0" "throttle halt + exempt -> run"
+
+# A null expires_at (written by the TUI) must read as "no expiry", not "None".
+python3 -c "import json;json.dump({'level':'halt','expires_at':None},open('$TMP/state/runtime/throttle.json','w'))"
+check "$(json_state get "$TMP/state/runtime/throttle.json" expires_at 0)" "0" "json_state get: null -> default"
+DAEMON_NAME=foo source "$ROOT/lib/throttle.sh" 2>"$TMP/throttle.err"
+check "$SHOULD_SKIP" "1" "throttle halt with null expiry -> skip"
+check "$(wc -c <"$TMP/throttle.err" | tr -d ' ')" "0" "throttle emits no stderr on null expiry"
 
 python3 -c "import json;json.dump({'messages':[{'to':'foo'},{'to':'bar'}]},open('$TMP/state/runtime/inbox.json','w'))"
 DAEMON_NAME=foo source "$ROOT/lib/inbox.sh"

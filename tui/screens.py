@@ -101,20 +101,27 @@ class ConfigScreen(ModalScreen):
             yield Static("inputs", classes="section")
             for key, val in self.daemon_inputs.items():
                 yield Label(key)
-                yield Input(value=self._show(val), id=f"in-{key}")
+                yield self._field(val, f"in-{key}")
         for name, fields in self.profile_inputs.items():
             yield Static(f"profile: {name}  (shared by all {name} daemons)", classes="section")
             for key, val in fields.items():
                 yield Label(key)
-                yield Input(value=self._show(val), id=f"prof-{name}-{key}")
+                yield self._field(val, f"prof-{name}-{key}")
+
+    def _field(self, val, wid: str):
+        if isinstance(val, bool):
+            return Switch(value=val, id=wid)
+        return Input(value=self._show(val), id=wid)
 
     def _value(self, wid: str):
         return cast(_HasValue, self.query_one(f"#{wid}")).value
 
-    def _coerce(self, original, value: str):
+    def _coerce(self, original, value):
+        if isinstance(original, bool):
+            return bool(value)  # Switch already yields a bool
         if isinstance(original, list):
             return [s.strip() for s in value.split(",") if s.strip()]
-        if isinstance(original, int) and not isinstance(original, bool):
+        if isinstance(original, int):
             return int(value) if value.strip().lstrip("-").isdigit() else value
         return value
 

@@ -7,7 +7,7 @@ import subprocess
 import time
 
 from _lib import INSTALL_ROOT
-from state import label_for, launchd_loaded, plist_path
+from state import label_for, plist_path
 
 THROTTLE_CYCLE = ["off", "moderate", "severe", "halt"]
 
@@ -27,15 +27,14 @@ def cfg_render_plist(cfg, slug: str) -> str:
 
 
 def run_now(cfg, slug: str) -> None:
-    label = label_for(cfg, slug)
-    if launchd_loaded(label):
-        subprocess.run(["launchctl", "kickstart", "-k", f"{_gui()}/{label}"], check=False)
-    else:
-        subprocess.Popen(
-            ["bash", str(INSTALL_ROOT / "lib" / "run.sh"), slug],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+    # The binding promises "run now (bypass gates)": launch.sh directly.
+    # kickstarting the launchd job runs the plist program — the gated run.sh
+    # path — so a manual run would still be skipped by discovery/throttle.
+    subprocess.Popen(
+        ["bash", str(INSTALL_ROOT / "lib" / "launch.sh"), slug],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 def enable(cfg, slug: str) -> None:
