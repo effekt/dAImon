@@ -28,19 +28,21 @@ steps below.
    hardcoded. Also compute `STALE_CUTOFF` = 7 days back.
 2. **Merged PRs** — `gh pr list --state merged --author "@me"` filtered to
    the window.
-3. **Open PRs** — `gh pr list --state open --author "@me"`;
+3. **Dropped PRs** — `gh pr list --state closed --author "@me"` filtered to
+   the window and to `mergedAt == null` (closed without merge).
+4. **Open PRs** — `gh pr list --state open --author "@me"`;
    keep every non-draft, drop drafts untouched since `STALE_CUTOFF` (note them
    in one trailing italic aside).
-4. **Tracker context** — follow these instructions if present (how to query
+5. **Tracker context** — follow these instructions if present (how to query
    the work tracker: CLI, owner handle, state names):
 
    > {{inputs.tracker_hints}}
 
-   Use ticket references in PR titles to pair PRs with tickets, mark shipped
-   tickets Done ✅, and find what's next: ready-state tickets with no PR yet,
+   Use ticket references in PR titles to pair PRs with tickets, and find
+   what's next: ready-state tickets with no PR yet,
    restricted to ones updated since `STALE_CUTOFF` — a months-old "next up" is
    worse than none. Skip this step entirely if the blockquote above is empty.
-5. **Focus hints** — apply these instructions if present (extra sections to
+6. **Focus hints** — apply these instructions if present (extra sections to
    split out, extra sources to check, work beyond PRs/tickets to surface,
    exclusions):
 
@@ -54,8 +56,13 @@ bullets, emoji shortcodes; no `#` headers, tables, or `---` rules):
 - Lead line: `:calendar: **Standup — <weekday M/D>**`.
 - Sections, each `:emoji: **Title**` + bullets; omit empty ones, blank line
   between: `:white_check_mark: **Shipped**`, any section the focus hints call
-  for, `:construction: **In progress**` (one-clause status per item; :no_entry:
-  + reason when blocked), `:arrow_right: **Next up**` (top 1–2).
+  for, `:wastebasket: **Dropped**` (closed-without-merge PRs, a one-clause
+  reason when evident), `:construction: **In progress**` (one-clause status
+  per item; :no_entry: + reason when blocked), `:arrow_right: **Next up**`
+  (top 1–2).
+- No per-bullet status checkmarks — the section heading already carries the
+  status; annotate only exceptions (e.g. a shipped PR whose ticket is still
+  open).
 - Bullet shape — ticket-led: `[<ticket-id>](https://ticket-url): <title,
   truncated to ~60 chars at a word boundary> ([#NNNN](https://pr-url))`.
   Several PRs on one ticket → one bullet, PR links listed together. PR with
