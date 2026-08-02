@@ -1,0 +1,43 @@
+{
+  "_metadata": {
+    "major_version": 1,
+    "minor_version": 1
+  },
+  "display_information": {
+    "name": "env-bridge",
+    "description": "Bridge fixed commands from Slack into a local agent environment",
+    "background_color": "#1a1d21"
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": false,
+      "messages_tab_read_only_enabled": true
+    },
+    "bot_user": {
+      "display_name": "env-bridge",
+      "always_online": false
+    },
+    "slash_commands": [
+      {
+        "command": "/hub",
+        "description": "Run an environment command",
+        "usage_hint": "standup | epic status <id> | staging status | daemon status",
+        "should_escape": false
+      }
+    ]
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": ["app_mentions:read", "channels:history", "groups:history", "chat:write", "commands"]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": ["app_mention"]
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}
