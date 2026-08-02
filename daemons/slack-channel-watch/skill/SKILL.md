@@ -13,15 +13,25 @@ execute commands yourself.
 ## 1. Read new messages
 
 `daimon state get` → `last_ts`, a map of channel id → newest activity
-timestamp already seen. For each watched channel, read it with the Slack
-MCP `slack_read_channel` (load deferred tools via ToolSearch). A message
-is a command when it is: newer than `last_ts`, from a human user, and its
-text starts with `{{inputs.trigger_prefix}}` — everything else is ignored,
-so mixed-purpose channels are safe. Commands count **in threads too**: for
-any message whose thread has replies newer than `last_ts`, read the thread
-(`slack_read_thread`) and apply the same test to the replies. A channel
+timestamp already seen. For each watched channel, read the **most recent
+messages WITHOUT an `oldest` filter** (`slack_read_channel`, default
+limit; load deferred tools via ToolSearch). Never pass `oldest =
+last_ts`: thread replies don't appear in channel history, so a thread is
+only discoverable through its parent's reply metadata — and parents are
+usually older than the watermark. Filtering happens by timestamp
+comparison, not by the API window:
+
+- **Top-level command**: message `ts` > the channel's `last_ts`, from a
+  human, text starts with `{{inputs.trigger_prefix}}`.
+- **Thread command**: for any fetched message whose thread shows reply
+  activity newer than `last_ts` (latest reply timestamp / new reply
+  count), read the thread with `slack_read_thread` and apply the same
+  human + prefix test to replies with `ts` > `last_ts` (skip the parent
+  row — it was handled as top-level when it was new).
+
+Everything else is ignored, so mixed-purpose channels are safe. A channel
 with no recorded `last_ts` yet gets a baseline-only pass — record the
-newest timestamp, forward nothing old.
+newest activity timestamp, forward nothing old.
 
 If nothing qualifies anywhere, finish with a one-line "no new commands"
 (still advance `last_ts` per channel so old chatter isn't rescanned).
