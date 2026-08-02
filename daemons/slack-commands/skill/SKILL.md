@@ -58,6 +58,14 @@ Per message:
 5. Otherwise follow the plugin's runbook with the arguments. Runbooks run
    from `working_dir`.
 
+**Parallelism**: with ONE authorized message queued, just run its runbook
+inline. With SEVERAL, dispatch each non-mutating runbook to its own
+subagent (Agent tool, one per message, in a single parallel batch —
+subagent prompt = the runbook body + the arguments + "return the Slack
+reply text as your final message"), then post each reply as results come
+back. Keep mutating and admin runbooks in the main session, run
+sequentially — authorization and side effects stay single-threaded.
+
 ## 4. Reply
 
 Reply with the Slack MCP tool `slack_send_message` to the message's
