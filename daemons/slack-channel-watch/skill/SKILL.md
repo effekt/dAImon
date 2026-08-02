@@ -24,9 +24,11 @@ error with an auth problem, report that and stop; do not improvise.
 
 `daimon state get` → `last_ts`, a map of channel id → newest activity
 timestamp already seen. For each watched channel, read the **most recent
-messages WITHOUT an `oldest` filter** (`slack_read_channel`, default
-limit). Never pass `oldest = last_ts`: thread replies don't appear in
-channel history, so a thread is
+messages WITHOUT an `oldest` filter** — `slack_read_channel` with
+`limit: 15` and `response_format: "detailed"` (detailed carries the
+thread/reply metadata you need; 15 recent messages is ample at this poll
+cadence — never fetch the default 100). Never pass `oldest = last_ts`:
+thread replies don't appear in channel history, so a thread is
 only discoverable through its parent's reply metadata — and parents are
 usually older than the watermark. Filtering happens by timestamp
 comparison, not by the API window:

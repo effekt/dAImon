@@ -452,6 +452,7 @@ def daemon_schema() -> dict:
             "danger": {"type": "boolean"},
             "stuck_after": {"type": "integer", "minimum": 1},
             "ready_timeout": {"type": "integer", "minimum": 1},
+            "hourly_cap": {"type": "integer", "minimum": 1},
             "command": {"type": "string", "pattern": "^/"},
             "schedule": schedule,
             "source": {"type": "string"},

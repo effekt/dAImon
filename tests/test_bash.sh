@@ -6,9 +6,19 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# Sandbox install root with one daemon carrying its own hourly_cap, so the
+# per-daemon budget branch has something to resolve against.
+mkdir -p "$TMP/inst/daemons/capped"
+cat > "$TMP/inst/daemons/capped/daemon.toml" <<EOF
+[daemon]
+schedule = { interval = 60 }
+command = "/capped"
+hourly_cap = 2
+EOF
+
 cat > "$TMP/daimon.toml" <<EOF
 [core]
-install_root = "$ROOT"
+install_root = "$TMP/inst"
 state_dir = "$TMP/state"
 namespace = "datest"
 [defaults]
@@ -46,6 +56,12 @@ budget_check foo
 check "$BUDGET_OVER" "1" "budget over + non-exempt slug -> skip"
 budget_check cheap-poller
 check "$BUDGET_OVER" "0" "budget over + exempt slug -> run"
+budget_check capped   # own hourly_cap=2, has 0 launches; global pool is over
+check "$BUDGET_OVER" "0" "own-cap daemon under its cap -> run despite global"
+budget_record capped
+budget_record capped
+budget_check capped
+check "$BUDGET_OVER" "1" "own-cap daemon at its cap -> skip"
 
 DAEMON_NAME=foo source "$ROOT/lib/throttle.sh"
 check "$SHOULD_SKIP" "0" "throttle off -> run"

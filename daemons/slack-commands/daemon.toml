@@ -7,6 +7,10 @@ backend = "claude"
 schedule = { interval = 900 }
 command = "/slack-commands"
 stuck_after = 1800
+# Own launch budget: command handling must not be starved by other daemons
+# burning the global pool (inbox-nudged launches bypass budgets anyway;
+# this covers the scheduled fallback sweep).
+hourly_cap = 30
 
 [inputs]
 # Command plugins: one markdown runbook per command. Shared plugins are

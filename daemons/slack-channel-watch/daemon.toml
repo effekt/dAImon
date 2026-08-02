@@ -2,10 +2,12 @@
 backend = "claude"
 model = "haiku"
 # Without token_command every tick is a short-lived haiku session that just
-# reads the channels — add this daemon to [budget].exempt in your daimon.toml
-# so those polls don't consume the fleet's launch budget. With token_command
-# set, discover.sh polls in script (free, unbudgeted) and 30s is fine.
+# reads the channels — hourly_cap gives it its own launch budget so polling
+# neither starves nor is starved by the fleet's global pool. With
+# token_command set, discover.sh polls in script (free, unbudgeted) and the
+# interval can drop to 30s.
 schedule = { interval = 120 }
+hourly_cap = 40
 command = "/slack-channel-watch"
 stuck_after = 600
 required_inputs = ["watch_channels"]
