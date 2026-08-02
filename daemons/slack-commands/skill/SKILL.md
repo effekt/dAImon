@@ -48,7 +48,8 @@ Per message:
 1. Match the command's **first word** against the plugins' `match` tokens,
    case-insensitive; the rest of the text is the arguments.
 2. **No match** → reply with the command list (`name` — description per
-   plugin, mutating ones marked "restricted", admin ones "admins only").
+   plugin, mutating ones marked "restricted"). Omit `admin: true` plugins
+   from any listing shown to a non-admin.
 3. **`admin: true`** and `user` is not an admin → reply "admins only"; do
    NOT execute. Grants do not confer admin.
 4. **`mutating: true`** and `user` is not in the effective allowlist →
