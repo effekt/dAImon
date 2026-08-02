@@ -10,15 +10,29 @@ be installed: watch the channels in `{{inputs.watch_channels}}` and forward
 new command messages. Be fast and cheap — read, forward, exit. Never
 execute commands yourself.
 
-## 0. Load the Slack tools — FIRST action, before anything else
+## 0. The exact tool-call sequence — follow it literally
 
-Call ToolSearch with query
-`select:mcp__plugin_slack_slack__slack_read_channel,mcp__plugin_slack_slack__slack_read_thread`.
-The Slack MCP tools are deferred: they exist but are invisible until
-loaded, every session, so do this unconditionally as your first tool call.
-Do NOT try curl, the Slack CLI, raw API calls, or spawning agents to read
-Slack — the MCP tools are the only path. If loading fails or the calls
-error with an auth problem, report that and stop; do not improvise.
+MCP tools are invoked EXACTLY like Bash: as direct tool calls in your
+response. **Bash can NEVER call an MCP tool** — no bash script, loop,
+pipe, or helper can reach them, so never attempt it and never "collect
+results" via shell. There is also no need for parallelism cleverness:
+just make these calls, in order:
+
+1. `daimon state get slack-channel-watch` (Bash) → the `last_ts` map.
+2. ToolSearch, query
+   `select:mcp__plugin_slack_slack__slack_read_channel,mcp__plugin_slack_slack__slack_read_thread`
+   — the Slack tools are deferred and invisible until this runs, every
+   session.
+3. One `slack_read_channel` call per watched channel (a plain tool call
+   each, `limit: 15`, no `oldest`).
+4. `slack_read_thread` only for threads whose reply activity is newer
+   than the channel's `last_ts`.
+5. If anything qualified: edit the inbox file, then the double-forked
+   nudge (Bash). Update state (Bash). Done.
+
+If ToolSearch fails or a Slack call errors with an auth problem, report
+that and stop — never substitute curl, the Slack CLI, raw API calls, or
+subagents.
 
 ## 1. Read new messages
 
