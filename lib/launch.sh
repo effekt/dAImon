@@ -10,6 +10,7 @@ source "$DAIMON_LIB_DIR/common.sh"
 source "$DAIMON_LIB_DIR/logging.sh"
 source "$DAIMON_LIB_DIR/reap.sh"
 source "$DAIMON_LIB_DIR/budget.sh"
+source "$DAIMON_LIB_DIR/backend-status.sh"
 
 ensure_state_dirs
 OPLOG="$(logs_dir)/$SLUG.log"
@@ -22,6 +23,8 @@ READY_TIMEOUT="$DAIMON_READY_TIMEOUT"
 MCP="$DAIMON_D_MCP"
 read -r -a BACKENDS <<< "$DAIMON_D_BACKENDS"
 MULTI=0; [ "${#BACKENDS[@]}" -gt 1 ] && MULTI=1
+EXHAUSTED_BACKEND=""
+EXHAUSTED_TRANSCRIPT=""
 
 pane_heartbeat() {  # session heartbeat — touch heartbeat whenever the pane changes
   local sess="$1" hb="$2" prev="" cur
@@ -143,14 +146,42 @@ run_one_backend() {
   if [ "$mode" != "oneshot" ]; then
     tmux capture-pane -p -S - -t "$session" 2>/dev/null | strip_chrome > "$tfile"
   fi
-  DAIMON_TRANSCRIPT="$tfile" bash "$DAIMON_LIB_DIR/throttle-detect.sh" "$be" 2>/dev/null || true
+  if backend_is_exhausted "$be" "$tfile"; then
+    EXHAUSTED_BACKEND="$be"
+    EXHAUSTED_TRANSCRIPT="$tfile"
+    log_event "$SLUG" exhausted "backend=$be capacity limit detected" >> "$OPLOG"
+    rotate_if_large "$OPLOG"
+    return 75
+  fi
   rotate_if_large "$OPLOG"
   return 0
 }
 
-for be in "${BACKENDS[@]}"; do
-  run_one_backend "$be" || { log_event "$SLUG" chain_stop "backend $be failed" >> "$OPLOG"; break; }
+fallback_succeeded=0
+for (( backend_i=0; backend_i<${#BACKENDS[@]}; backend_i++ )); do
+  be="${BACKENDS[$backend_i]}"
+  run_one_backend "$be"; rc=$?
+  if [ "$rc" -eq 0 ]; then
+    if [ -n "$EXHAUSTED_BACKEND" ]; then
+      fallback_succeeded=1
+      log_event "$SLUG" fallback_done "backend=$be completed after $EXHAUSTED_BACKEND exhaustion" >> "$OPLOG"
+    fi
+    break
+  fi
+  if [ "$rc" -eq 75 ] && [ $(( backend_i + 1 )) -lt "${#BACKENDS[@]}" ]; then
+    log_event "$SLUG" fallback "backend=$be exhausted; trying ${BACKENDS[$(( backend_i + 1 ))]}" >> "$OPLOG"
+    continue
+  fi
+  log_event "$SLUG" chain_stop "backend $be failed" >> "$OPLOG"
+  break
 done
+
+# Preserve quota auto-throttling when no usable fallback completed. A successful
+# fallback deliberately leaves the fleet running so future fires can use it too.
+if [ -n "$EXHAUSTED_TRANSCRIPT" ] && [ "$fallback_succeeded" -ne 1 ]; then
+  DAIMON_TRANSCRIPT="$EXHAUSTED_TRANSCRIPT" \
+    bash "$DAIMON_LIB_DIR/throttle-detect.sh" "$EXHAUSTED_BACKEND" 2>/dev/null || true
+fi
 
 # Remove state an agent leaked into the repo. The first path is literal: an
 # unexpanded write to '$DAIMON_STATE_FILE' creates a file by that exact name.

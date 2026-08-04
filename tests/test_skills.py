@@ -78,6 +78,12 @@ class SkillsTest(unittest.TestCase):
         for needle in ("Review-only mode", "REQUEST_CHANGES", "Blocking", "Suggestion", "Findings"):
             self.assertIn(needle, rendered, f"review-prs skill missing: {needle}")
 
+    def test_slack_standup_monday_covers_weekend(self):
+        skill = (DAEMONS / "slack-standup" / "skill" / "SKILL.md").read_text()
+        self.assertIn("On Monday", skill)
+        for day in ("Friday", "Saturday", "Sunday"):
+            self.assertIn(day, skill, f"Monday standup window must include {day}")
+
 
 if __name__ == "__main__":
     unittest.main()

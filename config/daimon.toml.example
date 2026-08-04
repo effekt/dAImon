@@ -11,6 +11,7 @@ log_keep = 3
 
 [defaults]
 backend = "claude"
+# fallback_backend = "codex"  # only used when Claude reports provider-cap exhaustion
 model = "opus"
 danger = true
 stuck_after = 2700

@@ -16,6 +16,16 @@ A backend must define these functions:
 | `backend_cli_args` | `model danger session_name` | The argument string placed after the binary. `danger` is `1`/`0`; map it to the CLI's run-dangerous flag (empty when `0`). |
 | `backend_ready_regex` | `danger` | A regex `lib/launch.sh` greps the pane for to know the UI is ready. Echo empty to skip banner detection and use a fixed boot delay instead. |
 | `backend_completion_mode` | — | `hook` (a Stop-hook touches the sentinel; precise), `idle` (no hook; completion inferred from heartbeat staleness), or `oneshot` (see below). |
+| `backend_exhausted_regex` | — | Case-insensitive transcript regex that matches only provider-capacity exhaustion. This is the sole condition that permits `fallback_backend`; keep it narrower than ordinary errors or advisory limit text. |
+
+## Capacity fallback
+
+Set `fallback_backend = "codex"` under global `[defaults]` or a daemon's
+`[daemon]` table to opt in. The primary run is captured first. The fallback runs
+the same rendered skill only when `backend_exhausted_regex` matches; successful
+completion and ordinary boot, authentication, permission, or task failures never
+start it. A successful fallback also suppresses the legacy fleet-wide quota halt,
+so later fires can follow the same primary-then-fallback path.
 
 ## One-shot backends
 

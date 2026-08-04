@@ -9,12 +9,17 @@ You are launched because a Slack bridge app queued command messages in the
 daimon inbox. Handle every queued message, reply in Slack, and finish. You
 run inside `working_dir`.
 
-**First action, unconditionally**: load the Slack tools with ToolSearch
-query
-`select:mcp__plugin_slack_slack__slack_send_message,mcp__plugin_slack_slack__slack_search_users`.
-They are deferred MCP tools — invisible until loaded, every session. Never
-substitute curl, the Slack CLI, or raw API calls for them; if loading or
-calling fails with an auth problem, report it and stop.
+**First action, unconditionally**: make the Slack tools available:
+
+- **Claude:** use ToolSearch with query
+  `select:mcp__plugin_slack_slack__slack_send_message,mcp__plugin_slack_slack__slack_search_users`.
+  The plugin tools are deferred and invisible until loaded.
+- **Codex:** do not look for ToolSearch. Use `slack_send_message` and
+  `slack_search_users` directly from the authenticated `slack` MCP server.
+
+Never substitute curl, the Slack CLI, or raw API calls for these tools; if
+backend-specific discovery or a call fails with an auth problem, report it and
+stop.
 
 ## 1. Drain the inbox
 
@@ -74,12 +79,18 @@ Per message:
    from `working_dir`.
 
 **Parallelism**: with ONE authorized message queued, just run its runbook
-inline. With SEVERAL, dispatch each non-mutating runbook to its own
-subagent (Agent tool, one per message, in a single parallel batch —
-subagent prompt = the runbook body + the arguments + "return the Slack
-reply text as your final message"), then post each reply as results come
-back. Keep mutating and admin runbooks in the main session, run
-sequentially — authorization and side effects stay single-threaded.
+inline. With SEVERAL and an agent/subagent tool available, dispatch each
+non-mutating runbook to its own subagent in one parallel batch (prompt = the
+runbook body + the arguments + "return the Slack reply text as your final
+message"), then post each reply as results come back. If this backend has no
+subagent tool, run non-mutating runbooks inline. Keep mutating and admin runbooks
+in the main session, run sequentially — authorization and side effects stay
+single-threaded.
+
+If a runbook says to invoke a slash command such as `/standup`, Claude may invoke
+it normally. Codex must instead read `~/.claude/commands/<name>.md`, treat its
+body as the nested runbook, substitute any arguments locally, and follow it
+inline. Never type a Claude slash command into a shell.
 
 ## 4. Reply
 

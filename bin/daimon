@@ -30,6 +30,10 @@ usage: daimon <command> [args]
                      (get [slug] / set [slug] read/write raw JSON — used by agents)
   check-scope [base] fail if the branch touches paths outside allowed_paths
   models <backend>   list available models (claude|codex)
+  mcp setup slack [client-id]
+                     create/connect a Codex app to Slack's hosted MCP server
+  mcp status slack   verify the Codex Slack MCP server is authenticated
+  mcp share slack    print the setup command for other workspace developers
   config <args...>   pass through to the config core (validate|get|daemon|...)
   validate           validate configuration
   doctor             preflight: tools, auth, hooks, skills, config
@@ -55,6 +59,7 @@ case "$CMD" in
   state)     exec bash "$LIB/state.sh" "$@" ;;
   check-scope) exec bash "$LIB/check-scope.sh" "$@" ;;
   models)    exec python3 "$LIB/models.py" "$@" ;;
+  mcp)       exec python3 "$LIB/mcp_setup.py" "$@" ;;
   config)    exec python3 "$LIB/config.py" "$@" ;;
   validate)  exec python3 "$LIB/config.py" validate ;;
   doctor)    exec bash "$LIB/doctor.sh" ;;

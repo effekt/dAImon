@@ -29,6 +29,12 @@ mcp_dir()         { echo "$DAIMON_STATE_DIR/mcp"; }
 mcp_config_file() { echo "$(mcp_dir)/$1.json"; }
 prompts_dir()     { echo "$DAIMON_STATE_DIR/prompts"; }
 
+daemon_session_names() {  # slug -> bare legacy/single name, then backend-qualified names
+  local slug="$1" be
+  session_name "$slug"
+  for be in $(cfg backends-all); do session_name "$slug" "$be"; done
+}
+
 ensure_state_dirs() {
   mkdir -p "$(logs_dir)" "$(transcripts_dir)" "$(queues_dir)" "$(runtime_dir)" "$(records_dir)" "$(mcp_dir)" "$(prompts_dir)"
 }

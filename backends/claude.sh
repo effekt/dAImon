@@ -17,3 +17,7 @@ backend_ready_regex() {  # 1 if danger -> bypass banner, else the idle input pro
 }
 
 backend_completion_mode() { echo "hook"; }
+
+backend_exhausted_regex() {
+  echo "you('ve| have) hit your ((weekly|monthly)[[:space:]]+)?((usage|spend)[[:space:]]+)?limit"
+}

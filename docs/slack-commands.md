@@ -11,9 +11,19 @@ daemons post updates back. Three pieces:
 
 ## Prerequisites
 
-- **Slack MCP plugin** — the daemons reach Slack only through it:
-  `plugin install slack@claude-plugins-official`, then authorize once in
-  an interactive session with `/mcp`. `daimon doctor` checks this.
+- **Slack MCP** — the daemons reach Slack only through Slack's hosted MCP server.
+  For Claude, run `plugin install slack@claude-plugins-official`, then authorize
+  once in an interactive session with `/mcp`. For Codex fallback, run
+  `daimon mcp setup slack` once and complete Slack OAuth in the browser. The
+  first setup in a workspace uses Slack CLI authentication to create a
+  dedicated internal `dAImon Codex` app with MCP + PKCE enabled and a fixed
+  local callback. It stores only the public app and client IDs under dAImon's
+  state directory. Run `daimon mcp share slack` to print the setup command for
+  teammates; each developer reuses the same app but completes OAuth into their
+  own Codex credential store. If your workspace already provides an
+  MCP-enabled app, pass its public ID as `daimon mcp setup slack <client-id>`
+  instead. `daimon doctor` checks both paths, including whether Codex completed
+  OAuth.
 - **jq**, **gh**, **node 18+** (front door only), and the
   [Slack CLI](https://docs.slack.dev/tools/slack-cli) (app front door
   only). `make tooling` reports what's missing.

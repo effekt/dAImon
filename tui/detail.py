@@ -15,6 +15,7 @@ def render_config(cfg, slug: str) -> str:
     d = cfg.daemon(slug)
     lines = [
         f"[dim]backend [/dim] {d['backend']}",
+        f"[dim]fallback[/dim] {d['fallback_backend'] or '—'}",
         f"[dim]model   [/dim] {d['model']}",
         f"[dim]source  [/dim] {d.get('source') or '—'}",
         *([f"[dim]mcp     [/dim] {', '.join(d['mcp'])}"] if d.get("mcp") else []),

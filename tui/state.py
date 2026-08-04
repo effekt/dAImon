@@ -20,7 +20,7 @@ def label_for(cfg, slug: str) -> str:
 
 def candidate_sessions(cfg, slug: str) -> list[str]:
     ns = cfg.core["namespace"]
-    return [f"{ns}-{slug}", f"{ns}-{slug}-claude"]
+    return [f"{ns}-{slug}", *(f"{ns}-{slug}-{backend}" for backend in cfg.backends(slug))]
 
 
 def live_sessions() -> set[str]:

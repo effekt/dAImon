@@ -19,6 +19,14 @@
             "codex"
           ]
         },
+        "fallback_backend": {
+          "type": "string",
+          "enum": [
+            "",
+            "claude",
+            "codex"
+          ]
+        },
         "model": {
           "oneOf": [
             {

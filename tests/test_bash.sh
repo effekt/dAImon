@@ -13,6 +13,7 @@ cat > "$TMP/inst/daemons/capped/daemon.toml" <<EOF
 [daemon]
 schedule = { interval = 60 }
 command = "/capped"
+fallback_backend = "codex"
 hourly_cap = 2
 EOF
 
@@ -72,6 +73,12 @@ check "$SHOULD_SKIP" "1" "throttle halt -> skip"
 DAEMON_NAME=exempted source "$ROOT/lib/throttle.sh"
 check "$SHOULD_SKIP" "0" "throttle halt + exempt -> run"
 
+python3 -c "import json;json.dump({'level':'halt','reason':'claude usage limit detected in transcript'},open('$TMP/state/runtime/throttle.json','w'))"
+DAEMON_NAME=capped source "$ROOT/lib/throttle.sh"
+check "$SHOULD_SKIP" "0" "matching provider halt + configured fallback -> run"
+DAEMON_NAME=foo source "$ROOT/lib/throttle.sh"
+check "$SHOULD_SKIP" "1" "matching provider halt + no fallback -> skip"
+
 # A null expires_at (written by the TUI) must read as "no expiry", not "None".
 python3 -c "import json;json.dump({'level':'halt','expires_at':None},open('$TMP/state/runtime/throttle.json','w'))"
 check "$(json_state get "$TMP/state/runtime/throttle.json" expires_at 0)" "0" "json_state get: null -> default"
@@ -106,6 +113,17 @@ check "$m" "0" "codex drops -m for a claude-model default"
 case "$A" in *"-m gpt-5.3-codex"*) m=1;; *) m=0;; esac
 check "$m" "1" "codex passes -m for a codex model"
 unset DAIMON_D_WORKING_DIR
+
+source "$ROOT/lib/backend-status.sh"
+status_install_root="$DAIMON_INSTALL_ROOT"
+DAIMON_INSTALL_ROOT="$ROOT"
+printf "%s\n" "You've hit your monthly spend limit." > "$TMP/exhausted.log"
+printf "%s\n" "If you hit your limit, you can continue with usage credits." > "$TMP/advisory.log"
+backend_is_exhausted claude "$TMP/exhausted.log"; check "$?" "0" "claude cap is classified as exhausted"
+backend_is_exhausted claude "$TMP/advisory.log"; check "$?" "1" "claude advisory is not classified as exhausted"
+printf "%s\n" "Authentication failed" > "$TMP/auth.log"
+backend_is_exhausted claude "$TMP/auth.log"; check "$?" "1" "non-cap failure does not trigger fallback"
+DAIMON_INSTALL_ROOT="$status_install_root"
 
 echo '[{"n":1}]' | DAIMON_SLUG=st bash "$ROOT/lib/state.sh" set
 check "$(DAIMON_SLUG=st bash "$ROOT/lib/state.sh" get)" '[{"n":1}]' "state set/get roundtrip"

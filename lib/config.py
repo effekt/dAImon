@@ -36,6 +36,7 @@ CORE_DEFAULTS = {
 }
 DEFAULT_DEFAULTS = {
     "backend": "claude",
+    "fallback_backend": "",
     "model": "opus",
     "danger": True,
     "stuck_after": 2700,
@@ -51,7 +52,15 @@ THROTTLE_DEFAULTS = {
 }
 BUDGET_DEFAULTS = {"hourly_cap": 12, "defer_at_pct": 80, "exempt": []}
 
-DAEMON_FIELDS = ("backend", "model", "danger", "stuck_after", "command", "schedule")
+DAEMON_FIELDS = (
+    "backend",
+    "fallback_backend",
+    "model",
+    "danger",
+    "stuck_after",
+    "command",
+    "schedule",
+)
 
 
 def repo_root() -> Path:
@@ -192,7 +201,11 @@ class Config:
         return {"mcpServers": servers} if servers else {}
 
     def backends(self, slug: str) -> list[str]:
-        return [self.daemon(slug)["backend"]]
+        daemon = self.daemon(slug)
+        backends = [daemon["backend"]]
+        if daemon["fallback_backend"]:
+            backends.append(daemon["fallback_backend"])
+        return backends
 
     def model_for(self, slug: str, backend: str) -> str:
         m = self.daemon(slug)["model"]
@@ -371,14 +384,25 @@ def validate(cfg: Config) -> list[str]:
         errors.append(f"no config file at {global_config_path()} (copy config/daimon.toml.example)")
     if cfg.defaults["backend"] not in BACKENDS:
         errors.append(f"[defaults].backend must be one of {BACKENDS}")
+    default_fallback = cfg.defaults["fallback_backend"]
+    if default_fallback and default_fallback not in BACKENDS:
+        errors.append(f"[defaults].fallback_backend must be one of {BACKENDS}")
+    if default_fallback == cfg.defaults["backend"]:
+        errors.append("[defaults].fallback_backend must differ from backend")
     daemons = cfg.discover()
     if not daemons:
         errors.append(f"no daemons discovered under {cfg.daemons_dir()}")
     for slug, raw in daemons.items():
         d = raw.get("daemon", {})
-        be = d.get("backend", cfg.defaults["backend"])
+        merged = cfg.daemon(slug)
+        be = merged["backend"]
+        fallback = merged["fallback_backend"]
         if be not in BACKENDS:
             errors.append(f"{slug}: backend must be one of {BACKENDS}")
+        if fallback and fallback not in BACKENDS:
+            errors.append(f"{slug}: fallback_backend must be one of {BACKENDS}")
+        if fallback == be:
+            errors.append(f"{slug}: fallback_backend must differ from backend")
         cmd = d.get("command")
         if not cmd or not str(cmd).startswith("/"):
             errors.append(f"{slug}: [daemon].command must be set and start with '/'")
@@ -443,6 +467,7 @@ def daemon_schema() -> dict:
         "additionalProperties": False,
         "properties": {
             "backend": {"type": "string", "enum": list(BACKENDS)},
+            "fallback_backend": {"type": "string", "enum": ["", *BACKENDS]},
             "model": {
                 "oneOf": [
                     {"type": "string"},
