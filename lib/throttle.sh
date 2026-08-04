@@ -33,7 +33,17 @@ SKIP_REASON=""
   elif [ "$level" = "off" ]; then
     :
   elif [ "$level" = "halt" ]; then
-    SHOULD_SKIP=1; SKIP_REASON="throttle=halt: skipping $DAEMON_NAME"
+    # A provider-cap halt predating fallback configuration must not prevent the
+    # fallback path from ever launching. Only bypass the matching detector-made
+    # halt; manual and unrelated halt reasons retain their normal behavior.
+    primary="$(cfg daemon "$DAEMON_NAME" backend 2>/dev/null || true)"
+    fallback="$(cfg daemon "$DAEMON_NAME" fallback_backend 2>/dev/null || true)"
+    reason="$(json_state get "$(_throttle_file)" reason "")"
+    if [ -n "$fallback" ] && [ "$reason" = "$primary usage limit detected in transcript" ]; then
+      :
+    else
+      SHOULD_SKIP=1; SKIP_REASON="throttle=halt: skipping $DAEMON_NAME"
+    fi
   else
     mod="$(cfg get throttle.moderate_mod)"
     if [ "$level" = "severe" ] && ! _in_list "$DAEMON_NAME" throttle.severe_critical; then

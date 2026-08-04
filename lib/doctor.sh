@@ -41,18 +41,22 @@ else
 fi
 
 echo "daemons"
-needs_shortcut=0; needs_codex=0; needs_datadog=0
+needs_shortcut=0; needs_codex=0; needs_codex_slack=0; needs_datadog=0
 for slug in $(cfg daemons); do
   wd="$(cfg daemon "$slug" working_dir)"
   wd_configured="$(cfg daemon "$slug" working_dir_configured)"
   cmd="$(cfg daemon "$slug" command | sed 's#^/##')"
   be="$(cfg daemon "$slug" backend)"
+  backends="$(cfg backends "$slug")"
   # Check the whole sources list, not just the primary: a daemon that reads one
   # source and writes another (e.g. datadog-log-reviewer) depends on both tools.
   srcs=" $(cfg daemon "$slug" sources 2>/dev/null) "
   case "$srcs" in *" shortcut "*) needs_shortcut=1 ;; esac
   case "$srcs" in *" datadog "*) needs_datadog=1 ;; esac
-  case " $be $(cfg daemon "$slug" mcp 2>/dev/null) " in *" codex "*) needs_codex=1 ;; esac
+  case " $backends $(cfg daemon "$slug" mcp 2>/dev/null) " in *" codex "*) needs_codex=1 ;; esac
+  case "$slug:$backends" in
+    slack-channel-watch:*codex*|slack-commands:*codex*|slack-standup:*codex*) needs_codex_slack=1 ;;
+  esac
   msg="$slug"
   if [ "$wd_configured" != "1" ]; then
     msg="$msg [working_dir not set — point it at your repo]"
@@ -86,13 +90,21 @@ if [ "$needs_shortcut" = 1 ]; then
 fi
 
 check_slack_mcp() {
-  # Both Slack daemons reach Slack ONLY through the Slack MCP plugin's tools;
-  # without it enabled and authorized they fail every run.
+  # Slack daemons reach Slack only through MCP. Claude gets it from the plugin;
+  # Codex fallback uses the same hosted server through Codex's MCP config.
   if grep -q '"slack@' "$HOME/.claude/settings.json" 2>/dev/null; then
     ok "slack MCP plugin enabled"
     echo "        (authorize once in an interactive claude session: /mcp)"
   else
     warn "slack MCP plugin not enabled — install it in claude (plugin install slack@claude-plugins-official) and authorize with /mcp"
+  fi
+  if [ "$needs_codex_slack" = 1 ]; then
+    codex_bin="${DAIMON_CODEX_BIN:-codex}"
+    if python3 "$DAIMON_LIB_DIR/mcp_setup.py" status slack >/dev/null 2>&1; then
+      ok "codex Slack MCP configured and authenticated"
+    else
+      warn "codex Slack MCP not authenticated — run: daimon mcp setup slack"
+    fi
   fi
 }
 

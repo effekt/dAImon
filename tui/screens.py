@@ -71,6 +71,12 @@ class ConfigScreen(ModalScreen):
         yield Input(value=wd, id="f-working-dir")
         yield Label("backend")
         yield self._select("f-backend", BACKENDS, d["backend"])
+        yield Label("fallback backend")
+        yield self._select(
+            "f-fallback-backend",
+            ["none", *(backend for backend in BACKENDS if backend != d["backend"])],
+            d["fallback_backend"] or "none",
+        )
         yield Label("model")
         yield self._select(
             "f-model", models.list_models(d["backend"]), self._init_model(d["backend"])
@@ -91,6 +97,11 @@ class ConfigScreen(ModalScreen):
         model_sel.set_options((m, m) for m in opts)
         init = self._init_model(str(event.value))
         model_sel.value = init if init in opts else (opts[0] if opts else Select.BLANK)
+        fallback_sel = cast(Select, self.query_one("#f-fallback-backend"))
+        fallback_opts = ["none", *(backend for backend in BACKENDS if backend != event.value)]
+        fallback_sel.set_options((backend, backend) for backend in fallback_opts)
+        if fallback_sel.value == event.value:
+            fallback_sel.value = "none"
 
     @staticmethod
     def _show(val) -> str:
@@ -127,10 +138,12 @@ class ConfigScreen(ModalScreen):
 
     def _save(self, new_sched: dict) -> None:
         backend = self._value("f-backend")
+        fallback_backend = self._value("f-fallback-backend")
         daemon = {
             "schedule": new_sched,
             "working_dir": self._value("f-working-dir"),
             "backend": backend,
+            "fallback_backend": "" if fallback_backend == "none" else fallback_backend,
             "model": self._value("f-model"),
             "danger": self._value("f-danger"),
             "stuck_after": int(self._value("f-stuck")),

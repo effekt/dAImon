@@ -194,6 +194,22 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(self.cfg.backends("alpha"), ["claude"])
         self.assertEqual(self.cfg.backends("beta"), ["claude"])
 
+    def test_backends_appends_optional_fallback(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            backend = "claude"
+            fallback_backend = "codex"
+            model = { claude = "opus", codex = "gpt-5.3-codex" }
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            """,
+        )
+        cfg = config.Config.load()
+        self.assertEqual(cfg.backends("alpha"), ["claude", "codex"])
+        self.assertEqual(cfg.model_for("alpha", "codex"), "gpt-5.3-codex")
+
     def test_backends_all_lists_every_known_backend(self):
         buf = io.StringIO()
         with redirect_stdout(buf):
@@ -240,6 +256,24 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(env["DAIMON_D_BACKENDS"], "claude")
         self.assertEqual(env["DAIMON_READY_TIMEOUT"], "20")
         self.assertEqual(env["DAIMON_D_MODEL_CLAUDE"], self.cfg.model_for("alpha", "claude"))
+
+    def test_daemon_env_bundles_fallback_model(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            fallback_backend = "codex"
+            model = { claude = "opus", codex = "gpt-5.3-codex" }
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            """,
+        )
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            config.main(["daemon-env", "alpha"])
+        env = self._parse_env_output(buf.getvalue())
+        self.assertEqual(env["DAIMON_D_BACKENDS"], "claude codex")
+        self.assertEqual(env["DAIMON_D_MODEL_CODEX"], "gpt-5.3-codex")
 
     def test_mcp_absent_by_default(self):
         self.assertEqual(self.cfg.daemon("alpha")["mcp"], [])
@@ -425,6 +459,33 @@ class ConfigTest(unittest.TestCase):
         )
         errs = config.validate(config.Config.load())
         self.assertTrue(any("backend must be one of" in e for e in errs))
+
+    def test_validate_catches_bad_fallback_backend(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            fallback_backend = "gpt"
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            """,
+        )
+        errs = config.validate(config.Config.load())
+        self.assertTrue(any("fallback_backend must be one of" in e for e in errs))
+
+    def test_validate_catches_fallback_matching_primary(self):
+        write(
+            self.root / "daemons" / "alpha" / "daemon.toml",
+            """
+            [daemon]
+            backend = "claude"
+            fallback_backend = "claude"
+            schedule = { interval = 1200 }
+            command = "/alpha"
+            """,
+        )
+        errs = config.validate(config.Config.load())
+        self.assertTrue(any("fallback_backend must differ" in e for e in errs))
 
     def test_validate_catches_empty_required_input(self):
         write(

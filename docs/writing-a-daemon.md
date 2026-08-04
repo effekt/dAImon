@@ -8,6 +8,7 @@ auto-discovers it; `daimon sync` regenerates its plist and renders its skill.
 ```toml
 [daemon]
 backend = "claude"
+# fallback_backend = "codex"      # only when Claude's provider cap is exhausted
 working_dir = "~/code/my-repo"     # the repo the agent runs inside
 schedule = { interval = 1800 }     # or { minutes = [8,38] } / { daily = "13:02" }
 command = "/my-daemon"             # slash-command typed into the session

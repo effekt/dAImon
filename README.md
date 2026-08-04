@@ -29,8 +29,10 @@ TUI is the control panel.
 - **Daemon** — a self-contained folder `daemons/<slug>/` with `daemon.toml`
   (settings + task `[inputs]`), `discover.sh` (a gate: should this fire do work?),
   and `skill/SKILL.md` (the prompt). Auto-discovered; drop one in and it exists.
-- **Backend** — the agent CLI that drives the session. `claude` ships today;
-  pluggable via `backends/<name>.sh`.
+- **Backend** — the agent CLI that drives the session. Claude and Codex ship
+  today; provider-specific capacity classifiers allow an opt-in Codex fallback
+  only when Claude is actually capped. Backends remain pluggable via
+  `backends/<name>.sh`.
 - **working_dir** — the repository a daemon operates in. The agent runs *inside*
   that trusted folder so it gets project context, MCP servers, and project skills.
   One daemon targets one repo; run many repos by registering one daemon per repo.
@@ -124,6 +126,8 @@ daimon launch <slug>     launch now, bypass gates
 daimon daemons           list discovered daemons
 daimon status            launchd + running-session state
 daimon models <backend>  available models (live API or bundled fallback)
+daimon mcp setup slack   create/connect Codex fallback to Slack via OAuth
+daimon mcp share slack   print the setup command for teammates
 daimon config <args>     config core (validate|get|daemon|schedule|...)
 daimon sync              regenerate plists + render skills
 daimon kill <slug|all>   hard-kill a run
@@ -138,8 +142,9 @@ daimon tui               control panel
 
 Global settings in `~/.config/daimon/daimon.toml`; per-daemon in
 `daemons/<slug>/daemon.toml`. Full field reference: [docs/configuration.md](docs/configuration.md).
-Run-dangerous, model, schedule, backend, and idle timeout are all configurable
-globally and per daemon.
+Run-dangerous, model, schedule, backend, capacity fallback, and idle timeout are
+all configurable globally and per daemon. Set `fallback_backend = "codex"` under
+`[defaults]` to fall back fleet-wide only when Claude reports a provider cap.
 
 ## Troubleshooting
 

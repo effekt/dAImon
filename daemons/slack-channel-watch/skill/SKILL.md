@@ -19,10 +19,13 @@ results" via shell. There is also no need for parallelism cleverness:
 just make these calls, in order:
 
 1. `daimon state get slack-channel-watch` (Bash) → the `last_ts` map.
-2. ToolSearch, query
-   `select:mcp__plugin_slack_slack__slack_read_channel,mcp__plugin_slack_slack__slack_read_thread`
-   — the Slack tools are deferred and invisible until this runs, every
-   session.
+2. Make the Slack tools available for this backend:
+   - **Claude:** use ToolSearch with query
+     `select:mcp__plugin_slack_slack__slack_read_channel,mcp__plugin_slack_slack__slack_read_thread`.
+     The plugin tools are deferred and invisible until this runs.
+   - **Codex:** do not look for ToolSearch. The authenticated `slack` MCP server
+     exposes `slack_read_channel` and `slack_read_thread` directly; call those
+     tools from the available Slack MCP namespace.
 3. One `slack_read_channel` call per watched channel (a plain tool call
    each, `limit: 15`, no `oldest`).
 4. `slack_read_thread` only for threads whose reply activity is newer
@@ -30,9 +33,9 @@ just make these calls, in order:
 5. If anything qualified: edit the inbox file, then the double-forked
    nudge (Bash). Update state (Bash). Done.
 
-If ToolSearch fails or a Slack call errors with an auth problem, report
-that and stop — never substitute curl, the Slack CLI, raw API calls, or
-subagents.
+If the backend-specific discovery above fails or a Slack call errors with an
+auth problem, report that and stop — never substitute curl, the Slack CLI, raw
+API calls, or subagents.
 
 ## 1. Read new messages
 

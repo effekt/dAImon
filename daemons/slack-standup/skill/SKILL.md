@@ -19,9 +19,15 @@ bypass it.)
 
 ## 2. Generate
 
-**Override:** if `{{inputs.standup_command}}` is non-empty, invoke that skill,
-use its output verbatim, and skip to §3. Otherwise build the standup from the
-steps below.
+**Override:** if `{{inputs.standup_command}}` is non-empty:
+
+- **Claude:** invoke that skill normally.
+- **Codex:** for a `/name` command, read `~/.claude/commands/name.md`, treat its
+  body as the nested runbook, substitute any arguments locally, and follow it
+  inline. Never type the slash command into a shell.
+
+Use the resulting output verbatim and skip to §3. Otherwise build the standup
+from the steps below.
 
 1. **Window** — shipped work since the start of yesterday (in
    `{{inputs.tz}}`); use the current date from the environment, never
@@ -77,9 +83,10 @@ an absent standup reads as a missed run.
 
 ## 4. Post and finish
 
-Post with the Slack MCP tool `slack_send_message`. One message, posted
-directly — no draft, no thread. If the Slack tools are deferred, load them
-with ToolSearch first.
+Post with the Slack MCP tool `slack_send_message`. One message, posted directly
+— no draft, no thread. On Claude, load deferred Slack plugin tools with
+ToolSearch first. On Codex, use the tool directly from the authenticated `slack`
+MCP server; ToolSearch is not present.
 
 **Test mode** — `test_mode` is `{{inputs.test_mode}}`:
 
