@@ -29,9 +29,11 @@ bypass it.)
 Use the resulting output verbatim and skip to §3. Otherwise build the standup
 from the steps below.
 
-1. **Window** — shipped work since the start of yesterday (in
-   `{{inputs.tz}}`); use the current date from the environment, never
-   hardcoded. Also compute `STALE_CUTOFF` = 7 days back.
+1. **Window** — use the current date in `{{inputs.tz}}`, never a hardcoded
+   date. On Monday, include shipped work since the start of Friday so the
+   report covers Friday, Saturday, and Sunday. On every other weekday, include
+   work since the start of yesterday. Also compute `STALE_CUTOFF` = 7 days
+   back.
 2. **Merged PRs** — `gh pr list --state merged --author "@me"` filtered to
    the window.
 3. **Dropped PRs** — `gh pr list --state closed --author "@me"` filtered to
