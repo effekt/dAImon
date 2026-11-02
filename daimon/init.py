@@ -31,7 +31,10 @@ def _import_config():
 
 
 def all_slugs(root: Path) -> list[str]:
-    return sorted(p.parent.name for p in (root / "daemons").glob("*/daemon.toml"))
+    # daemons/<slug>.local is a private (gitignored) daemon under the plain slug.
+    return sorted(
+        p.parent.name.removesuffix(".local") for p in (root / "daemons").glob("*/daemon.toml")
+    )
 
 
 def set_disabled_text(text: str, disabled: list[str]) -> str:
@@ -256,7 +259,7 @@ def main(argv: list[str]) -> int:
     interactive = sys.stdin.isatty()
     local_paths: list[Path] = []
     for slug in selected:
-        ex = INSTALL_ROOT / "daemons" / slug / "daemon.local.toml.example"
+        ex = cfg.daemon_dir(slug) / "daemon.local.toml.example"
         if ex.exists():
             local_path = _scaffold(ex)
             local_paths.append(local_path)

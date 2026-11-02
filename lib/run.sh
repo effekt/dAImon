@@ -30,7 +30,10 @@ source "$DAIMON_LIB_DIR/budget.sh"
 budget_check "$SLUG"
 if [ "${BUDGET_OVER:-0}" -eq 1 ]; then log_event "$SLUG" skip "$BUDGET_REASON" >> "$OPLOG"; exit 0; fi
 
-DISCOVER="$DAIMON_INSTALL_ROOT/daemons/$SLUG/discover.sh"
+# A private daemon lives in daemons/<slug>.local (gitignored); same slug.
+DDIR="$DAIMON_INSTALL_ROOT/daemons/$SLUG"
+[ -f "$DDIR/daemon.toml" ] || DDIR="$DDIR.local"
+DISCOVER="$DDIR/discover.sh"
 if [ -f "$DISCOVER" ]; then
   set -a; eval "$(cfg env "$SLUG")"; set +a
 

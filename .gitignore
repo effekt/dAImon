@@ -9,3 +9,5 @@ daemons/*/daemon.local.toml
 profiles/*/profile.local.toml
 .claude/settings.local.json
 daemons/*/commands.local/
+# Private daemons: daemons/<slug>.local loads as <slug> but never reaches git.
+daemons/*.local/

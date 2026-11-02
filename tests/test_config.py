@@ -111,6 +111,48 @@ class ConfigTest(unittest.TestCase):
     def test_discovery_excludes_disabled(self):
         self.assertEqual(set(self.cfg.discover()), {"alpha", "beta", "gamma"})
 
+    def _local_daemon(self, slug="secret"):
+        d = self.root / "daemons" / f"{slug}.local"
+        write(
+            d / "daemon.toml",
+            f"""
+            [daemon]
+            schedule = {{ interval = 600 }}
+            command = "/{slug}"
+            [inputs]
+            who = "default"
+        """,
+        )
+        write(
+            d / "daemon.local.toml",
+            """
+            [inputs]
+            who = "local"
+        """,
+        )
+        write(d / "skill" / "SKILL.md", f"---\nname: {slug}\ndescription: x\n---\nbody\n")
+        return d
+
+    def test_local_suffix_daemon_loads_under_plain_slug(self):
+        d = self._local_daemon()
+        cfg = config.Config.load()
+        self.assertIn("secret", cfg.discover())
+        self.assertNotIn("secret.local", cfg.discover())
+        self.assertEqual(cfg.daemon_dir("secret").resolve(), d.resolve())
+        self.assertEqual(cfg.daemon("secret")["inputs"]["who"], "local")
+        self.assertIn("body", config.render_skill(cfg, "secret"))
+        self.assertFalse([e for e in config.validate(cfg) if e.startswith("secret")])
+
+    def test_local_suffix_duplicate_slug_is_a_validation_error(self):
+        self._local_daemon("alpha")
+        errors = config.validate(config.Config.load())
+        self.assertTrue(any("alpha: defined twice" in e for e in errors), errors)
+
+    def test_daemon_dir_prefers_plain_folder(self):
+        self.assertEqual(
+            self.cfg.daemon_dir("alpha").resolve(), (self.root / "daemons" / "alpha").resolve()
+        )
+
     def test_defaults_inherited(self):
         self.assertEqual(self.cfg.daemon("beta")["danger"], True)
         self.assertEqual(self.cfg.daemon("beta")["stuck_after"], 2700)
