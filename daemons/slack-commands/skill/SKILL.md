@@ -49,7 +49,7 @@ a local plugin with the same `name` replaces the shared one). Each plugin has
 frontmatter — `name`, `match` (the command word), `mutating` (bool),
 optional `admin` (bool), `description` — and a body that is the runbook to
 follow. Command words are always a **single token**, named
-`{domain}-{action/topic}` (`staging-push`, `epic-status`, `bazaar-update`);
+`{domain}-{action/topic}` (`staging-push`, `epic-status`, `release-notes`);
 a bare domain is acceptable only when it's unambiguous (`standup`, `help`).
 Everything after the first space is arguments.
 

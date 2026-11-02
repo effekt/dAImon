@@ -59,3 +59,58 @@ shortcut_owner_count() {
   fi
   echo $(( $(shortcut_count "owner:$mention $base") + $(shortcut_count "requester:$mention $base") ))
 }
+
+# shortcut_search_ids "<query>" -> one "id updated_at" line per matching story
+# (nothing on any error). Gates that must compare stories against a state record
+# need ids, not a count. One page of up to 250 results — enough for a gate, which
+# only needs to know whether any candidate survives.
+shortcut_search_ids() {
+  local token; token="$(shortcut_token)"
+  [ -z "$token" ] && return
+  curl -s -G "https://api.app.shortcut.com/api/v3/search/stories" \
+    --data-urlencode "query=$1" --data-urlencode page_size=250 --data-urlencode detail=slim \
+    -H "Shortcut-Token: $token" \
+    | python3 -c "import sys,json;[print(s['id'],s['updated_at']) for s in json.load(sys.stdin).get('data',[])]" 2>/dev/null
+}
+
+# shortcut_owner_ids "<base query>" -> shortcut_search_ids scoped to
+# $DAIMON_INPUT_OWNER (owner + requester, deduped), or workspace-wide if OWNER is
+# unset. Fails closed like shortcut_owner_count when the mention can't resolve.
+shortcut_owner_ids() {
+  local base="$1"
+  if [ -z "${DAIMON_INPUT_OWNER:-}" ]; then shortcut_search_ids "$base"; return; fi
+  local mention; mention="$(shortcut_mention "$DAIMON_INPUT_OWNER")"
+  if [ -z "$mention" ]; then
+    echo "discover: could not resolve owner mention for $DAIMON_INPUT_OWNER" >&2
+    return 1
+  fi
+  { shortcut_search_ids "owner:$mention $base"; shortcut_search_ids "requester:$mention $base"; } | sort -u
+}
+
+# shortcut_labelled_epics "<label>" -> ids of open epics carrying that label, one
+# per line (nothing on any error). Stories don't inherit epic labels and the
+# story search's label: only matches story labels, so an epic-level opt-in has to
+# be resolved to epic ids first.
+shortcut_labelled_epics() {
+  local token; token="$(shortcut_token)"
+  [ -z "$token" ] && return
+  curl -s -G "https://api.app.shortcut.com/api/v3/search/epics" \
+    --data-urlencode "query=label:\"$1\" !is:done !is:archived" \
+    --data-urlencode page_size=250 --data-urlencode detail=slim \
+    -H "Shortcut-Token: $token" \
+    | python3 -c "import sys,json;[print(e['id']) for e in json.load(sys.stdin).get('data',[])]" 2>/dev/null
+}
+
+# shortcut_unseen "<state-file>" -> reads "id updated_at" lines on stdin, prints
+# the ids of stories NOT already handled: no record in the state file, or the
+# story changed since (updated_at newer than the recorded one). Fractional
+# seconds are dropped before comparing so "…28.5Z" vs "…28Z" can't misorder.
+shortcut_unseen() {
+  local seen="{}"
+  if [ -f "$1" ] && jq -e 'type == "object"' "$1" >/dev/null 2>&1; then seen="$(cat "$1")"; fi
+  jq -R -r --argjson seen "$seen" '
+    def ts: sub("\\.[0-9]+"; "");
+    select(length > 0) | split(" ") | .[0] as $id | (.[1] // "" | ts) as $at
+    | ($seen[$id].updated_at // "" | ts) as $rec
+    | select($rec == "" or $at > $rec) | $id'
+}

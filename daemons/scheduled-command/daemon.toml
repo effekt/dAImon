@@ -11,7 +11,7 @@ required_inputs = ["command_text", "channel"]
 
 [inputs]
 # The command to run, exactly as someone would type it after the trigger
-# prefix — e.g. "bazaar-update post" or "epic-health 48227".
+# prefix — e.g. "release-notes post" or "epic-health 1234".
 command_text = "CHANGE_ME"
 # Channel the engine replies in (the command's own runbook may post
 # elsewhere too).

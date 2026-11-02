@@ -14,7 +14,7 @@ Placeholder — this daemon enqueues its command from the gate and never launche
 
 | Input | Default | Notes |
 |-------|---------|-------|
-| `command_text` | `CHANGE_ME` | The command to run, exactly as someone would type it after the trigger prefix — e.g. "bazaar-update post" or "epic-health 48227". |
+| `command_text` | `CHANGE_ME` | The command to run, exactly as someone would type it after the trigger prefix — e.g. "release-notes post" or "epic-health 1234". |
 | `channel` | `CHANGE_ME` | Channel the engine replies in (the command's own runbook may post elsewhere too). |
 | `days` | `5` | Weekdays this fires: 1=Mon … 7=Sun. Empty = every day the schedule fires. |
 | `tz` | `America/New_York` | Timezone for the day gate — keep in sync with the schedule's tz. |
