@@ -2,6 +2,8 @@
 # Gate for pr-manager: launch when a managed PR needs action — ready to merge
 # (approved & green), conflicting, failing CI, change-requested, a green draft
 # eligible for self-promotion, or a ready PR still missing its reviewers.
+# Conflicts and failing CI count on drafts too: work-queue opens drafts and only
+# a green draft is promoted, so a red draft would otherwise be stranded.
 # "Managed" = a PR you authored on a daimon/* branch, or any PR carrying the
 # manage label. Runs inside working_dir, so gh targets the current repo. Failing
 # closed (no gh, no auth) means "skip", the safe default.
@@ -33,15 +35,14 @@ printf '%s' "$prs" | jq -e \
     (.reviewDecision == "APPROVED" and green) or
     ($automerge == 1 and green and .reviewDecision != "CHANGES_REQUESTED"
       and .mergeable != "CONFLICTING") or
-    (.reviewDecision == "CHANGES_REQUESTED") or
-    (.mergeable == "CONFLICTING") or
-    failing);
+    (.reviewDecision == "CHANGES_REQUESTED"));
+  def needs_repair: (.mergeable == "CONFLICTING") or failing;
   def promotable_draft: ($promote == 1) and .isDraft and green
     and (.mergeable != "CONFLICTING")
     and (.reviewDecision != "CHANGES_REQUESTED")
     and (age_hours >= $min_age);
   def needs_reviewers: ($want | length > 0) and (.isDraft | not)
     and (seen as $s | any($want[]; . as $r | $s | index($r) == null));
-  [ .[] | select(managed and (actionable_ready or promotable_draft or needs_reviewers)) ]
+  [ .[] | select(managed and (actionable_ready or needs_repair or promotable_draft or needs_reviewers)) ]
   | length > 0
 ' >/dev/null
