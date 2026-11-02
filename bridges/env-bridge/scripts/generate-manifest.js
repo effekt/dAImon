@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Render manifest.json from manifest.template.json using the same .env the
  * runtime reads — BRIDGE_NAME names the app and bot (make it yours, e.g.
- * "hub-jesse"); BRIDGE_SLASH_COMMAND must be workspace-unique. Run before
+ * "myapp-alex"); BRIDGE_SLASH_COMMAND must be workspace-unique. Run before
  * the first `slack run`. */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
