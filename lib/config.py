@@ -101,6 +101,15 @@ def _load_toml(path: Path) -> dict:
         return tomllib.load(fh)
 
 
+# A daemon folder named <slug>.local is private: .gitignore keeps it out of the
+# repo, but it loads exactly like daemons/<slug> under the plain slug.
+LOCAL_SUFFIX = ".local"
+
+
+def slug_for_dir(name: str) -> str:
+    return name[: -len(LOCAL_SUFFIX)] if name.endswith(LOCAL_SUFFIX) else name
+
+
 class Config:
     def __init__(self, raw: dict, source: Path | None):
         self.source = source
@@ -125,6 +134,15 @@ class Config:
     def daemons_dir(self) -> Path:
         return self.install_root / "daemons"
 
+    def daemon_dir(self, slug: str) -> Path:
+        """The folder holding `slug`: daemons/<slug>, or daemons/<slug>.local for a
+        private daemon kept out of git by the `.local` suffix."""
+        plain = self.daemons_dir() / slug
+        local = self.daemons_dir() / f"{slug}{LOCAL_SUFFIX}"
+        if not (plain / "daemon.toml").exists() and (local / "daemon.toml").exists():
+            return local
+        return plain
+
     def discover(self) -> dict[str, dict]:
         if self._discover_cache is None:
             self._discover_cache = self._scan_daemons()
@@ -136,7 +154,7 @@ class Config:
         if not ddir.is_dir():
             return out
         for cfg in sorted(ddir.glob("*/daemon.toml")):
-            slug = cfg.parent.name
+            slug = slug_for_dir(cfg.parent.name)
             if slug in self.disabled:
                 continue
             out[slug] = _load_toml(cfg)
@@ -156,7 +174,7 @@ class Config:
         return prof
 
     def daemon_local_path(self, slug: str) -> Path:
-        return self.daemons_dir() / slug / "daemon.local.toml"
+        return self.daemon_dir(slug) / "daemon.local.toml"
 
     def raw_daemon(self, slug: str) -> dict:
         raw = self.discover().get(slug, {})
@@ -214,7 +232,7 @@ class Config:
         return m
 
     def daemon_toml_path(self, slug: str) -> Path:
-        return self.daemons_dir() / slug / "daemon.toml"
+        return self.daemon_dir(slug) / "daemon.toml"
 
     def _merge_write(self, path: Path, daemon: dict, inputs: dict | None) -> None:
         raw = _load_toml(path) if path.exists() else {}
@@ -325,7 +343,7 @@ def _append_ref(text: str, path: Path) -> str:
 
 def render_skill(cfg: Config, slug: str) -> str:
     d = cfg.daemon(slug)
-    text = (cfg.daemons_dir() / slug / "skill" / "SKILL.md").read_text()
+    text = (cfg.daemon_dir(slug) / "skill" / "SKILL.md").read_text()
     for source in d["sources"]:
         text = _append_ref(text, cfg.profiles_dir() / source / "reference.md")
         if source in d["write_sources"]:
@@ -414,7 +432,7 @@ def validate(cfg: Config) -> list[str]:
                 schedule_fmt.descriptor(sched)
             except ValueError as e:
                 errors.append(f"{slug}: {e}")
-        skill = cfg.daemons_dir() / slug / "skill" / "SKILL.md"
+        skill = cfg.daemon_dir(slug) / "skill" / "SKILL.md"
         if not skill.exists():
             errors.append(f"{slug}: missing skill/SKILL.md")
         unknown = [s["name"] for s in sources_of(d) if cfg.load_profile(s["name"]) is None]
@@ -426,8 +444,14 @@ def validate(cfg: Config) -> list[str]:
         else:
             errors.extend(_required_input_errors(cfg, slug))
             errors.extend(_mcp_errors(cfg, slug))
+    all_dirs = [p.parent.name for p in cfg.daemons_dir().glob("*/daemon.toml")]
+    for slug in sorted({slug_for_dir(n) for n in all_dirs}):
+        if slug in all_dirs and f"{slug}{LOCAL_SUFFIX}" in all_dirs:
+            errors.append(
+                f"{slug}: defined twice (daemons/{slug} and daemons/{slug}{LOCAL_SUFFIX})"
+            )
     for slug in cfg.disabled:
-        if slug not in {p.parent.name for p in cfg.daemons_dir().glob("*/daemon.toml")}:
+        if slug not in {slug_for_dir(n) for n in all_dirs}:
             errors.append(f"[daemons].disabled references unknown daemon: {slug}")
     return errors
 
