@@ -17,6 +17,7 @@ Autonomously implement one ready story end-to-end on an isolated branch and open
 | `repos` | — |  |
 | `base` | `main` |  |
 | `max_open_prs` | `2` |  |
+| `open_as_draft` | `true` | Open PRs as drafts (pr-manager promotes them once green). Set false when the repo's reviewer auto-assignment only fires on ready-for-review PRs. |
 
 ## Gate
 
