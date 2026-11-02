@@ -65,9 +65,16 @@ Do not open a PR with a broken build.
 
 ## 6. Open a pull request
 
-Commit, push, and open a **draft** PR. `gh` targets the current repo
-automatically — no need to name it. Put the story id and `app_url` in the body so
-the story and PR are linked:
+Commit, push, and open the PR. `gh` targets the current repo automatically, so
+there's no need to name it. Put the story id and `app_url` in the body so the
+story and PR are linked.
+
+`open_as_draft` is `{{inputs.open_as_draft}}`:
+
+- `True`: open it as a **draft** (keep `--draft` below). pr-manager promotes it
+  once CI is green.
+- `False`: drop `--draft`, so the PR opens **ready for review** straight away and
+  repository reviewer automation (CODEOWNERS, team auto-assignment) runs on it.
 
 ```bash
 git add -A && git commit -m "<concise summary>"
