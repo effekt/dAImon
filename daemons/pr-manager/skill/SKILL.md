@@ -50,6 +50,8 @@ fix can't be trusted). Always `git worktree remove --force` when done. Leave
 ## 3. Act on each PR (priority order)
 
 Process in this order; stop at the first that applies, then move to the next PR.
+§3.2 (conflicts) and §3.3 (failing CI) apply to drafts as well: a draft is only
+promoted once it is green, so repairing it is what moves it forward.
 
 ### 3.0 Promote a ready draft
 
