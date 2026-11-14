@@ -23,9 +23,6 @@ intake_exclude_labels = []
 # Also review every story that hasn't started yet (backlog and unstarted
 # states), not only the triage state.
 intake_unstarted = false
-# Objective ids kept out of that not-started intake, e.g. a project another
-# process owns. Stories there can still arrive via intake_labels or epic opt-in.
-intake_exclude_objectives = []
 # Assess at most this many stories per run, so a wide intake drains gradually
 # instead of in one enormous run.
 max_per_run = 5

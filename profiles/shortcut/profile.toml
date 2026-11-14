@@ -17,3 +17,5 @@ priority_label = "ai-priority"
 skip_label = "no-ai"
 epic_id = ""
 exclude_epics = []
+# Objectives whose stories (in every epic, current and future) no daemon touches.
+exclude_objectives = []

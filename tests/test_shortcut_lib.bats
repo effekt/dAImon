@@ -9,7 +9,7 @@ setup() {
 }
 
 @test "shortcut_exclusions: unset -> empty" {
-  unset DAIMON_INPUT_EXCLUDE_EPICS
+  unset DAIMON_INPUT_EXCLUDE_EPICS DAIMON_INPUT_EXCLUDE_OBJECTIVES
   run shortcut_exclusions
   [ "$status" -eq 0 ]
   [ "$output" = "" ]
@@ -25,6 +25,12 @@ setup() {
   export DAIMON_INPUT_EXCLUDE_EPICS="1234 5678"
   run shortcut_exclusions
   [ "$output" = " !epic:1234 !epic:5678" ]
+}
+
+@test "shortcut_exclusions: objectives -> one negated term each, after epics" {
+  export DAIMON_INPUT_EXCLUDE_EPICS="1234" DAIMON_INPUT_EXCLUDE_OBJECTIVES="42 43"
+  run shortcut_exclusions
+  [ "$output" = " !epic:1234 !objective:42 !objective:43" ]
 }
 
 @test "shortcut_owner_count: no owner -> workspace count" {

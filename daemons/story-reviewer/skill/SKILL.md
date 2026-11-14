@@ -13,9 +13,10 @@ explains how to find, read, comment on, and label stories.
 ## 1. Find un-assessed stories
 
 **Scope is a hard gate, not a preference.** Only ever comment on, label, or follow
-a story that `{{inputs.owner}}` owns — or requested, when Source says the requester counts
-(if `{{inputs.owner}}` is blank, all stories are in scope). A story belonging to anyone else is off-limits even if
-it is sitting in triage un-assessed.
+a story that `{{inputs.owner}}` owns — or requested, when Source says the
+requester counts (if `{{inputs.owner}}` is blank, all stories are in scope). A
+story belonging to anyone else, or in an excluded epic or objective (see Source),
+is off-limits even if it is sitting in triage un-assessed.
 
 **The intake** is the union of up to four searches. Every one is fetched **already
 scoped to `{{inputs.owner}}` on the server** (see Source), and every one excludes stories that already carry an assessment
@@ -37,10 +38,7 @@ yourself to filter it.
    `epic:<id>` for each.
 4. Only when **all not-started stories** (`{{inputs.intake_unstarted}}`) is True:
    every story that hasn't started (`!is:started !is:done`, i.e. backlog and
-   unstarted states), minus any carrying `{{inputs.intake_exclude_labels}}` and
-   any in these objectives: `{{inputs.intake_exclude_objectives}}` (blank means
-   none; add one `!objective:<id>` term per id). Those objectives stay out of this search only —
-   a story there can still arrive through searches 2 and 3.
+   unstarted states), minus any carrying `{{inputs.intake_exclude_labels}}`.
 
 Merge by story id. Then drop every story already recorded in your state
 (`daimon state get story-reviewer`, an object keyed by story id) whose current
