@@ -36,7 +36,8 @@ yourself to filter it.
    epics with `GET /api/v3/search/epics` and
    `query=label:"{{inputs.ready_label}}" !is:done !is:archived`, then search
    `epic:<id>` for each.
-4. Only when **all not-started stories** (`{{inputs.intake_unstarted}}`) is True:
+4. **Not-started stories** — this search is switched
+   `{{inputs.intake_unstarted}}` (True = run it, False = skip it). It covers
    every story that hasn't started (`!is:started !is:done`, i.e. backlog and
    unstarted states), minus any carrying `{{inputs.intake_exclude_labels}}`.
 
