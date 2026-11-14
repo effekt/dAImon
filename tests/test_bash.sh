@@ -57,6 +57,9 @@ budget_check foo
 check "$BUDGET_OVER" "1" "budget over + non-exempt slug -> skip"
 budget_check cheap-poller
 check "$BUDGET_OVER" "0" "budget over + exempt slug -> run"
+before="$(budget_total_this_hour)"
+budget_record cheap-poller
+check "$(budget_total_this_hour)" "$before" "exempt slug's launches don't consume the pool"
 budget_check capped   # own hourly_cap=2, has 0 launches; global pool is over
 check "$BUDGET_OVER" "0" "own-cap daemon under its cap -> run despite global"
 budget_record capped

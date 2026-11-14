@@ -48,6 +48,7 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 |-----|------|---------|
 | `hourly_cap` | int | Target launches per hour across all daemons. |
 | `defer_at_pct` | int | Work-style daemons defer new launches at/above this percent of the cap. |
+| `exempt` | string[] | Daemons that must always be available. They never defer on the cap, and their launches never count toward it. |
 
 ### `[daemons]`
 
