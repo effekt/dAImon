@@ -108,24 +108,6 @@ check_slack_mcp() {
   fi
 }
 
-check_bridge_toolchain() {
-  if have slack; then
-    ok "slack CLI"
-    slack auth list >/dev/null 2>&1 && ok "slack CLI authenticated" \
-      || warn "slack CLI not authenticated (slack login) — app creation and 'daimon bridge' fail"
-  else
-    warn "slack CLI missing (https://docs.slack.dev/tools/slack-cli) — the bridge app can't be created or run"
-  fi
-  have node && ok "node $(node --version 2>/dev/null)" || warn "node missing — the bridge app can't run"
-}
-
-check_bridge_project() {
-  local bridge="$DAIMON_INSTALL_ROOT/bridges/env-bridge"
-  [ -d "$bridge/node_modules" ] && ok "bridge deps installed" || warn "bridge deps missing — run: make bridge-setup"
-  [ -f "$bridge/manifest.json" ] && ok "bridge manifest rendered" \
-    || warn "bridge manifest not rendered — run: make bridge-setup (npm run setup)"
-}
-
 check_watch_token() {
   local tok_cmd
   tok_cmd="$(python3 "$DAIMON_LIB_DIR/config.py" env slack-channel-watch 2>/dev/null \
@@ -139,11 +121,9 @@ check_watch_token() {
   fi
 }
 
-if [ -d "$DAIMON_INSTALL_ROOT/bridges/env-bridge" ]; then
-  echo "slack bridge"
+if [ -d "$DAIMON_INSTALL_ROOT/daemons/slack-commands" ]; then
+  echo "slack commands"
   check_slack_mcp
-  check_bridge_toolchain
-  check_bridge_project
   check_watch_token
 fi
 

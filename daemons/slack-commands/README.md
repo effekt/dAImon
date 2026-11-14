@@ -2,7 +2,7 @@
 
 # slack-commands
 
-Handle bridged Slack commands from the daimon inbox via plugin runbooks, with an allowlist gate on mutating commands.
+Handle Slack commands queued in the daimon inbox via plugin runbooks, with an allowlist gate on mutating commands.
 
 - **Command:** `/slack-commands`
 - **Schedule:** 900s

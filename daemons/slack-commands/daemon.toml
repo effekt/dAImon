@@ -1,6 +1,6 @@
 [daemon]
 backend = "claude"
-# Inbox-driven: the env-bridge Slack app queues a message and nudges
+# Inbox-driven: the slack-channel-watch front door queues a message and nudges
 # `daimon run slack-commands`; the inbox gate launches immediately. The
 # schedule is only a fallback sweep for messages queued while a run was
 # already in flight.

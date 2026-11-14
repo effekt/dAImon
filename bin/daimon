@@ -41,7 +41,6 @@ usage: daimon <command> [args]
   kill <slug|all>    hard-kill a daemon's run
   ps <slug|all>      show a daemon's process tree
   tui                open the control panel
-  bridge [args...]   run the env-bridge Slack app (slack run from its dir; args pass to slack)
   command new <name> scaffold a slack-commands plugin (--shared to commit it, --mutating)
   install            install plists, hooks, and the TUI venv
                      (--load schedules; --worklog adds the standup worklog hook)
@@ -67,7 +66,6 @@ case "$CMD" in
   kill)      exec bash "$LIB/kill.sh" "$@" ;;
   ps)        exec bash "$LIB/ps.sh" "$@" ;;
   tui)       exec "$ROOT/bin/daimonctl" "$@" ;;
-  bridge)    cd "$ROOT/bridges/env-bridge" && exec slack "${@:-run}" ;;
   command)   exec python3 "$LIB/command_new.py" "$@" ;;
   install)   exec "$ROOT/bin/daimon-install" "$@" ;;
   help|-h|--help) usage ;;
