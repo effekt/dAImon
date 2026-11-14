@@ -9,7 +9,8 @@ the story:
 - `{{inputs.ready_label}}` — AI-completable, ready for autonomous implementation.
 - `{{inputs.assist_label}}` — needs human input first.
 - `{{inputs.human_label}}` — needs a human; not for automation.
-- `{{inputs.priority_label}}` — process before anything else.
+- `{{inputs.priority_label}}` — process before unlabelled stories (see
+  **Priority order**).
 - `{{inputs.skip_label}}` — never auto-process.
 
 Workflow states: triage = `{{inputs.triage_state}}`, in-progress =
@@ -29,6 +30,16 @@ The search `query` supports `state:"…"`, `label:"…"`, `team:"…"`, `owner:`
 `epic:<id>`, `objective:<id>`, state types (`is:backlog`, `is:unstarted`,
 `is:started`, `is:done`), and negation with `!`. Each result has `id`, `name`, `description`,
 `app_url`, and its current `labels`.
+
+### Priority order
+
+When choosing among in-scope stories, order them:
+
+1. Stories requested by a member in `{{inputs.priority_requesters}}` (member ids;
+   blank means none) — check `requested_by_id`. When several members are listed,
+   earlier members come first.
+2. Then stories carrying `{{inputs.priority_label}}`.
+3. Then the oldest first.
 
 ### Out-of-scope epics and objectives
 

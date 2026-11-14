@@ -14,6 +14,8 @@ ready_label = "ai-ready"
 assist_label = "ai-assist"
 human_label = "ai-human"
 priority_label = "ai-priority"
+# Member ids whose requested stories go first, ahead of priority_label, in order.
+priority_requesters = []
 skip_label = "no-ai"
 epic_id = ""
 exclude_epics = []

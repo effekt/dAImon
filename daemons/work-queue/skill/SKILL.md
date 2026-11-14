@@ -26,8 +26,7 @@ progress or review is someone's active work), excluding any tagged
 from Source: re-read it and drop it if it is out of scope, logging
 `[out-of-scope skip] sc-{id} …`. If no in-scope ready stories remain, stop.
 
-Among the survivors, if any carry `{{inputs.priority_label}}`, pick one of those
-first; otherwise the oldest. Read it in full and **check it is still current**:
+Among the survivors, pick the first in the **Priority order** from Source. Read it in full and **check it is still current**:
 the code it names still exists, and no merged PR, done story, or newer story has
 already delivered or superseded it. If it is stale, don't claim it — comment with
 the evidence, swap `{{inputs.ready_label}}` for `{{inputs.assist_label}}` (see
