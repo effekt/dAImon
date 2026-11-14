@@ -6,7 +6,7 @@ daemons post updates back. Three pieces:
 | Piece | What it does |
 |---|---|
 | `slack-commands` daemon | The engine. Reads commands from its inbox, runs the matching plugin runbook, replies in Slack. |
-| A front door | Either `bridges/env-bridge` (a Socket Mode Slack app: slash command + @-mention) or the `slack-channel-watch` daemon (polls channels for `?`-prefixed messages — no Slack app needed). |
+| A front door | The `slack-channel-watch` daemon (polls channels for `?`-prefixed messages — no Slack app needed). |
 | `slack-standup` daemon | Scheduled outbound: posts a standup on a weekday cadence. |
 
 ## Prerequisites
@@ -24,11 +24,9 @@ daemons post updates back. Three pieces:
   MCP-enabled app, pass its public ID as `daimon mcp setup slack <client-id>`
   instead. `daimon doctor` checks both paths, including whether Codex completed
   OAuth.
-- **jq**, **gh**, **node 18+** (front door only), and the
-  [Slack CLI](https://docs.slack.dev/tools/slack-cli) (app front door
-  only). `make tooling` reports what's missing.
+- **jq** and **gh**. `make tooling` reports what's missing.
 
-## Pick a front door
+## Set up the front door
 
 **Channel watcher (no app, no admin approval).** Configure
 `daemons/slack-channel-watch/daemon.local.toml` with the channel IDs to
@@ -41,12 +39,6 @@ watch; anyone types `?help` in one of them. Two polling modes:
 - *Agent fallback* (`token_command` empty): each tick is a short agent
   session using the Slack MCP. Works with no extra token; costs a model
   call per tick, so keep the interval at 120s or higher.
-
-**Slack app.** `make bridge-setup` (toolchain check + names + manifest),
-then `daimon bridge` to create and run it. Gives `/<your-command>` and
-@-mentions. Each engineer registers their own app — `BRIDGE_NAME` and
-`BRIDGE_SLASH_COMMAND` come from `.env`, and slash commands are
-workspace-global so they must be unique.
 
 ## Writing a command
 

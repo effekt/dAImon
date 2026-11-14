@@ -12,7 +12,7 @@
 | [review-prs](review-prs/) | 10s | Review open pull requests assigned to you and cast a risk-gated decision — approve, request changes, or comment. |
 | [scheduled-command](scheduled-command/) | 16:00 | Placeholder — this daemon enqueues its command from the gate and never launches an agent. |
 | [slack-channel-watch](slack-channel-watch/) | 120s | Poll Slack channels for trigger-prefixed command messages and forward them to the command daemon's inbox. |
-| [slack-commands](slack-commands/) | 900s | Handle bridged Slack commands from the daimon inbox via plugin runbooks, with an allowlist gate on mutating commands. |
+| [slack-commands](slack-commands/) | 900s | Handle Slack commands queued in the daimon inbox via plugin runbooks, with an allowlist gate on mutating commands. |
 | [slack-standup](slack-standup/) | 11:00 | Generate the daily standup and post it to a Slack channel (Mon–Fri, once per day). |
 | [story-reviewer](story-reviewer/) | 1800s | Triage stories — investigate each against the codebase, post an assessment, and stamp a visible label marking whether it's AI-completable. |
 | [work-queue](work-queue/) | :8,38 | Autonomously implement one ready story end-to-end on an isolated branch and open a pull request. |

@@ -1,12 +1,12 @@
 ---
 name: slack-commands
-description: Handle bridged Slack commands from the daimon inbox via plugin runbooks, with an allowlist gate on mutating commands.
+description: Handle Slack commands queued in the daimon inbox via plugin runbooks, with an allowlist gate on mutating commands.
 ---
 
 # slack-commands
 
-You are launched because a Slack bridge app queued command messages in the
-daimon inbox. Handle every queued message, reply in Slack, and finish. You
+You are launched because a front door (the slack-channel-watch daemon) queued
+command messages in the daimon inbox. Handle every queued message, reply in Slack, and finish. You
 run inside `working_dir`.
 
 **First action, unconditionally**: make the Slack tools available:
