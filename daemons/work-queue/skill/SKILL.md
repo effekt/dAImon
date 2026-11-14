@@ -12,22 +12,28 @@ explains how to find, read, and move stories.
 ## 1. Claim one story
 
 **Scope is a hard gate, not a preference.** Only ever claim, move, implement, or
-otherwise touch a story that `{{inputs.owner}}` requested or owns (if
-`{{inputs.owner}}` is blank, all stories are in scope). A `{{inputs.ready_label}}`
+otherwise touch a story that `{{inputs.owner}}` owns — or requested, when Source
+says the requester counts (if `{{inputs.owner}}` is blank, all stories are in
+scope). A `{{inputs.ready_label}}`
 story belonging to anyone else is off-limits — never claim it, even though it
 carries the ready label.
 
-Find stories labelled `{{inputs.ready_label}}`, excluding any tagged
-`{{inputs.skip_label}}` or already in `{{inputs.in_progress_state}}`, **already
-scoped to `{{inputs.owner}}` on the server** (the owner's and requester's stories
-— see the Source section). Before acting on a candidate, apply the **safety net**
-from Source: re-read it and drop it unless `{{inputs.owner}}` is its requester or
-an owner, logging `[out-of-scope skip] sc-{id} …`. If no in-scope ready stories
-remain, stop.
+Find stories labelled `{{inputs.ready_label}}` that haven't started
+(`!is:started !is:done` — backlog and unstarted states only; anything in
+progress or review is someone's active work), excluding any tagged
+`{{inputs.skip_label}}`, **already scoped to `{{inputs.owner}}` on the server**
+(see the Source section). Before acting on a candidate, apply the **safety net**
+from Source: re-read it and drop it if it is out of scope, logging
+`[out-of-scope skip] sc-{id} …`. If no in-scope ready stories remain, stop.
 
 Among the survivors, if any carry `{{inputs.priority_label}}`, pick one of those
-first; otherwise the oldest. Read it in full, then **claim it** by moving it to
-`{{inputs.in_progress_state}}` so a later run won't pick it up again.
+first; otherwise the oldest. Read it in full and **check it is still current**:
+the code it names still exists, and no merged PR, done story, or newer story has
+already delivered or superseded it. If it is stale, don't claim it — comment with
+the evidence, swap `{{inputs.ready_label}}` for `{{inputs.assist_label}}` (see
+Source for label edits), and move on to the next candidate. Otherwise **claim
+it** by moving it to `{{inputs.in_progress_state}}` so a later run won't pick it
+up again.
 
 ## 2. Pick the repository and isolate
 

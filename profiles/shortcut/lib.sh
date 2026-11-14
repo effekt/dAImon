@@ -44,8 +44,15 @@ shortcut_exclusions() {
   printf '%s' "$out"
 }
 
+# shortcut_include_requested -> success when the requester role counts toward
+# scope ($DAIMON_INPUT_INCLUDE_REQUESTED, default on). Off: only owners count.
+shortcut_include_requested() {
+  [ "${DAIMON_INPUT_INCLUDE_REQUESTED:-1}" != "0" ]
+}
+
 # shortcut_owner_count "<base query>" -> story count scoped to $DAIMON_INPUT_OWNER
-# (owner + requester), or workspace-wide if OWNER is unset. When OWNER is set but
+# (owner, plus requester unless include_requested is off), or workspace-wide if
+# OWNER is unset. When OWNER is set but
 # its mention can't be resolved it writes to stderr and returns 1, so run.sh
 # surfaces a discover_error rather than letting the gate silently widen to the
 # whole workspace and touch others' stories.
@@ -57,7 +64,11 @@ shortcut_owner_count() {
     echo "discover: could not resolve owner mention for $DAIMON_INPUT_OWNER" >&2
     return 1
   fi
-  echo $(( $(shortcut_count "owner:$mention $base") + $(shortcut_count "requester:$mention $base") ))
+  local n; n=$(shortcut_count "owner:$mention $base")
+  if shortcut_include_requested; then
+    n=$(( n + $(shortcut_count "requester:$mention !owner:$mention $base") ))
+  fi
+  echo "$n"
 }
 
 # shortcut_search_ids "<query>" -> one "id updated_at" line per matching story
@@ -74,8 +85,8 @@ shortcut_search_ids() {
 }
 
 # shortcut_owner_ids "<base query>" -> shortcut_search_ids scoped to
-# $DAIMON_INPUT_OWNER (owner + requester, deduped), or workspace-wide if OWNER is
-# unset. Fails closed like shortcut_owner_count when the mention can't resolve.
+# $DAIMON_INPUT_OWNER (owner, plus requester unless include_requested is off;
+# deduped), or workspace-wide if OWNER is unset. Fails closed like shortcut_owner_count when the mention can't resolve.
 shortcut_owner_ids() {
   local base="$1"
   if [ -z "${DAIMON_INPUT_OWNER:-}" ]; then shortcut_search_ids "$base"; return; fi
@@ -84,7 +95,10 @@ shortcut_owner_ids() {
     echo "discover: could not resolve owner mention for $DAIMON_INPUT_OWNER" >&2
     return 1
   fi
-  { shortcut_search_ids "owner:$mention $base"; shortcut_search_ids "requester:$mention $base"; } | sort -u
+  {
+    shortcut_search_ids "owner:$mention $base"
+    if shortcut_include_requested; then shortcut_search_ids "requester:$mention $base"; fi
+  } | sort -u
 }
 
 # shortcut_labelled_epics "<label>" -> ids of open epics carrying that label, one

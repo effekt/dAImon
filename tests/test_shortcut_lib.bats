@@ -44,6 +44,30 @@ setup() {
   [ "$output" = "5" ]
 }
 
+@test "shortcut_owner_count: requester match excludes stories the owner also owns" {
+  export DAIMON_INPUT_OWNER="123"
+  shortcut_mention() { echo "me"; }
+  shortcut_count() { case "$1" in "requester:me !owner:me "*) echo 2;; owner:*) echo 3;; *) echo 99;; esac; }
+  run shortcut_owner_count 'label:"x"'
+  [ "$output" = "5" ]
+}
+
+@test "shortcut_owner_count: include_requested=0 -> owner only" {
+  export DAIMON_INPUT_OWNER="123" DAIMON_INPUT_INCLUDE_REQUESTED=0
+  shortcut_mention() { echo "me"; }
+  shortcut_count() { case "$1" in owner:*) echo 3;; *) echo 2;; esac; }
+  run shortcut_owner_count 'label:"x"'
+  [ "$output" = "3" ]
+}
+
+@test "shortcut_owner_ids: include_requested=0 -> owner only" {
+  export DAIMON_INPUT_OWNER="123" DAIMON_INPUT_INCLUDE_REQUESTED=0
+  shortcut_mention() { echo "me"; }
+  shortcut_search_ids() { case "$1" in owner:*) printf '1 a\n';; *) printf '3 c\n';; esac; }
+  run shortcut_owner_ids 'label:"x"'
+  [ "$output" = "1 a" ]
+}
+
 @test "shortcut_owner_count: owner set but unresolvable -> fails closed with stderr" {
   export DAIMON_INPUT_OWNER="123"
   shortcut_mention() { echo ""; }

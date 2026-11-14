@@ -19,6 +19,8 @@ Triage stories — investigate each against the codebase, post an assessment, an
 | `verbosity` | `full` | How much detail the posted assessment carries: full (sectioned template) or compact. |
 | `intake_labels` | — | Extra intake beyond the triage state: un-assessed stories carrying any of these labels (in any state but in-progress) are reviewed too. Label names must not contain spaces. e.g. ["cleanup", "follow-up"]. |
 | `intake_exclude_labels` | — | Stories carrying any of these labels are kept out of the label intake above, e.g. ["blocker"] so critical-path work stays with a human. |
+| `intake_unstarted` | `false` | Also review every story that hasn't started yet (backlog and unstarted states), not only the triage state. |
+| `intake_exclude_objectives` | — | Objective ids kept out of that not-started intake, e.g. a project another process owns. Stories there can still arrive via intake_labels or epic opt-in. |
 | `max_per_run` | `5` | Assess at most this many stories per run, so a wide intake drains gradually instead of in one enormous run. |
 
 ## Gate

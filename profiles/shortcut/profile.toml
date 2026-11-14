@@ -5,6 +5,8 @@ description = "Shortcut stories via the Shortcut REST API"
 [defaults]
 team = ""
 owner = ""
+# Whether stories the owner only requested (but doesn't own) are in scope too.
+include_requested = true
 triage_state = "To Do"
 in_progress_state = "In Development"
 done_state = "Done"

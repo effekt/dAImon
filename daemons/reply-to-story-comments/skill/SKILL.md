@@ -13,8 +13,8 @@ story-reviewer for re-triage. The "Source" section below explains how to find,
 read, comment on, and label stories.
 
 **Scope is a hard gate, not a preference.** Only ever read, comment on, or label a
-story that `{{inputs.owner}}` requested or owns (if `{{inputs.owner}}` is blank,
-all stories are in scope). Apply the **safety net** from Source before every
+story that `{{inputs.owner}}` owns — or requested, when Source says the requester counts
+(if `{{inputs.owner}}` is blank, all stories are in scope). Apply the **safety net** from Source before every
 write. A story belonging to anyone else is off-limits.
 
 ## 1. Discover new replies

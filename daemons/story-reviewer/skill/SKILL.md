@@ -13,13 +13,12 @@ explains how to find, read, comment on, and label stories.
 ## 1. Find un-assessed stories
 
 **Scope is a hard gate, not a preference.** Only ever comment on, label, or follow
-a story that `{{inputs.owner}}` requested or owns (if `{{inputs.owner}}` is blank,
-all stories are in scope). A story belonging to anyone else is off-limits even if
+a story that `{{inputs.owner}}` owns — or requested, when Source says the requester counts
+(if `{{inputs.owner}}` is blank, all stories are in scope). A story belonging to anyone else is off-limits even if
 it is sitting in triage un-assessed.
 
-**The intake** is the union of three searches. Every one is fetched **already
-scoped to `{{inputs.owner}}` on the server** (the owner's and requester's stories —
-see Source), and every one excludes stories that already carry an assessment
+**The intake** is the union of up to four searches. Every one is fetched **already
+scoped to `{{inputs.owner}}` on the server** (see Source), and every one excludes stories that already carry an assessment
 label (`{{inputs.ready_label}}`, `{{inputs.assist_label}}`,
 `{{inputs.human_label}}`), are tagged `{{inputs.skip_label}}`, or are done or
 archived (`!is:done !is:archived`). Do not pull a whole column and rely on
@@ -36,6 +35,12 @@ yourself to filter it.
    epics with `GET /api/v3/search/epics` and
    `query=label:"{{inputs.ready_label}}" !is:done !is:archived`, then search
    `epic:<id>` for each.
+4. Only when **all not-started stories** (`{{inputs.intake_unstarted}}`) is True:
+   every story that hasn't started (`!is:started !is:done`, i.e. backlog and
+   unstarted states), minus any carrying `{{inputs.intake_exclude_labels}}` and
+   any in these objectives: `{{inputs.intake_exclude_objectives}}` (blank means
+   none; add one `!objective:<id>` term per id). Those objectives stay out of this search only —
+   a story there can still arrive through searches 2 and 3.
 
 Merge by story id. Then drop every story already recorded in your state
 (`daimon state get story-reviewer`, an object keyed by story id) whose current
@@ -43,8 +48,7 @@ Merge by story id. Then drop every story already recorded in your state
 nothing has changed since; if a human removed your label, that was deliberate.
 Never re-review such a story.
 
-Then apply the **safety net** from Source: re-read each story and drop any where
-`{{inputs.owner}}` is neither the requester nor an owner, logging
+Then apply the **safety net** from Source: re-read each story and drop any that is out of scope, logging
 `[out-of-scope skip] sc-{id} …`. Of the survivors, take stories carrying
 `{{inputs.priority_label}}` first, then the oldest, up to `{{inputs.max_per_run}}`.
 Only those continue to step 2. The rest wait for a later run.
@@ -66,6 +70,15 @@ current code before assessing a fix: read the code path the story points at and
 check that it really behaves the way the story says. If the problem doesn't
 exist, is already fixed, or lives somewhere other than the story assumes, say so with the
 evidence and label `{{inputs.assist_label}}` rather than `{{inputs.ready_label}}`.
+
+**Check the story is still current.** A backlog story can outlive its premise.
+Before assessing, confirm the files, components, routes, and APIs it names still
+exist (or were renamed — say to what), that no merged PR or done story already
+delivered it, and that no newer story duplicates or supersedes it. If it is
+obsolete, already done, or duplicated, don't write an implementation plan: post a
+short assessment with the evidence (the merged PR, the done or duplicate story,
+the code that replaced it), recommend closing or rewriting it, and label
+`{{inputs.assist_label}}`.
 
 ## 3. Post an assessment
 
