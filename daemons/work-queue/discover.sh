@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Gate for work-queue: launch when there's an AI-ready story (labelled, not
-# skipped, not already in progress, not done) owned by the configured owner AND
+# skipped, not yet started — so nothing in progress or review — and not done)
+# owned by the configured owner AND
 # the queue's own open PRs are under the cap. Story search comes from the source
 # profile. The PR cap counts only daimon/* branches in the current repo
 # (working_dir), so hand-authored PRs — and stale PRs in unrelated repos — never
@@ -12,7 +13,7 @@ source "$(dirname "$0")/../../profiles/github/lib.sh"
 
 base="label:\"$DAIMON_INPUT_READY_LABEL\" \
   !label:\"$DAIMON_INPUT_SKIP_LABEL\" !state:\"$DAIMON_INPUT_IN_PROGRESS_STATE\" \
-  !is:done !is:archived\
+  !is:started !is:done !is:archived\
 $(shortcut_exclusions)"
 
 ready=$(shortcut_owner_count "$base") || exit 1

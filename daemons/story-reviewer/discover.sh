@@ -6,7 +6,10 @@
 #   1. stories in the triage state;
 #   2. stories carrying any of $DAIMON_INPUT_INTAKE_LABELS (any state but
 #      in-progress), minus those carrying any $DAIMON_INPUT_INTAKE_EXCLUDE_LABELS;
-#   3. every story in an open epic labelled with the ready label (epic opt-in).
+#   3. every story in an open epic labelled with the ready label (epic opt-in);
+#   4. when $DAIMON_INPUT_INTAKE_UNSTARTED is on, every not-yet-started story,
+#      minus the excluded labels and those in
+#      $DAIMON_INPUT_INTAKE_EXCLUDE_OBJECTIVES.
 #
 # A story already recorded in the state file with the same updated_at is dropped:
 # the skill reviewed it and nothing changed since (e.g. a human removed the
@@ -23,6 +26,8 @@ active="$open !state:\"$DAIMON_INPUT_IN_PROGRESS_STATE\""
 
 drop=""
 for l in ${DAIMON_INPUT_INTAKE_EXCLUDE_LABELS:-}; do drop="$drop !label:\"$l\""; done
+objectives=""
+for o in ${DAIMON_INPUT_INTAKE_EXCLUDE_OBJECTIVES:-}; do objectives="$objectives !objective:$o"; done
 
 candidates="$(
   {
@@ -33,6 +38,9 @@ candidates="$(
     for e in $(shortcut_labelled_epics "$DAIMON_INPUT_READY_LABEL"); do
       shortcut_owner_ids "epic:$e $active" || exit 1
     done
+    if [ "${DAIMON_INPUT_INTAKE_UNSTARTED:-0}" = "1" ]; then
+      shortcut_owner_ids "!is:started $open$drop$objectives" || exit 1
+    fi
   } | sort -u
 )" || exit 1
 

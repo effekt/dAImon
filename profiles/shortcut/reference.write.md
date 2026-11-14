@@ -26,7 +26,8 @@ curl -s -G https://api.app.shortcut.com/api/v3/search/stories \
 ```
 
 The search `query` supports `state:"…"`, `label:"…"`, `team:"…"`, `owner:`,
-`epic:<id>`, and negation with `!`. Each result has `id`, `name`, `description`,
+`epic:<id>`, `objective:<id>`, state types (`is:backlog`, `is:unstarted`,
+`is:started`, `is:done`), and negation with `!`. Each result has `id`, `name`, `description`,
 `app_url`, and its current `labels`.
 
 ### Out-of-scope epics
@@ -40,20 +41,21 @@ comment on, label, or implement a story belonging to an excluded epic.
 
 ### Scope — only act on the owner's stories
 
-A story is in scope only if `{{inputs.owner}}` is its requester **or** one of its
-owners. If `{{inputs.owner}}` is blank, every story is in scope. Anything where
-`{{inputs.owner}}` is neither requester nor in `owner_ids` belongs to someone
-else — never comment on, label, or follow it.
+A story is in scope only if `{{inputs.owner}}` is one of its owners — or, when
+**requester counts** (`{{inputs.include_requested}}`) is True, its requester. If
+`{{inputs.owner}}` is blank, every story is in scope. Anything else belongs to
+someone else — never comment on, label, or follow it.
 
 Fetch already scoped on the server — do not pull the whole triage column and trust
 yourself to filter it down. `owner:`/`requester:` take the member's @mention name,
 not the id, so resolve it once (`GET /api/v3/members/{{inputs.owner}}` →
-`profile.mention_name`), then run two searches and merge by story id:
+`profile.mention_name`), then search `owner:` — plus `requester:` when requester
+counts — and merge by story id:
 
 ```bash
 MENTION=$(curl -s "https://api.app.shortcut.com/api/v3/members/{{inputs.owner}}" \
   -H "Shortcut-Token: $TOKEN" | python3 -c "import sys,json;print((json.load(sys.stdin).get('profile') or {}).get('mention_name',''))")
-for op in owner requester; do
+for op in owner requester; do   # drop requester when requester doesn't count
   curl -s -G https://api.app.shortcut.com/api/v3/search/stories \
     --data-urlencode "query=$op:$MENTION state:\"{{inputs.triage_state}}\" !label:\"{{inputs.skip_label}}\"" \
     -H "Shortcut-Token: $TOKEN"
@@ -62,8 +64,9 @@ done
 
 **Safety net — re-check before every write.** Even with the scoped queries above,
 before you comment on, label, or otherwise touch a story, re-read it and confirm
-`requested_by_id == {{inputs.owner}}` OR `{{inputs.owner}}` is in `owner_ids`
-(these are member ids, so the check is exact). If not, skip it and log
+`{{inputs.owner}}` is in `owner_ids` (or, when requester counts,
+`requested_by_id == {{inputs.owner}}`). These are member ids, so the check is
+exact. If not, skip it and log
 `[out-of-scope skip] sc-{id} requester={…} owners={…}` — do not write anything.
 
 ### Comment on a story
