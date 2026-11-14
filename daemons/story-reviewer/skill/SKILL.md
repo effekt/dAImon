@@ -46,9 +46,9 @@ Merge by story id. Then drop every story already recorded in your state
 nothing has changed since; if a human removed your label, that was deliberate.
 Never re-review such a story.
 
-Then apply the **safety net** from Source: re-read each story and drop any that is out of scope, logging
-`[out-of-scope skip] sc-{id} …`. Of the survivors, take stories carrying
-`{{inputs.priority_label}}` first, then the oldest, up to `{{inputs.max_per_run}}`.
+Then apply the **safety net** from Source: re-read each story and drop any that
+is out of scope, logging `[out-of-scope skip] sc-{id} …`. Of the survivors, take
+up to `{{inputs.max_per_run}}` in the **Priority order** from Source.
 Only those continue to step 2. The rest wait for a later run.
 
 ## 2. Investigate each
