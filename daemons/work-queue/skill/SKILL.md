@@ -15,8 +15,8 @@ explains how to find, read, and move stories.
 otherwise touch a story that `{{inputs.owner}}` owns — or requested, when Source
 says the requester counts (if `{{inputs.owner}}` is blank, all stories are in
 scope). A `{{inputs.ready_label}}`
-story belonging to anyone else is off-limits — never claim it, even though it
-carries the ready label.
+story belonging to anyone else, or in an excluded epic or objective (see Source),
+is off-limits — never claim it, even though it carries the ready label.
 
 Find stories labelled `{{inputs.ready_label}}` that haven't started
 (`!is:started !is:done` — backlog and unstarted states only; anything in

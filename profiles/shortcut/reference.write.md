@@ -30,13 +30,17 @@ The search `query` supports `state:"…"`, `label:"…"`, `team:"…"`, `owner:`
 `is:started`, `is:done`), and negation with `!`. Each result has `id`, `name`, `description`,
 `app_url`, and its current `labels`.
 
-### Out-of-scope epics
+### Out-of-scope epics and objectives
 
 **Excluded epics:** `{{inputs.exclude_epics}}` — blank means none are excluded.
+**Excluded objectives:** `{{inputs.exclude_objectives}}` — blank means none.
 
-Any epic listed there is **out of scope**: another daemon owns it. Append one
-`!epic:<id>` term per id to every search, and drop any story whose `epic_id` is in
-the list even if it reaches you another way. This is scope, not preference — never
+Any epic listed there, and every epic in a listed objective, is **out of scope**:
+another process owns it. Append one `!epic:<id>` term per epic id and one
+`!objective:<id>` term per objective id to every search, and drop any story whose
+`epic_id` is in the list, or whose epic belongs to a listed objective
+(`GET /api/v3/epics/{epic_id}` → `objective_ids`), even if it reaches you another
+way. This is scope, not preference — never
 comment on, label, or implement a story belonging to an excluded epic.
 
 ### Scope — only act on the owner's stories
