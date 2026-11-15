@@ -101,6 +101,19 @@ export DAIMON_MCP_CONFIG="$TMP/mcp.json"
 case "$(backend_cli_args opus 1 sess)" in *"--mcp-config $TMP/mcp.json --strict-mcp-config"*) mcp=1;; *) mcp=0;; esac
 check "$mcp" "1" "claude backend appends --mcp-config + --strict when set"
 unset DAIMON_MCP_CONFIG
+export DAIMON_AGENT_SESSION="0f0e0d0c-0000-4000-8000-000000000001"
+case "$(backend_cli_args opus 1 sess)" in *"--session-id $DAIMON_AGENT_SESSION"*) sid=1;; *) sid=0;; esac
+check "$sid" "1" "claude backend pins --session-id when DAIMON_AGENT_SESSION is set"
+unset DAIMON_AGENT_SESSION
+
+# The Stop hook marks done only for the daemon's own session, never for a child
+# `claude -p` that a user hook spawns with the same env.
+STOP_CMD="$(jq -r '.Stop[0].hooks[0].command' "$ROOT/config/hooks/claude-hooks.json")"
+SENT="$TMP/sentinel"; rm -f "$SENT"
+echo '{"session_id":"someone-else"}' | DAIMON_SENTINEL="$SENT" DAIMON_AGENT_SESSION="0f0e" sh -c "$STOP_CMD"
+check "$([ -e "$SENT" ] && echo 1 || echo 0)" "0" "Stop hook ignores a child session's stop"
+echo '{"session_id":"0f0e"}' | DAIMON_SENTINEL="$SENT" DAIMON_AGENT_SESSION="0f0e" sh -c "$STOP_CMD"
+check "$([ -e "$SENT" ] && echo 1 || echo 0)" "1" "Stop hook marks done for the daemon's own session"
 
 export DAIMON_D_WORKING_DIR="/tmp/x.y/repo"
 source "$ROOT/backends/codex.sh"

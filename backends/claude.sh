@@ -9,6 +9,9 @@ backend_cli_args() {  # model danger(0/1) session_name -> args after the binary
   local model="$1" danger="$2" session_name="$3" flag="" mcp=""
   [ "$danger" = "1" ] && flag="--dangerously-skip-permissions"
   [ -n "${DAIMON_MCP_CONFIG:-}" ] && mcp="--mcp-config ${DAIMON_MCP_CONFIG} --strict-mcp-config"
+  # Pin the session id so the Stop hook can tell this agent from any child
+  # `claude -p` a user hook spawns (it inherits DAIMON_SENTINEL too).
+  [ -n "${DAIMON_AGENT_SESSION:-}" ] && mcp="$mcp --session-id ${DAIMON_AGENT_SESSION}"
   printf '%s --model %s -n %s %s' "$flag" "$model" "$session_name" "$mcp"
 }
 
