@@ -355,6 +355,7 @@ def render_skill(cfg: Config, slug: str) -> str:
         text = _append_ref(text, cfg.install_root / "references" / "output-conventions.md")
     if d.get("learning", True):
         text = _append_ref(text, cfg.install_root / "references" / "learning.md")
+    text = _append_ref(text, cfg.install_root / "references" / "unattended.md")
     for key, val in d["inputs"].items():
         rendered = ", ".join(str(x) for x in val) if isinstance(val, list) else str(val)
         text = text.replace(f"{{{{inputs.{key}}}}}", rendered)

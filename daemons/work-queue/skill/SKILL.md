@@ -9,7 +9,42 @@ Pick up one ready story, implement it in isolation, verify it, and open a pull
 request. Do exactly one story per run, then stop. The "Source" section below
 explains how to find, read, and move stories.
 
-## 1. Claim one story
+## 1. Pick a stalled claim back up first
+
+A run that dies mid-story (crash, sleep, a prompt nobody answered) leaves its
+story in `{{inputs.in_progress_state}}` still labelled `{{inputs.ready_label}}`;
+step 8 removes that label, so a finished run never leaves this combination.
+Search for stories in exactly that state (`label:"{{inputs.ready_label}}"
+state:"{{inputs.in_progress_state}}"`, without `{{inputs.skip_label}}`), apply
+the same scope rules and safety net as step 2, and order them by the **Priority
+order** from Source. If none remain, go to step 2.
+
+Take the first one and decide how to resume it. Read your record with
+`daimon state get` (see the state notes below); it keeps a `resumes` object
+mapping story id to the number of times a run has picked it back up.
+
+- **It already has a PR** (search `gh pr list --state all --search "<id>"` for a
+  `daimon/` branch naming the story): the earlier run got that far. Remove
+  `{{inputs.ready_label}}`, summarize the PR, and stop.
+- **It has been picked back up twice already** (`resumes[<id>] >= 2`): stop
+  retrying. Comment on the story saying the queue tried it three times without
+  getting to a PR, name the branch or worktree it left, swap
+  `{{inputs.ready_label}}` for `{{inputs.assist_label}}`, and stop.
+- **Otherwise** add one to `resumes[<id>]` and save the record **before** doing
+  anything else, so a run that dies again still counts. Then find the earlier
+  run's work in the repository the story targets: a worktree under `.worktrees/`
+  on a `daimon/` branch naming the story (`git worktree list`), or a pushed
+  `daimon/` branch for it (`git ls-remote --heads origin 'daimon/*<id>*'`).
+  - Worktree found: `cd` into it, read `git status` and `git diff` alongside the
+    story, keep the earlier edits that are right, and carry on from step 4.
+  - Only a pushed branch: add a worktree on that branch and carry on from step 4.
+  - Nothing found: the run died before isolating. Start over from step 3 with a
+    fresh worktree.
+
+Never discard the earlier run's edits wholesale; they may be the only copy.
+When the story finishes (step 8), drop its entry from `resumes`.
+
+## 2. Claim one story
 
 **Scope is a hard gate, not a preference.** Only ever claim, move, implement, or
 otherwise touch a story that `{{inputs.owner}}` owns — or requested, when Source
@@ -34,7 +69,7 @@ Source for label edits), and move on to the next candidate. Otherwise **claim
 it** by moving it to `{{inputs.in_progress_state}}` so a later run won't pick it
 up again.
 
-## 2. Pick the repository and isolate
+## 3. Pick the repository and isolate
 
 You start in a directory that may contain several repositories. **Scope:**
 restrict to these repositories: `{{inputs.repos}}` — if blank, any repository
@@ -53,22 +88,22 @@ git -C "$ROOT" worktree add ".worktrees/story-<id>" -b daimon/story-<id> "origin
 cd "$ROOT/.worktrees/story-<id>"
 ```
 
-## 3. Implement
+## 4. Implement
 
 Implement the story within the worktree, following the repo's conventions and any
 rules files. Keep the change scoped to the story.
 
-## 4. Self-review
+## 5. Self-review
 
 Re-read your diff against the story's description and acceptance criteria. Fix
 anything missing before continuing.
 
-## 5. Verify
+## 6. Verify
 
 Run the repository's own checks (tests, linter, type-check, build). Fix failures.
 Do not open a PR with a broken build.
 
-## 6. Open a pull request
+## 7. Open a pull request
 
 Commit, push, and open the PR. `gh` targets the current repo automatically, so
 there's no need to name it. Put the story id and `app_url` in the body so the
@@ -90,8 +125,15 @@ gh pr create --base {{inputs.base}} --draft --title "<title>" \
 <what changed and why, and how it was verified>"
 ```
 
-## 7. Finish
+## 8. Finish
 
 Remove the `{{inputs.ready_label}}` label (it's been picked up) and leave the
 story in `{{inputs.in_progress_state}}`. Summarize: the story id, the branch, and
-the PR URL. Stop — one story per run.
+the PR URL. Stop — one story per run, whether it was picked back up or newly
+claimed.
+
+## State
+
+Your record holds only `{"resumes": {"<story id>": <count>}}`. Read it with
+`daimon state get` (empty output means `{}`) and write the whole object back with
+`printf '%s' "$json" | daimon state set`. Never write it anywhere else.

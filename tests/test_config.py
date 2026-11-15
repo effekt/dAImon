@@ -423,6 +423,11 @@ class ConfigTest(unittest.TestCase):
         out = config.render_skill(self.cfg, "alpha")
         self.assertIn("LEARNING PROTOCOL BODY", out)
 
+    def test_render_skill_appends_unattended_rules(self):
+        write(self.root / "references" / "unattended.md", "UNATTENDED BODY\n")
+        out = config.render_skill(self.cfg, "alpha")
+        self.assertIn("UNATTENDED BODY", out)
+
     def test_render_skill_learning_opt_out(self):
         write(self.root / "references" / "learning.md", "LEARNING PROTOCOL BODY\n")
         write(
