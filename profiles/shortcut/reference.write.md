@@ -41,10 +41,17 @@ When choosing among in-scope stories, order them:
 2. Then stories carrying `{{inputs.priority_label}}`.
 3. Then the oldest first.
 
-### Out-of-scope epics and objectives
+### Out-of-scope epics, objectives and labels
 
 **Excluded epics:** `{{inputs.exclude_epics}}` — blank means none are excluded.
 **Excluded objectives:** `{{inputs.exclude_objectives}}` — blank means none.
+**Excluded labels:** `{{inputs.exclude_labels}}` — blank means none.
+
+A story carrying an excluded label is out of scope wherever it lives. Shortcut
+matches a label term against each word of a label name, so append one
+`!label:"<name>"` term per excluded label to every search, and drop any story
+whose label names include an excluded label as a whole word (`milestone` covers
+`milestone:x:y`).
 
 Any epic listed there, and every epic in a listed objective, is **out of scope**:
 another process owns it. Append one `!epic:<id>` term per epic id and one
