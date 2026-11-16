@@ -149,4 +149,14 @@ check "$(DAIMON_SLUG=st bash "$ROOT/lib/state.sh" get)" '[{"n":1}]' "state uncha
 echo '{"a":2}' | bash "$ROOT/lib/state.sh" set other
 check "$(bash "$ROOT/lib/state.sh" get other)" '{"a":2}' "state get/set honors an explicit slug"
 
+DAIMON_SLUG=lg bash "$ROOT/lib/result.sh" 'PR opened sc-1 "x"
+second line'
+check "$(tail -1 "$TMP/state/logs/lg.log" | sed 's/^[^ ]* //')" \
+  "level=info daemon=lg event=result msg=\"PR opened sc-1 'x' second line\"" \
+  "daimon log records one sanitized result line"
+bash "$ROOT/lib/result.sh" --slug other2 'skipped sc-2'
+check "$(grep -c 'event=result' "$TMP/state/logs/other2.log")" "1" "daimon log honors --slug"
+env -u DAIMON_SLUG bash "$ROOT/lib/result.sh" 'x' 2>/dev/null
+check "$?" "2" "daimon log without a slug fails"
+
 exit "$fails"

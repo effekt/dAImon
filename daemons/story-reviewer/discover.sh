@@ -48,4 +48,8 @@ candidates="$(
   } | sort -u
 )" || exit 1
 
-[ -n "$(printf '%s\n' "$candidates" | shortcut_unseen "$(state_file story-reviewer)")" ]
+unseen="$(printf '%s\n' "$candidates" | shortcut_unseen "$(state_file story-reviewer)")"
+n=$(printf '%s' "$unseen" | grep -c .)
+[ -n "${DAIMON_GATE_NOTE:-}" ] && printf '%s to review, %s per run' "$n" \
+  "${DAIMON_INPUT_MAX_PER_RUN:-?}" > "$DAIMON_GATE_NOTE"
+[ -n "$unseen" ]
