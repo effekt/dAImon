@@ -11,6 +11,7 @@ source "$DAIMON_LIB_DIR/logging.sh"
 source "$DAIMON_LIB_DIR/reap.sh"
 source "$DAIMON_LIB_DIR/budget.sh"
 source "$DAIMON_LIB_DIR/backend-status.sh"
+source "$DAIMON_LIB_DIR/worktrees.sh"
 
 ensure_state_dirs
 OPLOG="$(logs_dir)/$SLUG.log"
@@ -183,6 +184,13 @@ done
 if [ -n "$EXHAUSTED_TRANSCRIPT" ] && [ "$fallback_succeeded" -ne 1 ]; then
   DAIMON_TRANSCRIPT="$EXHAUSTED_TRANSCRIPT" \
     bash "$DAIMON_LIB_DIR/throttle-detect.sh" "$EXHAUSTED_BACKEND" 2>/dev/null || true
+fi
+
+# Remove the daemon's finished worktrees (clean_worktrees = branch prefix); keep
+# and report any with uncommitted or unpushed work.
+if [ -n "${DAIMON_D_CLEAN_WORKTREES:-}" ] && [ -n "$WORKING_DIR" ]; then
+  sweep_worktrees "$WORKING_DIR" "$DAIMON_D_CLEAN_WORKTREES" "${DAIMON_D_BASE:-main}" \
+    | while IFS= read -r msg; do log_event "$SLUG" cleanup "$msg" >> "$OPLOG"; done
 fi
 
 # Remove state an agent leaked into the repo. The first path is literal: an

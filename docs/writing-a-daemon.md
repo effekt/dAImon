@@ -91,6 +91,11 @@ reading this project's Claude memory at the start of a run (to skip known false
 positives) and writing lessons at the end (so the next run is smarter). Set
 `learning = false` in `[daemon]` to opt a daemon out.
 
+A daemon that works in git worktrees can set `clean_worktrees = "<branch prefix>"`
+in `[daemon]`. After every run, `launch.sh` removes worktrees on branches with that
+prefix whose changes are committed and pushed, and logs any it keeps (uncommitted
+files or unpushed commits) as `event=cleanup`.
+
 Every rendered skill also gets `references/unattended.md`: no one answers a
 permission prompt during a scheduled run, so the agent must avoid commands the
 operator's settings make ask-first (`rm`, `git reset`, `git rebase`…) instead of

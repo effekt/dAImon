@@ -526,6 +526,7 @@ def daemon_schema() -> dict:
             },
             "working_dir": {"type": "string"},
             "learning": {"type": "boolean"},
+            "clean_worktrees": {"type": "string"},
             "mcp": {"type": "array", "items": {"type": "string", "enum": list(MCP_SERVERS)}},
             "required_inputs": {
                 "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]
@@ -557,6 +558,8 @@ def bundle_daemon_env(cfg: Config, slug: str) -> str:
         ("DAIMON_D_DANGER", d["danger"]),
         ("DAIMON_D_STUCK_AFTER", d["stuck_after"]),
         ("DAIMON_D_WORKING_DIR", d["working_dir"]),
+        ("DAIMON_D_CLEAN_WORKTREES", d.get("clean_worktrees", "")),
+        ("DAIMON_D_BASE", d["inputs"].get("base", "main")),
         ("DAIMON_D_BACKENDS", be_list),
         ("DAIMON_D_MCP", d["mcp"]),
         ("DAIMON_READY_TIMEOUT", cfg.defaults["ready_timeout"]),

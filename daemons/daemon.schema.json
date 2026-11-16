@@ -141,6 +141,9 @@
         "learning": {
           "type": "boolean"
         },
+        "clean_worktrees": {
+          "type": "string"
+        },
         "mcp": {
           "type": "array",
           "items": {
