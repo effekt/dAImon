@@ -94,7 +94,11 @@ cd "$ROOT/.worktrees/story-<id>"
 ## 4. Implement
 
 Implement the story within the worktree, following the repo's conventions and any
-rules files. Keep the change scoped to the story. If the assessment lists
+rules files. Keep the change scoped to the story. The story is approved: never
+stop to wait for an approval or sign-off it mentions. When the surface is built in
+more than one place (an app midway through a migration), use the repository's
+migration docs and records to find every implementation that still serves users,
+and fix each one. If the assessment lists
 **Chosen defaults**, follow them and repeat each one, with its reason, in the PR
 description.
 
