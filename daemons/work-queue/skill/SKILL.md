@@ -25,7 +25,8 @@ mapping story id to the number of times a run has picked it back up.
 
 - **It already has a PR** (search `gh pr list --state all --search "<id>"` for a
   `daimon/` branch naming the story): the earlier run got that far. Remove
-  `{{inputs.ready_label}}`, summarize the PR, and stop.
+  `{{inputs.ready_label}}`, set the status field to `{{inputs.status_done}}` (see
+  Source), summarize the PR, and stop.
 - **It has been picked back up twice already** (`resumes[<id>] >= 2`): stop
   retrying. Comment on the story saying the queue tried it three times without
   getting to a PR, name the branch or worktree it left, swap
@@ -67,7 +68,7 @@ already delivered or superseded it. If it is stale, don't claim it — comment w
 the evidence, swap `{{inputs.ready_label}}` for `{{inputs.assist_label}}` (see
 Source for label edits), and move on to the next candidate. Otherwise **claim
 it** by moving it to `{{inputs.in_progress_state}}` so a later run won't pick it
-up again.
+up again, and set the status field to `{{inputs.status_claimed}}` (see Source).
 
 ## 3. Pick the repository and isolate
 
@@ -91,7 +92,9 @@ cd "$ROOT/.worktrees/story-<id>"
 ## 4. Implement
 
 Implement the story within the worktree, following the repo's conventions and any
-rules files. Keep the change scoped to the story.
+rules files. Keep the change scoped to the story. If the assessment lists
+**Chosen defaults**, follow them and repeat each one, with its reason, in the PR
+description.
 
 ## 5. Self-review
 
@@ -127,8 +130,9 @@ gh pr create --base {{inputs.base}} --draft --title "<title>" \
 
 ## 8. Finish
 
-Remove the `{{inputs.ready_label}}` label (it's been picked up) and leave the
-story in `{{inputs.in_progress_state}}`. Summarize: the story id, the branch, and
+Remove the `{{inputs.ready_label}}` label (it's been picked up), set the status
+field to `{{inputs.status_done}}` (see Source), and leave the story in
+`{{inputs.in_progress_state}}`. Summarize: the story id, the branch, and
 the PR URL. Stop — one story per run, whether it was picked back up or newly
 claimed.
 
