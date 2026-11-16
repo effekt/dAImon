@@ -13,6 +13,26 @@ the story:
   **Priority order**).
 - `{{inputs.skip_label}}` — never auto-process.
 
+**Markers from a field.** `status_is_source` is `{{inputs.status_is_source}}`.
+When True, the dropdown custom field `{{inputs.status_field}}` replaces the
+labels above as the marker: ready = `{{inputs.status_ready}}`, needs input =
+`{{inputs.status_assist}}`, human = `{{inputs.status_human}}`, skip =
+`{{inputs.status_skip}}`, claimed = `{{inputs.status_claimed}}`, PR open =
+`{{inputs.status_done}}`. Translate every step that names one of those labels:
+
+- "add label X" → set the field to X's value (see **Set the status field**);
+  never add the label itself.
+- "remove the ready label" → set the field to the value the step moves it to
+  (claimed, PR open); if the step names none, leave the field as it is.
+- a search term `label:"X"` → drop the term and keep only results whose field
+  holds X's value; `!label:"X"` → keep only results whose field doesn't. Search
+  results carry `custom_fields[]` with `field_id` and `value`. Search can't
+  filter on a field's value, so this filtering is yours.
+- "un-assessed" means the field is unset.
+
+The priority label and excluded labels stay labels. When False, the labels are
+the markers and the field (if named) only mirrors them.
+
 Workflow states: triage = `{{inputs.triage_state}}`, in-progress =
 `{{inputs.in_progress_state}}`, done = `{{inputs.done_state}}`. Team:
 `{{inputs.team}}`.
@@ -38,8 +58,11 @@ When choosing among in-scope stories, order them:
 1. Stories requested by a member in `{{inputs.priority_requesters}}` (member ids;
    blank means none) — check `requested_by_id`. When several members are listed,
    earlier members come first.
-2. Then stories carrying `{{inputs.priority_label}}`.
-3. Then the oldest first.
+2. Then by the `{{inputs.priority_field}}` custom field (blank means skip this
+   step): the field's values in the order `GET /api/v3/custom-fields` lists
+   them, first highest; stories with it unset come after every value.
+3. Then stories carrying `{{inputs.priority_label}}`.
+4. Then the oldest first.
 
 ### Out-of-scope epics, objectives and labels
 
@@ -94,7 +117,9 @@ exact. If not, skip it and log
 **Status field.** When `{{inputs.status_field}}` is set, also drop any story
 whose `{{inputs.status_field}}` custom field holds a value other than these
 (blank entries ignored): `{{inputs.status_ready}}`, `{{inputs.status_assist}}`,
-`{{inputs.status_claimed}}`, `{{inputs.status_done}}`. Another process drives
+`{{inputs.status_human}}`, `{{inputs.status_skip}}`, `{{inputs.status_claimed}}`,
+`{{inputs.status_done}}`. A story set to `{{inputs.status_skip}}` is also out of
+scope: the owner opted it out. Another process drives
 that story through the field; log `[status skip] sc-{id} status=<value>` and
 write nothing. An unset field is in scope. Searches can't filter on the value,
 so this check is yours.

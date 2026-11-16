@@ -130,3 +130,60 @@ setup() {
   run shortcut_unseen "$f" <<< "7 2026-01-01T00:00:00Z"
   [ "$output" = "7" ]
 }
+
+# --- marker-field mode: search results are filtered by the status field value.
+_marker_fixture() {
+  export SHORTCUT_API_TOKEN=t DAIMON_INPUT_STATUS_FIELD="Agent"
+  unset DAIMON_INPUT_OWNER
+  curl() {
+    case "$*" in
+      *custom-fields*) echo '[{"id":"F1","name":"Agent"},{"id":"F2","name":"Other"}]' ;;
+      *) echo '{"data":[
+        {"id":1,"updated_at":"a","custom_fields":[{"field_id":"F1","value":"Ready"}]},
+        {"id":2,"updated_at":"b","custom_fields":[{"field_id":"F1","value":"Needs input"}]},
+        {"id":3,"updated_at":"c","custom_fields":[{"field_id":"F2","value":"Ready"}]},
+        {"id":4,"updated_at":"d"}]}' ;;
+    esac
+  }
+}
+
+@test "shortcut_search_ids: no SC_STATUS_KEEP -> every story" {
+  _marker_fixture
+  run shortcut_search_ids "q"
+  [ "$(printf '%s\n' "$output" | wc -l | tr -d ' ')" = "4" ]
+}
+
+@test "shortcut_marked_ids: keeps only the named value of the named field" {
+  _marker_fixture
+  run shortcut_marked_ids "Ready" "q"
+  [ "$output" = "1 a" ]
+}
+
+@test "shortcut_marked_ids: empty value means field unset" {
+  _marker_fixture
+  run shortcut_marked_ids "" "q"
+  [ "$output" = "$(printf '3 c\n4 d')" ]
+}
+
+@test "shortcut_marked_ids: values with spaces, several at once" {
+  _marker_fixture
+  run shortcut_marked_ids "Needs input|Ready" "q"
+  [ "$output" = "$(printf '1 a\n2 b')" ]
+}
+
+@test "shortcut_marked_ids: unknown field fails closed with stderr" {
+  _marker_fixture
+  export DAIMON_INPUT_STATUS_FIELD="Missing"
+  run shortcut_marked_ids "Ready" "q"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"not found"* ]]
+}
+
+@test "shortcut_marker_mode: needs both the switch and a field name" {
+  export DAIMON_INPUT_STATUS_IS_SOURCE=1 DAIMON_INPUT_STATUS_FIELD=""
+  run shortcut_marker_mode; [ "$status" -ne 0 ]
+  export DAIMON_INPUT_STATUS_FIELD="Agent"
+  run shortcut_marker_mode; [ "$status" -eq 0 ]
+  export DAIMON_INPUT_STATUS_IS_SOURCE=0
+  run shortcut_marker_mode; [ "$status" -ne 0 ]
+}
