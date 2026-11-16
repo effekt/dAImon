@@ -159,4 +159,26 @@ check "$(grep -c 'event=result' "$TMP/state/logs/other2.log")" "1" "daimon log h
 env -u DAIMON_SLUG bash "$ROOT/lib/result.sh" 'x' 2>/dev/null
 check "$?" "2" "daimon log without a slug fails"
 
+# worktree sweep: removes clean+pushed prefix worktrees, keeps dirty/unpushed/foreign
+source "$ROOT/lib/worktrees.sh"
+W="$TMP/wt"; mkdir -p "$W"
+git init -q --bare "$W/origin.git"
+git clone -q "$W/origin.git" "$W/repo" 2>/dev/null
+( cd "$W/repo" && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m init && git push -q origin HEAD:main 2>/dev/null && git fetch -q )
+g() { git -C "$W/repo" -c user.email=t@t -c user.name=t "$@"; }
+g worktree add -q "$W/repo/.worktrees/pushed" -b daimon/pushed origin/main
+( cd "$W/repo/.worktrees/pushed" && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m a && git push -q -u origin daimon/pushed 2>/dev/null )
+g worktree add -q "$W/repo/.worktrees/dirty" -b daimon/dirty origin/main
+echo x > "$W/repo/.worktrees/dirty/new.txt"
+g worktree add -q "$W/repo/.worktrees/ahead" -b daimon/ahead origin/main
+( cd "$W/repo/.worktrees/ahead" && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m b )
+g worktree add -q "$W/repo/.worktrees/mine" -b feat/mine origin/main
+out="$(sweep_worktrees "$W/repo" "daimon/" main)"
+check "$(echo "$out" | grep -c '^removed worktree pushed')" "1" "sweep removes a clean, pushed daimon worktree"
+check "$([ -d "$W/repo/.worktrees/pushed" ] && echo yes || echo no)" "no" "sweep deleted the pushed worktree dir"
+check "$(echo "$out" | grep -c '^kept dirty.*uncommitted')" "1" "sweep keeps a worktree with uncommitted files"
+check "$(echo "$out" | grep -c '^kept ahead.*unpushed')" "1" "sweep keeps a worktree with unpushed commits"
+check "$([ -d "$W/repo/.worktrees/mine" ] && echo yes || echo no)" "yes" "sweep ignores branches outside the prefix"
+check "$(sweep_worktrees "$W/repo" "" main | grep -c .)" "0" "empty prefix sweeps nothing"
+
 exit "$fails"

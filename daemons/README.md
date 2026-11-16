@@ -15,6 +15,6 @@
 | [slack-commands](slack-commands/) | 900s | Handle Slack commands queued in the daimon inbox via plugin runbooks, with an allowlist gate on mutating commands. |
 | [slack-standup](slack-standup/) | 11:00 | Generate the daily standup and post it to a Slack channel (Mon–Fri, once per day). |
 | [story-reviewer](story-reviewer/) | 1800s | Triage stories — investigate each against the codebase, post an assessment, and stamp a visible label marking whether it's AI-completable. |
-| [work-queue](work-queue/) | :8,38 | Autonomously implement one ready story end-to-end on an isolated branch and open a pull request. |
+| [work-queue](work-queue/) | :8,38 | Autonomously implement ready stories end-to-end on isolated branches and open a pull request for each. |
 
 See [../docs/writing-a-daemon.md](../docs/writing-a-daemon.md) to add one.

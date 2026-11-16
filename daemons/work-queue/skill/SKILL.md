@@ -1,12 +1,15 @@
 ---
 name: work-queue
-description: Autonomously implement one ready story end-to-end on an isolated branch and open a pull request.
+description: Autonomously implement ready stories end-to-end on isolated branches and open a pull request for each.
 ---
 
 # work-queue
 
-Pick up one ready story, implement it in isolation, verify it, and open a pull
-request. Do exactly one story per run, then stop. The "Source" section below
+Pick up a ready story, implement it in isolation, verify it, and open a pull
+request. Handle up to `{{inputs.stories_per_run}}` stories this run, one after
+another: after step 8, go back to step 1 for the next, and stop once that many
+are done (a resumed story counts as one), none are left, or the open-PR cap
+`{{inputs.max_open_prs}}` for `daimon/` branches is reached. The "Source" section below
 explains how to find, read, and move stories.
 
 ## 1. Pick a stalled claim back up first
@@ -28,11 +31,11 @@ mapping story id to the number of times a run has picked it back up.
 - **It already has a PR** (search `gh pr list --state all --search "<id>"` for a
   `daimon/` branch naming the story): the earlier run got that far. Remove
   `{{inputs.ready_label}}`, set the status field to `{{inputs.status_done}}` (see
-  Source), summarize the PR, and stop.
+  Source), summarize the PR, and count it as this run's story.
 - **It has been picked back up twice already** (`resumes[<id>] >= 2`): stop
   retrying. Comment on the story saying the queue tried it three times without
   getting to a PR, name the branch or worktree it left, swap
-  `{{inputs.ready_label}}` for `{{inputs.assist_label}}`, and stop.
+  `{{inputs.ready_label}}` for `{{inputs.assist_label}}`, and move on to step 2.
 - **Otherwise** add one to `resumes[<id>]` and save the record **before** doing
   anything else, so a run that dies again still counts. Then find the earlier
   run's work in the repository the story targets: a worktree under `.worktrees/`
@@ -91,6 +94,9 @@ git -C "$ROOT" worktree add ".worktrees/story-<id>" -b daimon/story-<id> "origin
 cd "$ROOT/.worktrees/story-<id>"
 ```
 
+If a `daimon/` branch or worktree for this story already exists (an earlier
+attempt), reuse it instead of creating a new one, keeping its edits that are right.
+
 ## 4. Implement
 
 Implement the story within the worktree, following the repo's conventions and any
@@ -139,8 +145,17 @@ gh pr create --base {{inputs.base}} --draft --title "<title>" \
 Remove the `{{inputs.ready_label}}` label (it's been picked up), set the status
 field to `{{inputs.status_done}}` (see Source), and leave the story in
 `{{inputs.in_progress_state}}`. Summarize: the story id, the branch, and
-the PR URL. Stop — one story per run, whether it was picked back up or newly
-claimed.
+the PR URL.
+
+Then remove the story's worktree, from the repository root, since the branch is
+pushed and the PR holds the work:
+
+```bash
+cd "$ROOT" && git worktree remove --force ".worktrees/<name>"
+```
+
+Only remove a worktree whose changes are all committed and pushed. Then go back
+to step 1 for the next story, or stop when the run's limit is reached.
 
 ## State
 
