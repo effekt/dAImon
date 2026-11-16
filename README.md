@@ -129,7 +129,7 @@ daimon models <backend>  available models (live API or bundled fallback)
 daimon mcp setup slack   create/connect Codex fallback to Slack via OAuth
 daimon mcp share slack   print the setup command for teammates
 daimon config <args>     config core (validate|get|daemon|schedule|...)
-daimon sync              regenerate plists + render skills
+daimon sync              regenerate plists + render skills (reloads changed, idle jobs)
 daimon kill <slug|all>   hard-kill a run
 daimon ps <slug|all>     process tree
 daimon watchdog          sweep orphans + leaked MCP + old logs

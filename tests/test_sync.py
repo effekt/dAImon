@@ -49,6 +49,19 @@ class MaterializeTest(unittest.TestCase):
         importlib.reload(self.config)
         self.sync = importlib.import_module("daimon.sync")
         importlib.reload(self.sync)
+        # Never touch the real launchd from tests; record the calls instead.
+        self.calls: list[tuple] = []
+        self.loaded_state = None  # None = not loaded, else the `print` stdout
+
+        def fake_launchctl(*args):
+            self.calls.append(args)
+            ok = args[0] != "print" or self.loaded_state is not None
+            out = self.loaded_state or "" if args[0] == "print" else ""
+            return self.sync.subprocess.CompletedProcess(args, 0 if ok else 113, out, "")
+
+        patcher = patch.object(self.sync, "_launchctl", side_effect=fake_launchctl)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -85,6 +98,38 @@ class MaterializeTest(unittest.TestCase):
             _, skipped = self.sync.materialize(self.config, create_missing=False)
         self.assertEqual(skipped, [])
         self.assertNotEqual(plist.read_text(), "stale")
+
+    def _changed_plist(self):
+        agents = self.home / "Library" / "LaunchAgents"
+        agents.mkdir(parents=True)
+        (agents / "com.testns.alpha.plist").write_text("stale")
+
+    def test_changed_plist_reloads_a_loaded_idle_job(self):
+        self._changed_plist()
+        self.loaded_state = "state = not running"
+        with patch.object(self.sync.sys, "platform", "darwin"):
+            self.sync.materialize(self.config, create_missing=False)
+        verbs = [c[0] for c in self.calls if c[0] != "print"]
+        self.assertIn("bootout", verbs)
+        self.assertIn("bootstrap", verbs)
+        self.assertIn("com.testns.alpha: reloaded", self.sync.RELOAD_NOTES)
+
+    def test_changed_plist_leaves_a_running_job_alone(self):
+        self._changed_plist()
+        self.loaded_state = "state = running"
+        with patch.object(self.sync.sys, "platform", "darwin"):
+            self.sync.materialize(self.config, create_missing=False)
+        self.assertFalse([c for c in self.calls if c[0] in ("bootout", "bootstrap")])
+        self.assertTrue(any("running" in n for n in self.sync.RELOAD_NOTES))
+
+    def test_unloaded_or_unchanged_plist_is_not_reloaded(self):
+        self._changed_plist()
+        with patch.object(self.sync.sys, "platform", "darwin"):
+            self.sync.materialize(self.config, create_missing=False)  # not loaded
+            self.loaded_state = "state = not running"
+            self.calls.clear()
+            self.sync.materialize(self.config, create_missing=False)  # unchanged now
+        self.assertFalse([c for c in self.calls if c[0] in ("bootout", "bootstrap")])
 
 
 if __name__ == "__main__":

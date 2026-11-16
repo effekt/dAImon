@@ -6,6 +6,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -21,11 +22,46 @@ def _import_from_path(name: str, path: Path):
     return mod
 
 
+RELOAD_NOTES: list[str] = []
+
+
+def _launchctl(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["launchctl", *args], capture_output=True, text=True, check=False)
+
+
+def _write_plist(path: Path, text: str, label: str) -> None:
+    """Write a plist; when it changed and its job is loaded, reload the job so the
+    new schedule takes effect. launchd keeps running the old definition until a
+    reload. A job mid-run is left alone (a bootout would kill its launcher and
+    strand the agent session) and reported instead."""
+    changed = not path.exists() or path.read_text() != text
+    path.write_text(text)
+    if not changed or sys.platform != "darwin" or os.environ.get("DAIMON_SYNC_NO_RELOAD"):
+        return
+    target = f"gui/{os.getuid()}/{label}"
+    info = _launchctl("print", target)
+    if info.returncode != 0:
+        return  # not loaded (disabled or never registered): nothing to refresh
+    if "state = running" in info.stdout:
+        RELOAD_NOTES.append(f"{label}: running, reload after it finishes (re-run sync)")
+        return
+    _launchctl("bootout", target)
+    for _ in range(10):
+        if _launchctl("bootstrap", f"gui/{os.getuid()}", str(path)).returncode == 0:
+            RELOAD_NOTES.append(f"{label}: reloaded")
+            return
+        subprocess.run(["sleep", "0.5"], check=False)
+    RELOAD_NOTES.append(
+        f"{label}: RELOAD FAILED, run `launchctl bootstrap gui/{os.getuid()} {path}`"
+    )
+
+
 def materialize(cfg_mod, create_missing: bool = True):
     """Render skills for every discovered daemon; write plists. A plist file is
     the registration marker (TUI register/unregister creates/deletes it), so by
     default only existing plists are refreshed — create_missing=True (install)
     also creates absent ones. Returns (cfg, skipped_slugs)."""
+    RELOAD_NOTES.clear()
     cfg = cfg_mod.Config.load()
     schema_path = cfg.install_root / "daemons" / "daemon.schema.json"
     schema_path.write_text(json.dumps(cfg_mod.daemon_schema(), indent=2) + "\n")
@@ -43,11 +79,15 @@ def materialize(cfg_mod, create_missing: bool = True):
         if agents.is_dir():
             plist = agents / f"com.{ns}.{slug}.plist"
             if create_missing or plist.exists():
-                plist.write_text(cfg_mod.render_plist(cfg, slug))
+                _write_plist(plist, cfg_mod.render_plist(cfg, slug), f"com.{ns}.{slug}")
             else:
                 skipped.append(slug)
     if agents.is_dir():
-        (agents / f"com.{ns}.watchdog.plist").write_text(cfg_mod.render_watchdog_plist(cfg))
+        _write_plist(
+            agents / f"com.{ns}.watchdog.plist",
+            cfg_mod.render_watchdog_plist(cfg),
+            f"com.{ns}.watchdog",
+        )
     return cfg, skipped
 
 
@@ -60,6 +100,8 @@ def main(argv: list[str]) -> int:
         return 1
     cfg, skipped = materialize(cfg_mod, create_missing=create_missing)
     print(f"synced {len(cfg.discover())} daemon(s): plists + skills regenerated")
+    for note in RELOAD_NOTES:
+        print(f"  {note}")
     if skipped:
         print(
             f"unregistered (no plist, left alone): {', '.join(skipped)} — register via TUI `r` or `daimon sync --all`"
