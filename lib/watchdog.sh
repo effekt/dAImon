@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Safety-net sweep, run on a schedule. Reaps orphaned agent sessions (launcher
 # died but tmux survived), kills leaked MCP node servers reparented to pid 1, and
-# enforces log/transcript retention.
+# enforces log/transcript retention, then reports daemon status ([status].command).
 set -uo pipefail
 
 DAIMON_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$DAIMON_LIB_DIR/common.sh"
 source "$DAIMON_LIB_DIR/logging.sh"
 source "$DAIMON_LIB_DIR/reap.sh"
+source "$DAIMON_LIB_DIR/agent_status.sh"
 ensure_state_dirs
 WLOG="$(logs_dir)/watchdog.log"
 
@@ -70,3 +71,6 @@ done
 # 3. Retention.
 prune_old_transcripts
 for f in "$(logs_dir)"/*.log; do rotate_if_large "$f"; done
+
+# 4. Status report (optional [status].command), after the sweep reaped what it could.
+report_agent_status

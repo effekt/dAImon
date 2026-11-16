@@ -56,6 +56,12 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 |-----|------|---------|
 | `command` | string | How a daemon with a `role` asks whether to run on this machine. `{role}` and `{seconds}` are filled in (shell-quoted); exit 0 = run here, 1 = another machine runs it (its first line of output is logged), anything else = the check failed, so the daemon skips (fails closed). See [Run a daemon on one machine only](#run-a-daemon-on-one-machine-only). |
 
+### `[status]`
+
+| Key | Type | Meaning |
+|-----|------|---------|
+| `command` | string | Optional. Receives this machine's daemon status as one JSON document on stdin after every watchdog sweep and when an agent run starts and ends. `{seconds}` is filled in (shell-quoted) with how long the report should be trusted (900). Best-effort: a failure is logged to `logs/agent-status.log` and never affects a run. Empty (default) = no report. See [Report agent status](#report-agent-status). |
+
 ### `[daemons]`
 
 | Key | Type | Meaning |
@@ -143,6 +149,43 @@ inbox command always runs, role or not.
 
 dAImon ships no coordinator. Anything that hands out leases works: a lock in a
 shared key-value store, or an internal service your team already runs.
+
+## Report agent status
+
+dAImon has no long-running process, so nothing outside it can ask which daemons
+are up. Set `[status].command` and dAImon tells it instead:
+
+```toml
+# ~/.config/daimon/daimon.toml
+[status]
+command = "my-coordinator status --ttl {seconds}"
+```
+
+The command runs with `bash -c` at the end of every watchdog sweep (every 5
+minutes) and when an agent run starts and ends, and gets one JSON document on
+stdin:
+
+```json
+{"agents":[
+  {"name":"review-prs","state":"working"},
+  {"name":"datadog-log-reviewer","state":"idle","role":"datadog-errors"},
+  {"name":"story-reviewer","state":"blocked","note":"throttled"}
+]}
+```
+
+- One entry per enabled daemon that is loaded in launchd; unloaded daemons are
+  left out. At most 32 entries.
+- `state`: `working` while the daemon has an agent session, `blocked` (note
+  `throttled`) when the throttle is at `halt` and the daemon is not exempt,
+  otherwise `idle`.
+- `role` appears only for a daemon with a `role`; `note` only when there is one
+  (at most 40 characters).
+- `{seconds}` (900) is how long a report should be trusted: a receiver that
+  hears nothing for that long should treat the machine as gone.
+
+A report is best-effort: a failing command is logged (with its exit code) to
+`logs/agent-status.log`, one that hangs is abandoned after 30 seconds, and
+neither ever blocks or fails a run. dAImon ships no receiver.
 
 ## Source profiles
 
