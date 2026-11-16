@@ -13,7 +13,9 @@
 - **Backends** (`backends/`) — each teaches the launcher how to drive one agent
   CLI (binary, args, ready banner, completion mode). See `backends/README.md`.
 - **Sync** (`daimon/sync.py`) — `daimon sync` regenerates launchd plists and
-  renders each daemon's skill from the daemon folders the runtime reads.
+  renders each daemon's skill from the daemon folders the runtime reads. A
+  loaded job whose plist changed is reloaded so a new schedule takes effect; a
+  job mid-run is left alone and reported.
 - **TUI** (`tui/`) — Textual control panel; reads the config core, drives launchd
   and tmux.
 
