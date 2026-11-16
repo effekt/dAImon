@@ -9,7 +9,7 @@ setup() {
 }
 
 @test "shortcut_exclusions: unset -> empty" {
-  unset DAIMON_INPUT_EXCLUDE_EPICS DAIMON_INPUT_EXCLUDE_OBJECTIVES
+  unset DAIMON_INPUT_EXCLUDE_EPICS DAIMON_INPUT_EXCLUDE_OBJECTIVES DAIMON_INPUT_EXCLUDE_LABELS
   run shortcut_exclusions
   [ "$status" -eq 0 ]
   [ "$output" = "" ]
@@ -31,6 +31,13 @@ setup() {
   export DAIMON_INPUT_EXCLUDE_EPICS="1234" DAIMON_INPUT_EXCLUDE_OBJECTIVES="42 43"
   run shortcut_exclusions
   [ "$output" = " !epic:1234 !objective:42 !objective:43" ]
+}
+
+@test "shortcut_exclusions: labels -> one quoted negated term each, after objectives" {
+  export DAIMON_INPUT_EXCLUDE_OBJECTIVES="42" DAIMON_INPUT_EXCLUDE_LABELS="milestone release-blocking"
+  unset DAIMON_INPUT_EXCLUDE_EPICS
+  run shortcut_exclusions
+  [ "$output" = ' !objective:42 !label:"milestone" !label:"release-blocking"' ]
 }
 
 @test "shortcut_owner_count: no owner -> workspace count" {

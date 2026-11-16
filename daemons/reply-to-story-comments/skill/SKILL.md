@@ -15,7 +15,7 @@ read, comment on, and label stories.
 **Scope is a hard gate, not a preference.** Only ever read, comment on, or label a
 story that `{{inputs.owner}}` owns — or requested, when Source says the requester
 counts (if `{{inputs.owner}}` is blank, all stories are in scope), and never one
-in an excluded epic or objective (see Source). Apply the **safety net** from
+in an excluded epic or objective, or carrying an excluded label (see Source). Apply the **safety net** from
 Source before every write. A story belonging to anyone else is off-limits.
 
 ## 1. Discover new replies

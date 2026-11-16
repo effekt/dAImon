@@ -35,9 +35,10 @@ shortcut_mention() {
 }
 
 # shortcut_exclusions -> query terms excluding every epic id in
-# $DAIMON_INPUT_EXCLUDE_EPICS and every objective id in
-# $DAIMON_INPUT_EXCLUDE_OBJECTIVES (space-separated), e.g. " !epic:1234
-# !objective:42". Empty when both are unset, so a gate can append it
+# $DAIMON_INPUT_EXCLUDE_EPICS, every objective id in
+# $DAIMON_INPUT_EXCLUDE_OBJECTIVES and every label in
+# $DAIMON_INPUT_EXCLUDE_LABELS (space-separated), e.g. " !epic:1234
+# !objective:42 !label:\"milestone\"". Empty when all are unset, so a gate can append it
 # unconditionally. The search DSL takes the ids directly; `epic_id:` is not an
 # operator and matches nothing. `!objective:` covers every epic in the objective,
 # including epics added later.
@@ -45,6 +46,7 @@ shortcut_exclusions() {
   local id out=""
   for id in ${DAIMON_INPUT_EXCLUDE_EPICS:-}; do out="$out !epic:$id"; done
   for id in ${DAIMON_INPUT_EXCLUDE_OBJECTIVES:-}; do out="$out !objective:$id"; done
+  for id in ${DAIMON_INPUT_EXCLUDE_LABELS:-}; do out="$out !label:\"$id\""; done
   printf '%s' "$out"
 }
 

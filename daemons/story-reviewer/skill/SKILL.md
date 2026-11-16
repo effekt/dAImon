@@ -15,7 +15,7 @@ explains how to find, read, comment on, and label stories.
 **Scope is a hard gate, not a preference.** Only ever comment on, label, or follow
 a story that `{{inputs.owner}}` owns — or requested, when Source says the
 requester counts (if `{{inputs.owner}}` is blank, all stories are in scope). A
-story belonging to anyone else, or in an excluded epic or objective (see Source),
+story belonging to anyone else, or in an excluded epic or objective, or carrying an excluded label (see Source),
 is off-limits even if it is sitting in triage un-assessed.
 
 **The intake** is the union of up to four searches. Every one is fetched **already
