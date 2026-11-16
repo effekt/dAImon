@@ -61,6 +61,12 @@ Only those continue to step 2. The rest wait for a later run.
 
 ## 2. Investigate each
 
+**An assigned story is already approved.** It exists and is assigned to
+`{{inputs.owner}}` because it was planned, scoped and approved. A line in it such
+as "approval pending", "confirm with X" or "Verify" is not a blocker: treat the
+story as approved and, where it leaves a row or detail to check, check it in the
+code and decide.
+
 Stories here are not tied to one repository — you start in a directory that
 contains several. **Scope:** only consider these repositories: `{{inputs.repos}}`
 — if that is blank, consider every repository under the directory (list it to map
@@ -69,6 +75,16 @@ before exploring; that repo's `CLAUDE.md`, conventions, and `gh` context apply
 once you are inside it. Determine: what it asks for and the acceptance criteria; where it
 lives; complexity; and whether it can be implemented end-to-end without human
 decisions.
+
+**More than one implementation.** When the surface the story names is built in
+more than one place (an app midway through a migration, a legacy and a new path),
+use the repository's own migration docs, skills and records to work out which
+implementations still serve users, and plan the fix for every one of them.
+Never ask which one to fix.
+
+**Shared components.** When a fix lands in a component that other pages, and
+other stories, share, plan to fix it once for every consumer in this story. A
+later story whose part is already fixed confirms that in the code and skips it.
 
 **Treat the story's claims as unverified.** Many stories come from audits or
 non-engineering reports. Confirm the problem it describes actually exists in the
@@ -144,20 +160,34 @@ voice — factual, no hedging, no AI/automation mentions).
 
 Add exactly one assessment label (read-modify-write the label set — see Source):
 
-- `{{inputs.ready_label}}` — clearly specified, self-contained, no human judgment
-  needed. This is the handoff to the implementation daemon, so be conservative.
-- `{{inputs.assist_label}}` — needs clarification or a human decision first; say
+- `{{inputs.ready_label}}` — you can name a defensible way to meet every
+  acceptance criterion, with your choices under **Chosen defaults**. This is the
+  handoff to the implementation daemon.
+- `{{inputs.assist_label}}` — only when a blocker below applies; say exactly
   what's missing in the comment.
-- `{{inputs.human_label}}` — requires product/design judgment; not for automation.
+- `{{inputs.human_label}}` — the work itself can't be done in code (design
+  work, an operational task in another system); not for automation.
 
-**Reversible choices don't block.** When the only open questions pick between
-reversible technical options with a defensible answer in the codebase (a name,
-a test runner, a breakpoint set, which of two equivalent APIs), don't ask:
-choose, write the choice and the reason under **Chosen defaults** in the
-assessment, and label `{{inputs.ready_label}}`. The implementer follows it and
-repeats it in the PR, where review can overrule it. Product, design, data,
-cost, security, and anything that needs a measurement or someone else's
-sign-off still block.
+**Decide; ask only when you must.** Every question you leave open stops the
+work, so answer it yourself whenever the story, the code or the repository's docs
+give a defensible answer: scope, which implementation, naming, structure, a
+detail left to verify, which of two reasonable options. Write each choice and its
+reason under **Chosen defaults** in the assessment and label
+`{{inputs.ready_label}}`. The implementer follows it and repeats it in the PR,
+where review can overrule it.
+
+Label `{{inputs.assist_label}}` only when one of these is true, and name which:
+
+- going ahead would add cost: a new paid service, more infrastructure, a vendor
+  or plan change;
+- it would delete or irreversibly change production data, or weaken security
+  or access control;
+- the work needs something that exists only outside the code and the story,
+  such as copy, a design, credentials or a business number, and no reasonable
+  stand-in exists.
+
+Waiting for an approval, a sign-off or a review of the plan is never one of
+them.
 
 **Split work that needs several PRs.** When the work is clear but a single PR
 can't satisfy the acceptance criteria (it spans apps or services that ship
