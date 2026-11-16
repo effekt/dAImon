@@ -16,8 +16,28 @@ shortcut_token() {
   done
 }
 
-# shortcut_count "<search query>" -> number of matching stories (0 on any error).
+# _sc_queries "<query>" -> the query, then, when it excludes an objective, one
+# variant per $DAIMON_INPUT_INCLUDE_EPICS epic with the objective terms dropped.
+# An epic opted back in out of an excluded objective needs its own search: the
+# search DSL has no OR. Other exclusions (epics, labels) stay on every variant.
+_sc_queries() {
+  printf '%s\n' "$1"
+  case "$1" in *'!objective:'*) ;; *) return 0 ;; esac
+  local base e; base="$(printf '%s' "$1" | sed -E 's/ ?!objective:[0-9]+//g')"
+  for e in ${DAIMON_INPUT_INCLUDE_EPICS:-}; do printf '%s epic:%s\n' "$base" "$e"; done
+}
+
+# shortcut_count "<search query>" -> number of matching stories (0 on any error),
+# opted-in epics included (see _sc_queries).
 shortcut_count() {
+  local q n total=0
+  while IFS= read -r q; do
+    n="$(_sc_count_once "$q")"; total=$((total + ${n:-0}))
+  done < <(_sc_queries "$1")
+  echo "$total"
+}
+
+_sc_count_once() {
   local token; token="$(shortcut_token)"
   [ -z "$token" ] && { echo 0; return; }
   curl -s -G "https://api.app.shortcut.com/api/v3/search/stories" \
@@ -80,8 +100,15 @@ shortcut_owner_count() {
 # shortcut_search_ids "<query>" -> one "id updated_at" line per matching story
 # (nothing on any error). Gates that must compare stories against a state record
 # need ids, not a count. One page of up to 250 results — enough for a gate, which
-# only needs to know whether any candidate survives.
+# only needs to know whether any candidate survives. Opted-in epics included (see
+# _sc_queries), deduped in order.
 shortcut_search_ids() {
+  local q
+  while IFS= read -r q; do _sc_search_ids_once "$q"; done < <(_sc_queries "$1") \
+    | awk '!seen[$0]++'
+}
+
+_sc_search_ids_once() {
   local token; token="$(shortcut_token)"
   [ -z "$token" ] && return
   curl -s -G "https://api.app.shortcut.com/api/v3/search/stories" \
