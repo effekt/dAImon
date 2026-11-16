@@ -12,6 +12,7 @@ source "$DAIMON_LIB_DIR/reap.sh"
 source "$DAIMON_LIB_DIR/budget.sh"
 source "$DAIMON_LIB_DIR/backend-status.sh"
 source "$DAIMON_LIB_DIR/worktrees.sh"
+source "$DAIMON_LIB_DIR/agent_status.sh"
 
 ensure_state_dirs
 OPLOG="$(logs_dir)/$SLUG.log"
@@ -134,6 +135,8 @@ run_one_backend() {
     tmux send-keys -t "$session" "$COMMAND"; sleep 0.5; tmux send-keys -t "$session" Enter
     log_event "$SLUG" running "backend=$be command=$COMMAND" >> "$OPLOG"
   fi
+  # Now working: report in the background so the run never waits on it.
+  ( report_agent_status ) >/dev/null 2>&1 &
 
   if [ "$mode" = "idle" ] || [ "$mode" = "oneshot" ]; then
     pane_heartbeat "$session" "$HEARTBEAT" & HBPID=$!
@@ -211,3 +214,8 @@ if [ -n "$WORKING_DIR" ] && [ -d "$WORKING_DIR" ]; then
       && log_event "$SLUG" cleanup "removed leaked repo artifact ${stray##*/}" >> "$OPLOG"
   done
 fi
+
+# The run is over and its sessions are reaped: report idle. In the foreground
+# (bounded by AGENT_STATUS_TIMEOUT) because launchd kills a job's leftover
+# processes once this script exits, which would drop a backgrounded report.
+report_agent_status >/dev/null 2>&1

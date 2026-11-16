@@ -37,5 +37,11 @@ exempt = []
 # no daemon may set `role`. See docs/configuration.md.
 command = ""
 
+# [status]
+# Receives this machine's daemon status as JSON on stdin after every watchdog
+# sweep and agent run ({seconds} = how long the report should be trusted).
+# Best-effort; empty = no report. See docs/configuration.md.
+# command = "my-coordinator status --ttl {seconds}"
+
 [daemons]
 disabled = []

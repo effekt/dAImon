@@ -56,6 +56,11 @@ BUDGET_DEFAULTS = {"hourly_cap": 12, "defer_at_pct": 80, "exempt": []}
 # template with {role} and {seconds}, exit 0 = run here, 1 = another machine does.
 ROLES_DEFAULTS = {"command": ""}
 ROLE_PATTERN = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
+# `command` receives this machine's daemon status as JSON on stdin after every
+# watchdog sweep and agent run: a template with {seconds} (how long the report
+# should be trusted). Empty: no report.
+STATUS_DEFAULTS = {"command": ""}
+STATUS_TTL_SECONDS = 900
 
 DAEMON_FIELDS = (
     "backend",
@@ -123,6 +128,7 @@ class Config:
         self.throttle = {**THROTTLE_DEFAULTS, **raw.get("throttle", {})}
         self.budget = {**BUDGET_DEFAULTS, **raw.get("budget", {})}
         self.roles = {**ROLES_DEFAULTS, **raw.get("roles", {})}
+        self.status = {**STATUS_DEFAULTS, **raw.get("status", {})}
         self.disabled = list(raw.get("daemons", {}).get("disabled", []))
         if "install_root" in self.core:
             self.install_root = expand(self.core["install_root"])
@@ -488,6 +494,14 @@ def role_command(cfg: Config, slug: str) -> str:
     )
 
 
+def status_command(cfg: Config, seconds: int = STATUS_TTL_SECONDS) -> str:
+    """The shell command that receives the agent-status JSON, or "" when unset."""
+    template = cfg.status["command"]
+    if not template:
+        return ""
+    return template.replace("{seconds}", shlex.quote(str(int(seconds))))
+
+
 def _role_errors(cfg: Config, slug: str) -> list[str]:
     try:
         role_command(cfg, slug)
@@ -636,6 +650,7 @@ def main(argv: list[str]) -> int:
     mc.add_argument("slug")
     rc = sub.add_parser("role-command")
     rc.add_argument("slug")
+    sub.add_parser("status-command")
     vi = sub.add_parser("validate-inputs")
     vi.add_argument("slug")
     sub.add_parser("validate")
@@ -656,6 +671,7 @@ def main(argv: list[str]) -> int:
             "throttle": cfg.throttle,
             "budget": cfg.budget,
             "roles": cfg.roles,
+            "status": cfg.status,
         }.get(section)
         if table is None or field not in table:
             print(f"unknown key: {args.key}", file=sys.stderr)
@@ -701,6 +717,9 @@ def main(argv: list[str]) -> int:
         except ValueError as e:
             print(str(e), file=sys.stderr)
             return 2
+        return 0
+    if args.cmd == "status-command":
+        print(status_command(cfg))
         return 0
     if args.cmd == "validate-inputs":
         missing = _missing_required_inputs(cfg, args.slug)
