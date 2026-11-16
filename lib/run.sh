@@ -30,6 +30,17 @@ source "$DAIMON_LIB_DIR/budget.sh"
 budget_check "$SLUG"
 if [ "${BUDGET_OVER:-0}" -eq 1 ]; then log_event "$SLUG" skip "$BUDGET_REASON" >> "$OPLOG"; exit 0; fi
 
+# A daemon with a `role` runs on one machine at a time (e.g. one Datadog
+# reviewer per team). After the inbox, so an explicitly queued command always
+# runs; after the budget, so a machine over budget stops asking and lets go.
+source "$DAIMON_LIB_DIR/role.sh"
+role_check "$SLUG"
+if [ "$ROLE_SKIP" -eq 1 ]; then
+  log_event "$SLUG" "$ROLE_EVENT" "$ROLE_REASON" >> "$OPLOG"
+  [ "$ROLE_EVENT" = config_error ] && exit 1
+  exit 0
+fi
+
 # A private daemon lives in daemons/<slug>.local (gitignored); same slug.
 DDIR="$DAIMON_INSTALL_ROOT/daemons/$SLUG"
 [ -f "$DDIR/daemon.toml" ] || DDIR="$DDIR.local"

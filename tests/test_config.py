@@ -499,6 +499,34 @@ class ConfigTest(unittest.TestCase):
     def test_validate_clean(self):
         self.assertEqual(config.validate(self.cfg), [])
 
+    def _with_role(self, slug: str, extra: str, command: str = "hold {role} --for {seconds}"):
+        local = self.root / "daemons" / slug / "daemon.local.toml"
+        write(local, f"[daemon]\n{extra}\n")
+        conf = self.root / "config" / "daimon.toml"
+        base = conf.read_text().split("[roles]")[0]
+        conf.write_text(base + f'[roles]\ncommand = "{command}"\n')
+        return config.Config.load()
+
+    def test_role_command_unset_is_empty(self):
+        self.assertEqual(config.role_command(self.cfg, "alpha"), "")
+
+    def test_role_command_holds_for_twice_the_interval_plus_a_minute(self):
+        cfg = self._with_role("alpha", 'role = "datadog-errors"')
+        self.assertEqual(config.role_command(cfg, "alpha"), "hold datadog-errors --for 2460")
+        self.assertEqual(config.validate(cfg), [])
+
+    def test_role_hold_overrides_and_is_required_off_interval(self):
+        cfg = self._with_role("beta", 'role = "standup"')
+        self.assertTrue(any("role_hold is required" in e for e in config.validate(cfg)))
+        cfg = self._with_role("beta", 'role = "standup"\nrole_hold = 7200')
+        self.assertEqual(config.role_command(cfg, "beta"), "hold standup --for 7200")
+
+    def test_role_without_command_or_with_a_bad_name_is_invalid(self):
+        cfg = self._with_role("alpha", 'role = "datadog"', command="")
+        self.assertTrue(any("[roles].command is empty" in e for e in config.validate(cfg)))
+        cfg = self._with_role("alpha", 'role = "Data dog; rm -rf ~"')
+        self.assertTrue(any("role must match" in e for e in config.validate(cfg)))
+
     def test_validate_catches_bad_backend(self):
         write(
             self.root / "daemons" / "alpha" / "daemon.toml",

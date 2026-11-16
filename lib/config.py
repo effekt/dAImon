@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shlex
 import sys
 import tomllib
@@ -51,6 +52,10 @@ THROTTLE_DEFAULTS = {
     "severe_critical": [],
 }
 BUDGET_DEFAULTS = {"hourly_cap": 12, "defer_at_pct": 80, "exempt": []}
+# `command` decides whether this machine runs a daemon that has a `role`: a
+# template with {role} and {seconds}, exit 0 = run here, 1 = another machine does.
+ROLES_DEFAULTS = {"command": ""}
+ROLE_PATTERN = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 
 DAEMON_FIELDS = (
     "backend",
@@ -117,6 +122,7 @@ class Config:
         self.defaults = {**DEFAULT_DEFAULTS, **raw.get("defaults", {})}
         self.throttle = {**THROTTLE_DEFAULTS, **raw.get("throttle", {})}
         self.budget = {**BUDGET_DEFAULTS, **raw.get("budget", {})}
+        self.roles = {**ROLES_DEFAULTS, **raw.get("roles", {})}
         self.disabled = list(raw.get("daemons", {}).get("disabled", []))
         if "install_root" in self.core:
             self.install_root = expand(self.core["install_root"])
@@ -446,6 +452,7 @@ def validate(cfg: Config) -> list[str]:
         else:
             errors.extend(_required_input_errors(cfg, slug))
             errors.extend(_mcp_errors(cfg, slug))
+        errors.extend(_role_errors(cfg, slug))
     all_dirs = [p.parent.name for p in cfg.daemons_dir().glob("*/daemon.toml")]
     for slug in sorted({slug_for_dir(n) for n in all_dirs}):
         if slug in all_dirs and f"{slug}{LOCAL_SUFFIX}" in all_dirs:
@@ -456,6 +463,37 @@ def validate(cfg: Config) -> list[str]:
         if slug not in {slug_for_dir(n) for n in all_dirs}:
             errors.append(f"[daemons].disabled references unknown daemon: {slug}")
     return errors
+
+
+def role_command(cfg: Config, slug: str) -> str:
+    """The shell command that asks whether this machine holds `slug`'s role, or ""
+    when the daemon has no role. Raises ValueError when the role can't be checked."""
+    d = cfg.daemon(slug)
+    role = d.get("role", "")
+    if not role:
+        return ""
+    if not ROLE_PATTERN.match(str(role)):
+        raise ValueError(f"role must match {ROLE_PATTERN.pattern}: {role!r}")
+    template = cfg.roles["command"]
+    if not template:
+        raise ValueError(f"role {role!r} is set but [roles].command is empty")
+    hold = d.get("role_hold")
+    if hold is None:
+        interval = (d.get("schedule") or {}).get("interval")
+        if interval is None:
+            raise ValueError("role_hold is required for a role on a minutes/daily schedule")
+        hold = 2 * int(interval) + 60
+    return template.replace("{role}", shlex.quote(str(role))).replace(
+        "{seconds}", shlex.quote(str(int(hold)))
+    )
+
+
+def _role_errors(cfg: Config, slug: str) -> list[str]:
+    try:
+        role_command(cfg, slug)
+    except ValueError as e:
+        return [f"{slug}: {e}"]
+    return []
 
 
 def daemon_schema() -> dict:
@@ -504,6 +542,8 @@ def daemon_schema() -> dict:
             "stuck_after": {"type": "integer", "minimum": 1},
             "ready_timeout": {"type": "integer", "minimum": 1},
             "hourly_cap": {"type": "integer", "minimum": 1},
+            "role": {"type": "string", "pattern": ROLE_PATTERN.pattern},
+            "role_hold": {"type": "integer", "minimum": 1},
             "command": {"type": "string", "pattern": "^/"},
             "schedule": schedule,
             "source": {"type": "string"},
@@ -594,6 +634,8 @@ def main(argv: list[str]) -> int:
     de.add_argument("slug")
     mc = sub.add_parser("mcp-config")
     mc.add_argument("slug")
+    rc = sub.add_parser("role-command")
+    rc.add_argument("slug")
     vi = sub.add_parser("validate-inputs")
     vi.add_argument("slug")
     sub.add_parser("validate")
@@ -613,6 +655,7 @@ def main(argv: list[str]) -> int:
             "defaults": cfg.defaults,
             "throttle": cfg.throttle,
             "budget": cfg.budget,
+            "roles": cfg.roles,
         }.get(section)
         if table is None or field not in table:
             print(f"unknown key: {args.key}", file=sys.stderr)
@@ -651,6 +694,13 @@ def main(argv: list[str]) -> int:
         return 0
     if args.cmd == "mcp-config":
         print(json.dumps(cfg.mcp_config(args.slug), indent=2))
+        return 0
+    if args.cmd == "role-command":
+        try:
+            print(role_command(cfg, args.slug))
+        except ValueError as e:
+            print(str(e), file=sys.stderr)
+            return 2
         return 0
     if args.cmd == "validate-inputs":
         missing = _missing_required_inputs(cfg, args.slug)
