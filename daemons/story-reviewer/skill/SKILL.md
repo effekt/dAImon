@@ -75,9 +75,9 @@ Before assessing, confirm the files, components, routes, and APIs it names still
 exist (or were renamed — say to what), that no merged PR or done story already
 delivered it, and that no newer story duplicates or supersedes it. If it is
 obsolete, already done, or duplicated, don't write an implementation plan: post a
-short assessment with the evidence (the merged PR, the done or duplicate story,
-the code that replaced it), recommend closing or rewriting it, and label
-`{{inputs.assist_label}}`.
+short comment that opens with **Close candidate** and gives the evidence (the
+merged PR, the done or duplicate story, the code that replaced it), so the owner
+can close it in one step. Label it `{{inputs.assist_label}}`.
 
 ## 3. Post an assessment
 
@@ -127,6 +127,31 @@ Add exactly one assessment label (read-modify-write the label set — see Source
 - `{{inputs.assist_label}}` — needs clarification or a human decision first; say
   what's missing in the comment.
 - `{{inputs.human_label}}` — requires product/design judgment; not for automation.
+
+**Reversible choices don't block.** When the only open questions pick between
+reversible technical options with a defensible answer in the codebase (a name,
+a test runner, a breakpoint set, which of two equivalent APIs), don't ask:
+choose, write the choice and the reason under **Chosen defaults** in the
+assessment, and label `{{inputs.ready_label}}`. The implementer follows it and
+repeats it in the PR, where review can overrule it. Product, design, data,
+cost, security, and anything that needs a measurement or someone else's
+sign-off still block.
+
+**Split work that needs several PRs.** When the work is clear but a single PR
+can't satisfy the acceptance criteria (it spans apps or services that ship
+separately, or the story itself asks for a sequence), create one story per PR
+(see Source): same epic, owner `{{inputs.owner}}`, a description holding that
+step's slice of the plan and acceptance criteria, and a line naming the parent
+and the order (`Part 2 of 3 of sc-<parent>; after sc-<part 1>`). Assess each
+part and label it as above; a part that must wait for an earlier one is
+`{{inputs.assist_label}}` until that one merges. Comment on the parent listing
+the parts, and label the parent `{{inputs.assist_label}}` so the owner decides
+whether to close it. Record every part in your state too.
+
+**Mirror it to the status field** (see Source), when one is configured:
+`{{inputs.ready_label}}` → `{{inputs.status_ready}}`,
+`{{inputs.assist_label}}` → `{{inputs.status_assist}}`;
+`{{inputs.human_label}}` writes nothing.
 
 ### Record it
 

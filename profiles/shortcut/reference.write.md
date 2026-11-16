@@ -91,6 +91,14 @@ before you comment on, label, or otherwise touch a story, re-read it and confirm
 exact. If not, skip it and log
 `[out-of-scope skip] sc-{id} requester={…} owners={…}` — do not write anything.
 
+**Status field.** When `{{inputs.status_field}}` is set, also drop any story
+whose `{{inputs.status_field}}` custom field holds a value other than these
+(blank entries ignored): `{{inputs.status_ready}}`, `{{inputs.status_assist}}`,
+`{{inputs.status_claimed}}`, `{{inputs.status_done}}`. Another process drives
+that story through the field; log `[status skip] sc-{id} status=<value>` and
+write nothing. An unset field is in scope. Searches can't filter on the value,
+so this check is yours.
+
 ### Comment on a story
 
 `POST /api/v3/stories/{id}/comments` with `{"text": "..."}`.
@@ -108,6 +116,21 @@ existing=$(curl -s "https://api.app.shortcut.com/api/v3/stories/<id>" -H "Shortc
 # append {"name":"{{inputs.ready_label}}"} to that array, then:
 curl -s -X PUT "https://api.app.shortcut.com/api/v3/stories/<id>" -H "Shortcut-Token: $TOKEN" \
   -H "Content-Type: application/json" -d "{\"labels\": <new array>}"
+```
+
+### Set the status field
+
+Only when `{{inputs.status_field}}` is non-empty and the value to write is
+non-empty. Never write any other value of the field: other processes may act on
+it. Resolve ids once from `GET /api/v3/custom-fields` (the field whose `name` is
+`{{inputs.status_field}}`; its `values[]` carry `id` and `value`). A story
+update **replaces** `custom_fields` too, so read-modify-write: keep every other
+`{field_id, value_id}` pair from the story and replace or add this field's pair.
+
+```bash
+curl -s -X PUT "https://api.app.shortcut.com/api/v3/stories/<id>" -H "Shortcut-Token: $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"custom_fields": [<other pairs…>, {"field_id": "<field id>", "value_id": "<value id>"}]}'
 ```
 
 ### Move a story between states (claim / hand off)

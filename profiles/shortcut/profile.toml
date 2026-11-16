@@ -25,3 +25,12 @@ exclude_objectives = []
 # label term against each word of a label name, so "milestone" also covers
 # "milestone:x:y". Names can't contain spaces (lists reach the gate space-joined).
 exclude_labels = []
+# Optional dropdown custom field that mirrors the assessment labels (e.g. a team's
+# "AI Status"). Blank disables it. Each status_* names the value written at that
+# step; blank skips that write. A story whose field holds any other value belongs
+# to another process and is out of scope.
+status_field = ""
+status_ready = ""
+status_assist = ""
+status_claimed = ""
+status_done = ""
