@@ -24,6 +24,8 @@ labels above as the marker: ready = `{{inputs.status_ready}}`, needs input =
   never add the label itself.
 - "remove the ready label" → set the field to the value the step moves it to
   (claimed, PR open); if the step names none, leave the field as it is.
+- "remove" any other marker label (e.g. to send a story back for review) →
+  clear the field: drop its pair from `custom_fields` so it is unset.
 - a search term `label:"X"` → drop the term and keep only results whose field
   holds X's value; `!label:"X"` → keep only results whose field doesn't. Search
   results carry `custom_fields[]` with `field_id` and `value`. Search can't
