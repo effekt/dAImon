@@ -55,16 +55,28 @@ if [ -f "$DISCOVER" ]; then
   # A gate may leave a one-line summary of what it found (ids, counts) in
   # $DAIMON_GATE_NOTE; it is appended to the decision logged below.
   DAIMON_GATE_NOTE="$(mktemp "${TMPDIR:-/tmp}/daimon-note.XXXXXX")"; export DAIMON_GATE_NOTE
+  # A gate may ask to resume an earlier agent session: line 1 the session id,
+  # line 2 the command to type into it.
+  DAIMON_GATE_RESUME="$(mktemp "${TMPDIR:-/tmp}/daimon-resume.XXXXXX")"; export DAIMON_GATE_RESUME
   bash "$DISCOVER" 2>"$derr"; rc=$?
   errtext="$(cat "$derr")"; rm -f "$derr"
   note="$(head -c 600 "$DAIMON_GATE_NOTE" 2>/dev/null)"; rm -f "$DAIMON_GATE_NOTE"
   note="${note:+: $note}"
+  resume_id="$(sed -n 1p "$DAIMON_GATE_RESUME" 2>/dev/null)"
+  resume_cmd="$(sed -n 2p "$DAIMON_GATE_RESUME" 2>/dev/null)"; rm -f "$DAIMON_GATE_RESUME"
+  case "$resume_id" in
+    *[!0-9a-f-]*|"") resume_id="" ;;  # only a plain session uuid is accepted
+  esac
   if [ -n "$errtext" ] || [ "$rc" -ge 2 ]; then
     log_event "$SLUG" discover_error "discover.sh failed (exit $rc): ${errtext:-no stderr}" >> "$OPLOG"
     exit 1
   fi
   if [ "$rc" -eq 0 ]; then
     log_event "$SLUG" launch_decision "discovery found work$note" >> "$OPLOG"
+    if [ -n "$resume_id" ] && [ -n "$resume_cmd" ]; then
+      DAIMON_RESUME_SESSION="$resume_id" DAIMON_RESUME_COMMAND="$resume_cmd" \
+        exec bash "$DAIMON_LIB_DIR/launch.sh" "$SLUG"
+    fi
     exec bash "$DAIMON_LIB_DIR/launch.sh" "$SLUG"
   fi
   log_event "$SLUG" skip "discovery found nothing$note; $(next_run_display "$SLUG")" >> "$OPLOG"

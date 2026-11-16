@@ -13,6 +13,11 @@ legitimate reasons to stop short of an action are: a real `remote: Permission to
 … denied` push failure (report it, don't loop), or having already spent
 `{{inputs.max_fix_cycles}}` fix cycles on a PR this run.
 
+**Single PR.** If this run was started with a PR number (`$ARGUMENTS`), act on
+that PR only, then finish (§6). This is how a session that wrote the PR is
+resumed to handle feedback on it: you may already know the change well, so use
+that context, but re-read the PR and its feedback before acting.
+
 ## 1. Find managed PRs
 
 A PR is **managed** if it is on a `daimon/*` branch (work-queue created it) or it
@@ -71,6 +76,7 @@ Promotion does **not** merge — the PR still needs an approving review to reach
 
 ### 3.1 Merge
 
+Never merge a PR with **unhandled review feedback** (§3.4); handle it first.
 Merge when all checks pass (no FAILURE/PENDING in `statusCheckRollup`),
 `mergeable != "CONFLICTING"`, it is not a draft, and **either**:
 
@@ -125,10 +131,23 @@ red after that and it isn't pre-existing, comment the failure, then record
 `ci_blocked` with `ci_blocked_at` = now (ISO-8601 UTC) via `daimon state set`
 and move on.
 
-### 3.4 Address change requests
+### 3.4 Address review feedback
 
-If `reviewDecision == "CHANGES_REQUESTED"`, fetch the review comments
-(`gh api repos/{owner}/{repo}/pulls/<n>/comments`) and triage each:
+**Unhandled review feedback** is any of these, newer than the PR's
+`feedback_seen` in your state:
+
+- a review with state `CHANGES_REQUESTED` from someone other than you;
+- a PR comment from someone else containing `{{inputs.findings_marker}}` (blank
+  means none) that doesn't match `{{inputs.findings_none_regex}}`: an automated
+  reviewer's findings, which can arrive on an **approved** PR.
+
+If the PR body records the session that wrote it (`daimon-session: <id>`), that
+session is still running (`pgrep -f <id>` finds it), and this run is not it,
+skip the PR this run: the gate resumes that session once it is free.
+
+Read all of it: review bodies and PR comments (`gh pr view <n> --json
+reviews,comments`) as well as inline comments
+(`gh api repos/{owner}/{repo}/pulls/<n>/comments`). Triage each item:
 
 - **Valid** (real bug, missing handling, genuine concern) — fix it in a worktree
   (§4). Then reply on the thread: `{{inputs.bot_marker}} Fixed — <what & why> (<sha>)`.
@@ -138,9 +157,16 @@ If `reviewDecision == "CHANGES_REQUESTED"`, fetch the review comments
   style nit the formatter owns) — reply respectfully with the reason, cite the
   rule if there is one, and don't make the change.
 
-Follow the repo's own conventions and rules files for any fix. After addressing
-all comments, run the repo's checks, push (§5), and re-request the reviewers who
-asked for changes: `gh pr edit <n> --add-reviewer <logins>`.
+Follow the repo's own conventions and rules files for any fix, including any
+rules for engaging a particular reviewer. If the reviewer reads structured
+dispositions back (commands with the finding's stable id), post one for every
+finding after your final push. After addressing all items, run the repo's
+checks, push (§5), and re-request the reviewers who asked for changes, last:
+`gh pr edit <n> --add-reviewer <logins>`.
+
+Then record `feedback_seen` for the PR as the time of the newest feedback item
+you handled (its `submittedAt` / `createdAt`), so the next run doesn't handle it
+again. Record it even when the outcome was that nothing needed changing.
 
 ### 3.5 Request reviewers
 

@@ -17,6 +17,8 @@ ensure_state_dirs
 OPLOG="$(logs_dir)/$SLUG.log"
 eval "$(cfg daemon-env "$SLUG")"
 COMMAND="$DAIMON_D_COMMAND"
+# A gate that asked to resume a session also names the command to type into it.
+[ -n "${DAIMON_RESUME_COMMAND:-}" ] && COMMAND="$DAIMON_RESUME_COMMAND"
 DANGER="$DAIMON_D_DANGER"
 STUCK_AFTER="$DAIMON_D_STUCK_AFTER"
 WORKING_DIR="$DAIMON_D_WORKING_DIR"
@@ -79,7 +81,14 @@ run_one_backend() {
   local bin args stdin=""
   bin="$(backend_bin)"
   DAIMON_AGENT_SESSION="$(uuidgen | tr '[:upper:]' '[:lower:]')"
-  export DAIMON_AGENT_SESSION
+  DAIMON_RESUME=0
+  if [ -n "${DAIMON_RESUME_SESSION:-}" ] && declare -F backend_supports_resume >/dev/null \
+     && backend_supports_resume; then
+    DAIMON_AGENT_SESSION="$DAIMON_RESUME_SESSION"; DAIMON_RESUME=1
+  fi
+  export DAIMON_AGENT_SESSION DAIMON_RESUME
+  local resume_note=""
+  [ "$DAIMON_RESUME" = "1" ] && resume_note=" resume=$DAIMON_AGENT_SESSION command=$COMMAND"
   args="$(backend_cli_args "$model" "$DANGER" "$session")"
   if [ "$mode" = "oneshot" ]; then
     PROMPTF="$(prompts_dir)/${SLUG}-${be}.prompt"
@@ -88,14 +97,14 @@ run_one_backend() {
   fi
   local tfile; tfile="$(transcripts_dir)/${SLUG}-${be}-$(date -u +%Y%m%dT%H%M%SZ).log"
   tmux new-session -d -s "$session" -c "$WORKING_DIR" -x 220 -y 50 \
-    "PATH=\"$DAIMON_INSTALL_ROOT/bin:\$PATH\" DAIMON_SENTINEL='$SENTINEL' DAIMON_HEARTBEAT='$HEARTBEAT' DAIMON_WAIT='$WAITF' DAIMON_STATE_DIR='$DAIMON_STATE_DIR' DAIMON_SLUG='$SLUG' DAIMON_AGENT_SESSION='$DAIMON_AGENT_SESSION' DAIMON_STATE_FILE='$DAIMON_STATE_DIR/state/$SLUG.json' exec '$bin' $args $stdin"
+    "PATH=\"$DAIMON_INSTALL_ROOT/bin:\$PATH\" DAIMON_SENTINEL='$SENTINEL' DAIMON_HEARTBEAT='$HEARTBEAT' DAIMON_WAIT='$WAITF' DAIMON_STATE_DIR='$DAIMON_STATE_DIR' DAIMON_SLUG='$SLUG' DAIMON_AGENT_SESSION='$DAIMON_AGENT_SESSION' DAIMON_RESUME='$DAIMON_RESUME' DAIMON_STATE_FILE='$DAIMON_STATE_DIR/state/$SLUG.json' exec '$bin' $args $stdin"
   tmux set-option -t "$session" prefix2 C-a 2>/dev/null || true
   # A oneshot process can exit before the completion loop's final capture, so
   # stream the pane to the transcript live instead of grabbing it at the end.
   if [ "$mode" = "oneshot" ]; then
     tmux pipe-pane -t "$session" "cat >> '$tfile'" 2>/dev/null || true
   fi
-  log_event "$SLUG" launch "backend=$be session=$session model=$model danger=$DANGER stuck_after=$STUCK_AFTER" >> "$OPLOG"
+  log_event "$SLUG" launch "backend=$be session=$session model=$model danger=$DANGER stuck_after=$STUCK_AFTER$resume_note" >> "$OPLOG"
 
   local regex booted=0 i
   regex="$(backend_ready_regex "$DANGER")"
