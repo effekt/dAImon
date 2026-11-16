@@ -87,8 +87,54 @@ shortcut_search_ids() {
   curl -s -G "https://api.app.shortcut.com/api/v3/search/stories" \
     --data-urlencode "query=$1" --data-urlencode page_size=250 --data-urlencode detail=slim \
     -H "Shortcut-Token: $token" \
-    | python3 -c "import sys,json;[print(s['id'],s['updated_at']) for s in json.load(sys.stdin).get('data',[])]" 2>/dev/null
+    | python3 -c "$_SC_PRINT_IDS" 2>/dev/null
 }
+
+# With SC_STATUS_KEEP set (even to ""), shortcut_search_ids keeps only stories
+# whose status field (id in SC_STATUS_FIELD_ID) holds one of its "|"-separated
+# values; an empty entry stands for "field unset". Search can't filter a custom
+# field by value, so gates in marker-field mode filter the results here.
+# shellcheck disable=SC2016
+_SC_PRINT_IDS='
+import json, os, sys
+keep = os.environ.get("SC_STATUS_KEEP")
+fid = os.environ.get("SC_STATUS_FIELD_ID", "")
+allowed = None if keep is None else set(keep.split("|"))
+for s in json.load(sys.stdin).get("data", []):
+    if allowed is not None:
+        vals = [c.get("value", "") for c in s.get("custom_fields") or [] if c.get("field_id") == fid]
+        if (vals[0] if vals else "") not in allowed:
+            continue
+    print(s["id"], s["updated_at"])
+'
+
+# shortcut_marker_mode -> success when the status field, not labels, carries
+# the assessment markers (status_is_source on and status_field named).
+shortcut_marker_mode() {
+  [ "${DAIMON_INPUT_STATUS_IS_SOURCE:-0}" = "1" ] && [ -n "${DAIMON_INPUT_STATUS_FIELD:-}" ]
+}
+
+# shortcut_field_id "<field name>" -> the custom field's id ("" on any error).
+shortcut_field_id() {
+  local token; token="$(shortcut_token)"
+  [ -z "$token" ] && return
+  curl -s "https://api.app.shortcut.com/api/v3/custom-fields" -H "Shortcut-Token: $token" \
+    | python3 -c "import sys,json;n=sys.argv[1];print(next((f['id'] for f in json.load(sys.stdin) if f.get('name')==n),''))" "$1" 2>/dev/null
+}
+
+# shortcut_marked_ids "<values>" "<base query>" -> shortcut_owner_ids filtered to
+# stories whose status field holds one of <values> ("|"-separated, "" = unset).
+# Fails closed (stderr, return 1) when the field can't be resolved, so a typo'd
+# field name surfaces as a discover_error instead of an empty queue.
+shortcut_marked_ids() {
+  local fid; fid="$(shortcut_field_id "$DAIMON_INPUT_STATUS_FIELD")"
+  if [ -z "$fid" ]; then
+    echo "discover: custom field '$DAIMON_INPUT_STATUS_FIELD' not found" >&2
+    return 1
+  fi
+  SC_STATUS_FIELD_ID="$fid" SC_STATUS_KEEP="$1" shortcut_owner_ids "$2"
+}
+
 
 # shortcut_owner_ids "<base query>" -> shortcut_search_ids scoped to
 # $DAIMON_INPUT_OWNER (owner, plus requester unless include_requested is off;

@@ -32,5 +32,13 @@ exclude_labels = []
 status_field = ""
 status_ready = ""
 status_assist = ""
+status_human = ""
+status_skip = ""
 status_claimed = ""
 status_done = ""
+# true: the status field replaces the ready/assist/human/skip labels as the
+# marker (searched and written instead of them). false: it only mirrors them.
+status_is_source = false
+# Optional dropdown custom field to rank by (e.g. "Priority"); its first value
+# ranks highest and unset ranks last. Blank skips it.
+priority_field = ""

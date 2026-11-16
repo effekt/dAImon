@@ -14,6 +14,8 @@ explains how to find, read, and move stories.
 A run that dies mid-story (crash, sleep, a prompt nobody answered) leaves its
 story in `{{inputs.in_progress_state}}` still labelled `{{inputs.ready_label}}`;
 step 8 removes that label, so a finished run never leaves this combination.
+(When the field is the marker, see Source, the signature is the field still at
+`{{inputs.status_claimed}}` while the story sits in `{{inputs.in_progress_state}}`.)
 Search for stories in exactly that state (`label:"{{inputs.ready_label}}"
 state:"{{inputs.in_progress_state}}"`, without `{{inputs.skip_label}}`), apply
 the same scope rules and safety net as step 2, and order them by the **Priority

@@ -150,8 +150,10 @@ whether to close it. Record every part in your state too.
 
 **Mirror it to the status field** (see Source), when one is configured:
 `{{inputs.ready_label}}` → `{{inputs.status_ready}}`,
-`{{inputs.assist_label}}` → `{{inputs.status_assist}}`;
-`{{inputs.human_label}}` writes nothing.
+`{{inputs.assist_label}}` → `{{inputs.status_assist}}`,
+`{{inputs.human_label}}` → `{{inputs.status_human}}` (a blank value writes
+nothing). When the field is the marker (see Source), this write *is* the label
+step.
 
 ### Record it
 

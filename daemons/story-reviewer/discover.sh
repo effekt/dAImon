@@ -18,9 +18,16 @@ set -uo pipefail
 source "$(dirname "$0")/../../lib/common.sh"
 source "$(dirname "$0")/../../profiles/shortcut/lib.sh"
 
-open="!label:\"$DAIMON_INPUT_READY_LABEL\" !label:\"$DAIMON_INPUT_ASSIST_LABEL\" \
-  !label:\"$DAIMON_INPUT_HUMAN_LABEL\" !label:\"$DAIMON_INPUT_SKIP_LABEL\" \
-  !is:done !is:archived$(shortcut_exclusions)"
+if shortcut_marker_mode; then
+  # Un-assessed = status field unset; searches can't see it, so filter results.
+  open="!label:\"$DAIMON_INPUT_SKIP_LABEL\" !is:done !is:archived$(shortcut_exclusions)"
+  ids() { shortcut_marked_ids "" "$1"; }
+else
+  open="!label:\"$DAIMON_INPUT_READY_LABEL\" !label:\"$DAIMON_INPUT_ASSIST_LABEL\" \
+    !label:\"$DAIMON_INPUT_HUMAN_LABEL\" !label:\"$DAIMON_INPUT_SKIP_LABEL\" \
+    !is:done !is:archived$(shortcut_exclusions)"
+  ids() { shortcut_owner_ids "$1"; }
+fi
 active="$open !state:\"$DAIMON_INPUT_IN_PROGRESS_STATE\""
 
 drop=""
@@ -28,15 +35,15 @@ for l in ${DAIMON_INPUT_INTAKE_EXCLUDE_LABELS:-}; do drop="$drop !label:\"$l\"";
 
 candidates="$(
   {
-    shortcut_owner_ids "state:\"$DAIMON_INPUT_TRIAGE_STATE\" $open" || exit 1
+    ids "state:\"$DAIMON_INPUT_TRIAGE_STATE\" $open" || exit 1
     for l in ${DAIMON_INPUT_INTAKE_LABELS:-}; do
-      shortcut_owner_ids "label:\"$l\" $active$drop" || exit 1
+      ids "label:\"$l\" $active$drop" || exit 1
     done
     for e in $(shortcut_labelled_epics "$DAIMON_INPUT_READY_LABEL"); do
-      shortcut_owner_ids "epic:$e $active" || exit 1
+      ids "epic:$e $active" || exit 1
     done
     if [ "${DAIMON_INPUT_INTAKE_UNSTARTED:-0}" = "1" ]; then
-      shortcut_owner_ids "!is:started $open$drop" || exit 1
+      ids "!is:started $open$drop" || exit 1
     fi
   } | sort -u
 )" || exit 1

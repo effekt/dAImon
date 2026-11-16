@@ -9,8 +9,13 @@ set -uo pipefail
 
 source "$(dirname "$0")/../../profiles/shortcut/lib.sh"
 
-base="label:\"$DAIMON_INPUT_ASSIST_LABEL\" !label:\"$DAIMON_INPUT_SKIP_LABEL\"$(shortcut_exclusions)"
-
-count=$(shortcut_owner_count "$base") || exit 1
+if shortcut_marker_mode; then
+  ids=$(shortcut_marked_ids "$DAIMON_INPUT_STATUS_ASSIST" \
+    "!label:\"$DAIMON_INPUT_SKIP_LABEL\" !is:done !is:archived$(shortcut_exclusions)") || exit 1
+  count=$(printf '%s' "$ids" | grep -c .)
+else
+  base="label:\"$DAIMON_INPUT_ASSIST_LABEL\" !label:\"$DAIMON_INPUT_SKIP_LABEL\"$(shortcut_exclusions)"
+  count=$(shortcut_owner_count "$base") || exit 1
+fi
 
 [ "${count:-0}" -gt 0 ]
