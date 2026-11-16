@@ -21,6 +21,7 @@ Triage stories — investigate each against the codebase, post an assessment, an
 | `intake_exclude_labels` | — | Stories carrying any of these labels are kept out of the label intake above, e.g. ["blocker"] so critical-path work stays with a human. |
 | `intake_unstarted` | `false` | Also review every story that hasn't started yet (backlog and unstarted states), not only the triage state. |
 | `max_per_run` | `5` | Assess at most this many stories per run, so a wide intake drains gradually instead of in one enormous run. |
+| `close_state` | — | State to move a story to when it is provably obsolete, delivered or a duplicate (e.g. "Icebox"). Blank: never move it, only flag it as a close candidate for the owner. |
 
 ## Gate
 

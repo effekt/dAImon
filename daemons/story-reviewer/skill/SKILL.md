@@ -81,10 +81,25 @@ evidence and label `{{inputs.assist_label}}` rather than `{{inputs.ready_label}}
 Before assessing, confirm the files, components, routes, and APIs it names still
 exist (or were renamed — say to what), that no merged PR or done story already
 delivered it, and that no newer story duplicates or supersedes it. If it is
-obsolete, already done, or duplicated, don't write an implementation plan: post a
-short comment that opens with **Close candidate** and gives the evidence (the
-merged PR, the done or duplicate story, the code that replaced it), so the owner
-can close it in one step. Label it `{{inputs.assist_label}}`.
+obsolete, already done, or duplicated, don't write an implementation plan.
+
+**Close it yourself when the evidence is concrete** and `{{inputs.close_state}}`
+is set (blank means never move a story). Concrete means one of:
+
+- a merged PR delivered what the story asks (name it, and the lines that do it);
+- a story in a done state already covers it (name it);
+- everything the story targets no longer exists in the code (show the search).
+
+Post a comment that opens with **Closed as obsolete**, gives that evidence and
+says how to undo it (move it back out of `{{inputs.close_state}}`). For a
+duplicate, also link the two stories (`duplicates`, see Source). Then move the
+story to `{{inputs.close_state}}`. Change nothing else on it, and record it in
+your state with `"label": "closed"`. Never archive or delete a story.
+
+Anything short of that, such as "probably superseded", a partial overlap, or a
+judgment about whether it's still wanted, stays with the owner: post a comment
+that opens with **Close candidate** and gives the evidence, so the owner can
+close it in one step, and label it `{{inputs.assist_label}}`.
 
 ## 3. Post an assessment
 
