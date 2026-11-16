@@ -166,6 +166,12 @@ Look up the numeric `workflow_state_id` for a state name via
 `GET /api/v3/workflows`, then `PUT /api/v3/stories/{id}` with
 `{"workflow_state_id": <id>}`.
 
+### Link two stories
+
+`POST /api/v3/story-links` with `{"subject_id": <this story>, "object_id": <the
+story it duplicates>, "verb": "duplicates"}`. Other verbs: `blocks`,
+`relates to`.
+
 ### Create a story
 
 `POST /api/v3/stories` with `{"name", "description", "workflow_state_id"}` (resolve

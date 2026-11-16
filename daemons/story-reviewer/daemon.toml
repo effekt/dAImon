@@ -26,3 +26,7 @@ intake_unstarted = false
 # Assess at most this many stories per run, so a wide intake drains gradually
 # instead of in one enormous run.
 max_per_run = 5
+# State to move a story to when it is provably obsolete, delivered or a
+# duplicate (e.g. "Icebox"). Blank: never move it, only flag it as a close
+# candidate for the owner.
+close_state = ""
