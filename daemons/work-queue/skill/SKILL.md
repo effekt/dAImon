@@ -122,7 +122,15 @@ Do not open a PR with a broken build.
 
 Commit, push, and open the PR. `gh` targets the current repo automatically, so
 there's no need to name it. Put the story id and `app_url` in the body so the
-story and PR are linked.
+story and PR are linked, and end the body with this session's id, from
+`echo "$DAIMON_AGENT_SESSION"`, as a hidden line:
+
+```
+<!-- daimon-session: <the id> -->
+```
+
+pr-manager uses it to resume this session when the PR gets review feedback, so
+the context behind the change isn't lost.
 
 `open_as_draft` is `{{inputs.open_as_draft}}`:
 
@@ -137,7 +145,9 @@ git push -u origin daimon/story-<id>
 gh pr create --base {{inputs.base}} --draft --title "<title>" \
   --body "Implements Shortcut story <id> — <app_url>
 
-<what changed and why, and how it was verified>"
+<what changed and why, and how it was verified>
+
+<!-- daimon-session: $DAIMON_AGENT_SESSION -->"
 ```
 
 ## 8. Finish

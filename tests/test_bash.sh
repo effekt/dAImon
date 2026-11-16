@@ -181,4 +181,12 @@ check "$(echo "$out" | grep -c '^kept ahead.*unpushed')" "1" "sweep keeps a work
 check "$([ -d "$W/repo/.worktrees/mine" ] && echo yes || echo no)" "yes" "sweep ignores branches outside the prefix"
 check "$(sweep_worktrees "$W/repo" "" main | grep -c .)" "0" "empty prefix sweeps nothing"
 
+# claude backend: a resumed run passes --resume, a fresh one --session-id
+( source "$ROOT/backends/claude.sh"
+  DAIMON_AGENT_SESSION=abc DAIMON_RESUME=1 backend_cli_args opus 1 s | grep -q -- "--resume abc" && echo yes || echo no ) > "$TMP/r1"
+check "$(cat "$TMP/r1")" "yes" "claude backend resumes a session by id"
+( source "$ROOT/backends/claude.sh"
+  DAIMON_AGENT_SESSION=abc DAIMON_RESUME=0 backend_cli_args opus 1 s | grep -q -- "--session-id abc" && echo yes || echo no ) > "$TMP/r2"
+check "$(cat "$TMP/r2")" "yes" "claude backend pins a fresh session id"
+
 exit "$fails"

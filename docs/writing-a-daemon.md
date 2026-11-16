@@ -37,6 +37,13 @@ To make the log say what the gate saw, write a one-line summary (ids, counts) to
 the file named by `$DAIMON_GATE_NOTE`. `run.sh` appends it to the
 `launch_decision` or `skip` line.
 
+A gate can also ask to **resume an earlier agent session** instead of starting a
+fresh one, so the agent keeps the context it built: write the session id on line
+1 and the command to type into it on line 2 of `$DAIMON_GATE_RESUME`. The backend
+must support resuming (see backends/README.md); otherwise the command runs in a
+fresh session. pr-manager uses this to hand review feedback back to the
+work-queue session that wrote the PR.
+
 ```bash
 #!/usr/bin/env bash
 set -uo pipefail
