@@ -50,6 +50,12 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 | `defer_at_pct` | int | Work-style daemons defer new launches at/above this percent of the cap. |
 | `exempt` | string[] | Daemons that must always be available. They never defer on the cap, and their launches never count toward it. |
 
+### `[roles]`
+
+| Key | Type | Meaning |
+|-----|------|---------|
+| `command` | string | How a daemon with a `role` asks whether to run on this machine. `{role}` and `{seconds}` are filled in (shell-quoted); exit 0 = run here, 1 = another machine runs it (its first line of output is logged), anything else = the check failed, so the daemon skips (fails closed). See [Run a daemon on one machine only](#run-a-daemon-on-one-machine-only). |
+
 ### `[daemons]`
 
 | Key | Type | Meaning |
@@ -71,6 +77,8 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 | `working_dir` | path | Directory the agent launches in (a trusted folder). May be a single repo, or a **parent directory containing several repos** — the agent `cd`s into the one a work item concerns, picking up that repo's `CLAUDE.md`/conventions/`gh` context on the way in. This is per-machine, so the committed `daemon.toml` omits it and **you set it in `daemon.local.toml`** (or the TUI); if unset it falls back to `install_root` and `daimon doctor` warns. Optionally scope which repos with an `[inputs].repos` allowlist (e.g. `["api"]`); empty = all repos under the directory. There is no separate `repo` setting — `gh` infers it from the repo the agent enters. |
 | `mcp` | string[] | MCP servers for this daemon's session (overrides `[defaults].mcp`). Known: `codex` — also attaches the `references/codex-review.md` second-opinion protocol to the skill. Requires `danger = true`. |
 | `source` | string | Name of a [source profile](#source-profiles) (folder under `profiles/`) describing the work-item backend, e.g. `shortcut`. Optional; omit for daemons that only act on the repo (PR daemons). |
+| `role` | string | Run this daemon on one machine at a time across a team: on each run it asks `[roles].command` and skips unless this machine holds the role. Lowercase letters, digits and `-`. Usually set in `daemon.local.toml`. |
+| `role_hold` | int (sec) | How long one run's claim on the role lasts. Defaults to twice the interval plus a minute; required for `minutes`/`daily` schedules. |
 | `schedule` | table | One of: `{ interval = 1200 }` (seconds), `{ minutes = [8, 38] }` (minutes past each hour), or `{ daily = "13:02", tz = "UTC" }`. |
 
 ### `[inputs]` — task variables
@@ -109,6 +117,32 @@ Merge precedence (last wins): global `[defaults]` → profile `[defaults]` →
 (`c`) writes to `daemon.local.toml`, so editing a daemon never touches a committed
 file. Set workspace-wide values (e.g. your Shortcut workspace/labels) once in
 `profiles/<name>/profile.local.toml`.
+
+## Run a daemon on one machine only
+
+Some daemons should run once per team, not once per teammate: a Datadog error
+reviewer run on three laptops files every story three times. Give such a daemon
+a `role`, and point `[roles].command` at whatever coordinates your machines:
+
+```toml
+# ~/.config/daimon/daimon.toml
+[roles]
+command = "my-coordinator hold {role} --for {seconds}"
+
+# daemons/datadog-log-reviewer/daemon.local.toml
+[daemon]
+role = "datadog-errors"
+```
+
+Each run asks the command right after the throttle, inbox and budget checks.
+The command answers for this machine: exit 0 runs the daemon, exit 1 skips it
+because another machine holds the role. A machine that stops asking (the daemon
+is disabled, throttled or over budget) should lose the role once `{seconds}`
+pass, so the coordinator can hand it to another machine. An explicitly queued
+inbox command always runs, role or not.
+
+dAImon ships no coordinator. Anything that hands out leases works: a lock in a
+shared key-value store, or an internal service your team already runs.
 
 ## Source profiles
 

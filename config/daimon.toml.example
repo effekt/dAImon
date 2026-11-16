@@ -31,5 +31,11 @@ defer_at_pct = 80
 # daemons that must always be available (e.g. "review-prs").
 exempt = []
 
+[roles]
+# How a daemon with a `role` asks whether to run on this machine ({role},
+# {seconds} filled in; exit 0 = run here, 1 = another machine does). Empty:
+# no daemon may set `role`. See docs/configuration.md.
+command = ""
+
 [daemons]
 disabled = []
