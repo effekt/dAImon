@@ -187,3 +187,44 @@ _marker_fixture() {
   export DAIMON_INPUT_STATUS_IS_SOURCE=0
   run shortcut_marker_mode; [ "$status" -ne 0 ]
 }
+
+# --- include_epics: epics opted back in out of an excluded objective.
+@test "_sc_queries: no objective exclusion -> just the query" {
+  export DAIMON_INPUT_INCLUDE_EPICS="51278"
+  run _sc_queries 'label:"x" !epic:9'
+  [ "$output" = 'label:"x" !epic:9' ]
+}
+
+@test "_sc_queries: objective excluded -> one variant per opted-in epic, other exclusions kept" {
+  export DAIMON_INPUT_INCLUDE_EPICS="51278 54504"
+  run _sc_queries 'state:"To Do" !epic:9 !objective:48339 !label:"milestone"'
+  [ "$output" = "$(printf '%s\n' \
+    'state:"To Do" !epic:9 !objective:48339 !label:"milestone"' \
+    'state:"To Do" !epic:9 !label:"milestone" epic:51278' \
+    'state:"To Do" !epic:9 !label:"milestone" epic:54504')" ]
+}
+
+@test "_sc_queries: nothing opted in -> just the query" {
+  unset DAIMON_INPUT_INCLUDE_EPICS
+  run _sc_queries '!objective:48339'
+  [ "$output" = '!objective:48339' ]
+}
+
+@test "shortcut_search_ids: merges opted-in epics' stories, deduped in order" {
+  export DAIMON_INPUT_INCLUDE_EPICS="7"
+  _sc_search_ids_once() {
+    case "$1" in
+      *epic:7*) printf '2 b\n3 c\n' ;;
+      *) printf '1 a\n2 b\n' ;;
+    esac
+  }
+  run shortcut_search_ids 'q !objective:5'
+  [ "$output" = "$(printf '1 a\n2 b\n3 c')" ]
+}
+
+@test "shortcut_count: adds opted-in epics' counts" {
+  export DAIMON_INPUT_INCLUDE_EPICS="7 8"
+  _sc_count_once() { case "$1" in *epic:7*) echo 2 ;; *epic:8*) echo 0 ;; *) echo 3 ;; esac; }
+  run shortcut_count 'q !objective:5'
+  [ "$output" = "5" ]
+}

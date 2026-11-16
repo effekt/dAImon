@@ -70,6 +70,7 @@ When choosing among in-scope stories, order them:
 
 **Excluded epics:** `{{inputs.exclude_epics}}` — blank means none are excluded.
 **Excluded objectives:** `{{inputs.exclude_objectives}}` — blank means none.
+**Opted-in epics:** `{{inputs.include_epics}}` — blank means none.
 **Excluded labels:** `{{inputs.exclude_labels}}` — blank means none.
 
 A story carrying an excluded label is out of scope wherever it lives. Shortcut
@@ -85,6 +86,12 @@ another process owns it. Append one `!epic:<id>` term per epic id and one
 (`GET /api/v3/epics/{epic_id}` → `objective_ids`), even if it reaches you another
 way. This is scope, not preference — never
 comment on, label, or implement a story belonging to an excluded epic.
+
+The one exception: an **opted-in epic** is in scope even though its objective is
+excluded (it is never in scope if the epic itself is excluded, or the story
+carries an excluded label). Since search has no OR, run each search a second
+time per opted-in epic: drop the `!objective:` terms, add `epic:<id>`, and merge
+the results.
 
 ### Scope — only act on the owner's stories
 

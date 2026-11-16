@@ -21,6 +21,9 @@ epic_id = ""
 exclude_epics = []
 # Objectives whose stories (in every epic, current and future) no daemon touches.
 exclude_objectives = []
+# Epics opted back in although their objective is excluded, e.g. a tech-debt
+# epic inside a migration objective. exclude_epics and exclude_labels still win.
+include_epics = []
 # Labels whose stories no daemon touches, wherever they live. Shortcut matches a
 # label term against each word of a label name, so "milestone" also covers
 # "milestone:x:y". Names can't contain spaces (lists reach the gate space-joined).
