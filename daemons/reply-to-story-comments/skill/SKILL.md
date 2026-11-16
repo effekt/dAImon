@@ -59,8 +59,9 @@ For every story with a new human reply:
 If the story carries `{{inputs.assist_label}}` (story-reviewer parked it as
 needing human input) and the reply supplies that input, **remove the
 `{{inputs.assist_label}}` label** (read-modify-write the label set — see Source).
-With no assessment label, the story falls back into story-reviewer's triage gate
-and gets re-assessed next run — usually flipping to `{{inputs.ready_label}}`.
+(When the field is the marker, see Source, clear the field instead.) With no
+assessment marker, the story falls back into story-reviewer's triage gate and
+gets re-assessed next run — usually flipping to `{{inputs.ready_label}}`.
 
 Do not re-trigger for purely conversational replies (thanks, acknowledgements) —
 only when the answer actually unblocks the story. For a reply on a story that is

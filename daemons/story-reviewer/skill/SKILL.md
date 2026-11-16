@@ -44,8 +44,15 @@ yourself to filter it.
 Merge by story id. Then drop every story already recorded in your state
 (`daimon state get story-reviewer`, an object keyed by story id) whose current
 `updated_at` is not newer than the recorded `updated_at`. You reviewed it and
-nothing has changed since; if a human removed your label, that was deliberate.
-Never re-review such a story.
+nothing has changed since; never re-review such a story.
+
+A recorded story that **has** changed since and carries no assessment marker is
+back in review on purpose: the owner, or reply-to-story-comments after an answer,
+cleared the marker to ask for a fresh assessment. Review it again. Never treat a
+cleared marker as an opt-out; the owner opts a story out with
+`{{inputs.skip_label}}`, which the searches already exclude. Build on your
+earlier assessment rather than repeating it: post what changed and the new
+verdict.
 
 Then apply the **safety net** from Source: re-read each story and drop any that
 is out of scope, logging `[out-of-scope skip] sc-{id} …`. Of the survivors, take
