@@ -33,6 +33,10 @@ The gate. Inputs arrive as `DAIMON_INPUT_*`. Keep it cheap. Exit codes are read 
   surfaces instead of disabling the daemon invisibly. List the inputs the gate
   depends on in `required_inputs` so a missing one is caught before this runs.
 
+To make the log say what the gate saw, write a one-line summary (ids, counts) to
+the file named by `$DAIMON_GATE_NOTE`. `run.sh` appends it to the
+`launch_decision` or `skip` line.
+
 ```bash
 #!/usr/bin/env bash
 set -uo pipefail
@@ -91,6 +95,10 @@ Every rendered skill also gets `references/unattended.md`: no one answers a
 permission prompt during a scheduled run, so the agent must avoid commands the
 operator's settings make ask-first (`rm`, `git reset`, `git rebase`…) instead of
 stalling on them.
+
+It also gets `references/results.md`, which has the agent record one
+`event=result` line per item it handled with `daimon log '<outcome> <id> <link> —
+<title>'`, so the operational log says what each run did, not just that it ran.
 
 A daemon that posts comments (it has a `bot_marker` input) additionally gets
 `references/skill-conventions.md` appended — the marker-every-comment and

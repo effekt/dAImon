@@ -9,6 +9,7 @@
 # (working_dir), so hand-authored PRs — and stale PRs in unrelated repos — never
 # starve the queue.
 set -uo pipefail
+ready_ids="" stalled_ids=""
 
 source "$(dirname "$0")/../../profiles/shortcut/lib.sh"
 source "$(dirname "$0")/../../profiles/github/lib.sh"
@@ -41,5 +42,10 @@ fi
 
 open_prs=$(gh_pr_json --author @me --state open --json headRefName \
   | jq '[.[] | select(.headRefName | startswith("daimon/"))] | length' 2>/dev/null)
+
+note="ready ${ready:-0}${ready_ids:+ ($(printf '%s\n' "$ready_ids" | awk 'NF {printf "%ssc-%s", (n++ ? " " : ""), $1}'))}"
+note="$note, stalled ${stalled:-0}${stalled_ids:+ ($(printf '%s\n' "$stalled_ids" | awk 'NF {printf "%ssc-%s", (n++ ? " " : ""), $1}'))}"
+[ -n "${DAIMON_GATE_NOTE:-}" ] && printf '%s, open PRs %s/%s' "$note" "${open_prs:-0}" \
+  "${DAIMON_INPUT_MAX_OPEN_PRS:-2}" > "$DAIMON_GATE_NOTE"
 
 [ $(( ${ready:-0} + ${stalled:-0} )) -gt 0 ] && [ "${open_prs:-0}" -lt "${DAIMON_INPUT_MAX_OPEN_PRS:-2}" ]

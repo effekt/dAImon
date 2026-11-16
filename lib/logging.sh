@@ -4,9 +4,11 @@
 
 log_event() {  # daemon event message... -> one structured line on the daemon's operational log
   local daemon="$1" event="$2"; shift 2
-  local ts; ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  local ts msg; ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  # One line per event: fold newlines and swap the quote that delimits msg.
+  msg="$(printf '%s' "$*" | tr '\n\r"' "  '")"
   printf '%s level=info daemon=%s event=%s msg="%s"\n' \
-    "$ts" "$daemon" "$event" "$*"
+    "$ts" "$daemon" "$event" "$msg"
 }
 
 rotate_if_large() {  # logfile

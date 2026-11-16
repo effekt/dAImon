@@ -52,17 +52,22 @@ if [ -f "$DISCOVER" ]; then
   #   exit 1 with clean stderr -> nothing to do, skip until next run
   #   any stderr, or exit >=2  -> the gate itself errored; surface it loudly
   derr="$(mktemp "${TMPDIR:-/tmp}/daimon-discover.XXXXXX")"
+  # A gate may leave a one-line summary of what it found (ids, counts) in
+  # $DAIMON_GATE_NOTE; it is appended to the decision logged below.
+  DAIMON_GATE_NOTE="$(mktemp "${TMPDIR:-/tmp}/daimon-note.XXXXXX")"; export DAIMON_GATE_NOTE
   bash "$DISCOVER" 2>"$derr"; rc=$?
   errtext="$(cat "$derr")"; rm -f "$derr"
+  note="$(head -c 600 "$DAIMON_GATE_NOTE" 2>/dev/null)"; rm -f "$DAIMON_GATE_NOTE"
+  note="${note:+: $note}"
   if [ -n "$errtext" ] || [ "$rc" -ge 2 ]; then
     log_event "$SLUG" discover_error "discover.sh failed (exit $rc): ${errtext:-no stderr}" >> "$OPLOG"
     exit 1
   fi
   if [ "$rc" -eq 0 ]; then
-    log_event "$SLUG" launch_decision "discovery found work" >> "$OPLOG"
+    log_event "$SLUG" launch_decision "discovery found work$note" >> "$OPLOG"
     exec bash "$DAIMON_LIB_DIR/launch.sh" "$SLUG"
   fi
-  log_event "$SLUG" skip "discovery found nothing; $(next_run_display "$SLUG")" >> "$OPLOG"
+  log_event "$SLUG" skip "discovery found nothing$note; $(next_run_display "$SLUG")" >> "$OPLOG"
   exit 0
 fi
 
