@@ -8,6 +8,7 @@ WARN=0; FAIL=0
 ok()   { echo "  ok    $1"; }
 warn() { echo "  warn  $1"; WARN=1; }
 bad()  { echo "  FAIL  $1"; FAIL=1; }
+note() { echo "  note  $1"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 claude_trusts() { python3 "$DAIMON_LIB_DIR/claude_trust.py" "$1" 2>/dev/null; }
 
@@ -162,6 +163,14 @@ if [ "$needs_datadog" = 1 ]; then
   else
     warn "pup not installed (make tooling, or brew install datadog-labs/pack/pup) — datadog daemons never fire"
   fi
+fi
+
+# Ejected copies (yours, and packs') whose upstream changed since the copy:
+# not a problem, just fixes you may want to fold in.
+outdated="$(PYTHONPATH="$DAIMON_LIB_DIR/.." python3 -m daimon.eject outdated --brief 2>/dev/null)"
+if [ -n "$outdated" ]; then
+  echo "ejected daemons"
+  while IFS= read -r line; do note "$line — see: daimon diff ${line%% *}"; done <<<"$outdated"
 fi
 
 echo "updates"

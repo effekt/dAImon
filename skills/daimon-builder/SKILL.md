@@ -20,6 +20,11 @@ A new daemon goes in one of three places (`docs/catalog.md`):
 - dAImon's **`catalog/`**: only a generic daemon, useful to anyone, that the
   user means to contribute upstream by PR.
 
+If the user wants a variant of a daemon that already exists in dAImon's catalog,
+don't build one from scratch: `daimon eject <slug>` copies it into `daemons/` to
+edit, and `daimon eject <slug> --pack` copies it into the team's pack. Either copy
+records its source, so `daimon outdated` shows later upstream fixes.
+
 - If the arguments include `--pack` (optionally with a directory), it goes in that
   pack, or the first configured one; with `--catalog`, in `catalog/`.
 - Otherwise run `daimon packs`. If any pack is configured, ask: is this daemon
