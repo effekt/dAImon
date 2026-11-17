@@ -66,6 +66,40 @@ class MaterializeTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
+    def _auto_update(self, on: bool):
+        cfg = self.root / "config" / "daimon.toml"
+        text = cfg.read_text().split("[update]")[0]
+        cfg.write_text(text + f"[update]\nauto = {'true' if on else 'false'}\n")
+
+    def test_updater_is_written_and_loaded_when_auto_is_on(self):
+        self._auto_update(True)
+        with patch.object(self.sync.sys, "platform", "darwin"):
+            self.sync.materialize(self.config)
+        plist = self.home / "Library" / "LaunchAgents" / "com.testns.update.plist"
+        text = plist.read_text()
+        self.assertIn("self_update.sh", text)
+        self.assertIn("<key>RunAtLoad</key>\n    <true/>", text)
+        self.assertIn(("bootstrap", f"gui/{os.getuid()}", str(plist)), self.calls)
+
+    def test_updater_is_unloaded_and_removed_when_auto_turns_off(self):
+        self._auto_update(True)
+        with patch.object(self.sync.sys, "platform", "darwin"):
+            self.sync.materialize(self.config)
+            self._auto_update(False)
+            self.sync.materialize(self.config)
+        plist = self.home / "Library" / "LaunchAgents" / "com.testns.update.plist"
+        self.assertFalse(plist.exists())
+        self.assertIn(("bootout", f"gui/{os.getuid()}/com.testns.update"), self.calls)
+
+    def test_no_updater_by_default_and_watchdog_not_run_at_load(self):
+        with patch.object(self.sync.sys, "platform", "darwin"):
+            self.sync.materialize(self.config)
+        agents = self.home / "Library" / "LaunchAgents"
+        self.assertFalse((agents / "com.testns.update.plist").exists())
+        self.assertIn(
+            "<key>RunAtLoad</key>\n    <false/>", (agents / "com.testns.watchdog.plist").read_text()
+        )
+
     def test_materialize_renders_skill_into_claude_skills(self):
         cfg, _ = self.sync.materialize(self.config)
         self.assertIn("alpha", cfg.discover())

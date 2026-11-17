@@ -62,6 +62,12 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 |-----|------|---------|
 | `command` | string | Optional. Receives this machine's daemon status as one JSON document on stdin after every watchdog sweep and when an agent run starts and ends. `{seconds}` is filled in (shell-quoted) with how long the report should be trusted (900). Best-effort: a failure is logged to `logs/agent-status.log` and never affects a run. Empty (default) = no report. See [Report agent status](#report-agent-status). |
 
+### `[update]`
+
+| Key | Type | Meaning |
+|-----|------|---------|
+| `auto` | bool | Default false. When true, `daimon sync` loads `com.<ns>.update`, which runs `daimon update` at login and hourly. An update only fast-forwards this checkout to its upstream, only to a commit whose CI check runs all passed, and never touches a checkout with local changes or switch branches. It then runs `daimon install` and `daimon sync`, which also fast-forwards clean packs and reloads only daemons that are already registered. Log: `logs/update.log`. To opt one machine out, `touch ~/.config/daimon/no-auto-update`. To update now, `daimon update`. |
+
 ### `[packs]`
 
 | Key | Type | Meaning |

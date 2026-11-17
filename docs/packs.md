@@ -65,6 +65,11 @@ pick another. The skeleton's gate already sources dAImon's libraries through
 pack's repo, and teammates get it on their next `daimon sync`. It runs on a
 machine only once someone registers it there.
 
+A pack daemon can ship `doctor.sh` for its own needs
+([writing a daemon](writing-a-daemon.md#4-doctorsh-optional)). A pack is kept
+current by `daimon sync`, which runs hourly through `daimon update` when
+`[update] auto` is on.
+
 ## Runbooks
 
 slack-commands reads `commands/` in every pack, after its shared runbooks and

@@ -27,6 +27,8 @@ usage: daimon <command> [args]
   scaffold <slug> [--pack [dir]]
                      write an inert daemon skeleton (dAImon's daemons/, or a pack's)
   sync [--all]       render skills + refresh registered plists (--all also creates missing ones)
+  update [--force]   fast-forward this install to its green upstream, then install + sync
+                     (hourly when [update].auto is on; --force ignores the opt-out file)
   daemons            list discovered daemons
   packs              list configured packs and what each adds
   state <slug>       show a daemon's work-tracking record (--clear to reset)
@@ -60,6 +62,7 @@ case "$CMD" in
   new)       exec claude "/daimon-builder $*" ;;
   scaffold)  exec python3 -m daimon.scaffold "$@" ;;
   sync)      exec python3 -m daimon.sync "$@" ;;
+  update)    exec bash "$LIB/self_update.sh" "$@" ;;
   daemons)   exec python3 "$LIB/config.py" daemons ;;
   packs)     exec python3 "$LIB/config.py" packs ;;
   state)     exec bash "$LIB/state.sh" "$@" ;;

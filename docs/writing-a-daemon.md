@@ -117,6 +117,20 @@ A daemon that posts comments (it has a `bot_marker` input) additionally gets
 durable-state-via-`daimon state` conventions — so you inherit them instead of
 restating them in each skill.
 
+## 4. `doctor.sh` (optional)
+
+What only this daemon knows it needs, such as a keychain item, a login, or a
+personal setting, can be checked by `daimon doctor`. Add `doctor.sh`: it runs
+for registered daemons, with the daemon's inputs as `DAIMON_INPUT_*` and its
+folder as `DAIMON_DAEMON_DIR`. Exit 0 = ok, 1 = warn, 2 = fail. The first line
+of output is the message.
+
+```bash
+security find-generic-password -s "$DAIMON_INPUT_CF_TOKEN_SERVICE" >/dev/null 2>&1 \
+  && echo "Cloudflare token in keychain" \
+  || { echo "no Cloudflare token in keychain ($DAIMON_INPUT_CF_TOKEN_SERVICE)"; exit 2; }
+```
+
 ## Activate
 
 ```bash

@@ -60,6 +60,10 @@ ROLE_PATTERN = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 # watchdog sweep and agent run: a template with {seconds} (how long the report
 # should be trusted). Empty: no report.
 STATUS_DEFAULTS = {"command": ""}
+# `auto` loads com.<ns>.update, which runs `daimon update` hourly: fast-forward
+# to a green upstream, then install + sync. Off unless a setup turns it on.
+UPDATE_DEFAULTS = {"auto": False}
+UPDATE_INTERVAL_SECONDS = 3600
 STATUS_TTL_SECONDS = 900
 
 DAEMON_FIELDS = (
@@ -129,6 +133,7 @@ class Config:
         self.budget = {**BUDGET_DEFAULTS, **raw.get("budget", {})}
         self.roles = {**ROLES_DEFAULTS, **raw.get("roles", {})}
         self.status = {**STATUS_DEFAULTS, **raw.get("status", {})}
+        self.update = {**UPDATE_DEFAULTS, **raw.get("update", {})}
         self.disabled = list(raw.get("daemons", {}).get("disabled", []))
         # Packs: directories outside the install root that add daemons, team
         # overrides, profile defaults and slack-commands runbooks (docs/packs.md).
@@ -336,7 +341,21 @@ def render_watchdog_plist(cfg: Config) -> str:
     )
 
 
-def render_plist_raw(label, program, working_dir, schedule_xml, log) -> str:
+def render_update_plist(cfg: Config) -> str:
+    """com.<ns>.update: `daimon update` hourly, and once at load (login)."""
+    return render_plist_raw(
+        label=f"com.{cfg.core['namespace']}.update",
+        program=[str(cfg.install_root / "lib" / "self_update.sh")],
+        working_dir=str(cfg.install_root),
+        schedule_xml=(
+            f"    <key>StartInterval</key>\n    <integer>{UPDATE_INTERVAL_SECONDS}</integer>"
+        ),
+        log=str(cfg.state_dir / "logs" / "update.log"),
+        run_at_load=True,
+    )
+
+
+def render_plist_raw(label, program, working_dir, schedule_xml, log, run_at_load=False) -> str:
     args = "\n".join(f"        <string>{escape(a)}</string>" for a in program)
     env_xml = "\n".join(
         f"        <key>{k}</key>\n        <string>{escape(os.environ[k])}</string>"
@@ -365,7 +384,7 @@ def render_plist_raw(label, program, working_dir, schedule_xml, log) -> str:
 {env_xml}
     </dict>
     <key>RunAtLoad</key>
-    <false/>
+    <{"true" if run_at_load else "false"}/>
 </dict>
 </plist>
 """
@@ -723,6 +742,7 @@ def main(argv: list[str]) -> int:
             "budget": cfg.budget,
             "roles": cfg.roles,
             "status": cfg.status,
+            "update": cfg.update,
         }.get(section)
         if table is None or field not in table:
             print(f"unknown key: {args.key}", file=sys.stderr)
