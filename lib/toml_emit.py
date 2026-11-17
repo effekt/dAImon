@@ -62,14 +62,17 @@ def _is_table_header(line: str) -> bool:
     return s.startswith("[") and not s.startswith("[[") and s.endswith("]")
 
 
-def set_key_text(text: str, table: str, key: str, value) -> str:
+def set_key_text(text: str, table: str, key: str, value, comment: str = "") -> str:
     """Set `key = value` in top-level table [table] of a TOML document's text,
     keeping every comment and other setting. Replaces the key's existing value
     (a multi-line array too) or adds the key at the end of the table, creating
-    the table at the end of the file when absent."""
+    the table at the end of the file when absent. A `comment` goes on its own
+    line just above the key."""
     new_line = emit_kv(key, value)
     if isinstance(value, list) and len(new_line) > 88:  # one item per line
         new_line = "\n".join([f"{key} = [", *(f"  {emit_value(v)}," for v in value), "]"])
+    if comment:
+        new_line = f"# {comment}\n{new_line}"
     lines = text.splitlines()
     out: list[str] = []
     in_table = done = False

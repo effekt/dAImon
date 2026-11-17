@@ -25,6 +25,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -204,10 +205,54 @@ def _copy_settings(cfg, slug: str, new: str) -> None:
         print(f"+ {dest} (a copy of your {slug} settings)")
 
 
+Baked = dict[tuple[str, str], tuple[object, Path]]
+
+
+def _team_overrides(cfg, slug: str) -> Baked:
+    """The [daemon]/[inputs] values every pack's overrides/<slug>.toml sets, in
+    raw_daemon's order (a later pack wins), each with the file it came from.
+    They name `slug`, so a fork would lose them; it takes them into its own
+    daemon.toml instead."""
+    import toml_emit  # lib/, on sys.path once _modules() ran
+
+    baked: Baked = {}
+    for path in cfg.pack_overrides(slug):
+        if not path.exists():
+            continue
+        try:
+            data = tomllib.loads(path.read_text())
+        except (OSError, tomllib.TOMLDecodeError) as e:
+            raise ValueError(f"cannot read {path}: {e}") from e
+        for table in ("daemon", "inputs"):
+            for key, value in data.get(table, {}).items():
+                try:
+                    toml_emit.emit_value(value)
+                except TypeError as e:
+                    raise ValueError(f"{path}: cannot copy [{table}].{key}: {e}") from e
+                baked[(table, key)] = (value, path)
+    return baked
+
+
+def _bake(dest: Path, slug: str, baked: Baked) -> None:
+    import toml_emit
+
+    toml = dest / "daemon.toml"
+    text = toml.read_text()
+    for (table, key), (value, path) in baked.items():
+        note = (
+            f"from the {path.parent.parent.name} pack's overrides/{slug}.toml (daimon eject --as)"
+        )
+        text = toml_emit.set_key_text(text, table, key, value, comment=note)
+    toml.write_text(text)
+    files = ", ".join(dict.fromkeys(str(path) for _, path in baked.values()))
+    print(f"  folded in the team overrides of {slug}: {files}")
+
+
 def fork(cfg, migrate, slug: str, new: str, pack: str | None) -> Path:
     """Copy `slug` from its catalog to daemons/<new> (or the pack's), renamed: a
-    distinct daemon with its own skill, launchd job, state and logs. The
-    original is left as it is."""
+    distinct daemon with its own skill, launchd job, state and logs, carrying
+    the packs' team overrides of `slug` in its daemon.toml. The original is left
+    as it is."""
     _check_new_slug(cfg, slug, new)
     entry = cfg.catalog().get(slug)
     if entry is None:
@@ -221,9 +266,13 @@ def fork(cfg, migrate, slug: str, new: str, pack: str | None) -> Path:
     if dest.exists():
         raise ValueError(f"{dest} already exists")
     rel = src.relative_to(root).as_posix()
+    baked = _team_overrides(cfg, slug)
     copy_daemon(src, dest, source, rel, new)
     _ensure_installed(cfg, migrate, new)
     print(f"+ {dest}/ ({slug} from {source}: {rel}, renamed {new})")
+    if baked:
+        # After the hash: these are the fork's own values from now on.
+        _bake(dest, slug, baked)
     _copy_settings(cfg, slug, new)
     print(f"  {new} runs beside {slug} with its own job, state and logs; edit it there.")
     print(f"  `daimon outdated` / `daimon diff {new}` show changes to {slug} upstream")

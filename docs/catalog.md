@@ -158,6 +158,15 @@ settings for the original (`daemons/work-queue.toml` in your personal settings
 folder) and none for the fork, they are copied to `daemons/bug-queue.toml` as a
 starting point.
 
+A pack's team settings for the original (`overrides/work-queue.toml`) apply only
+to `work-queue`, so the fork takes them into its own `daemon.toml` instead: every
+`[daemon]` and `[inputs]` value they set, layered in pack order as they are for
+the original, each under a comment naming the pack it came from. The command
+lists the override files it folded in. With those and your settings copied, the
+fork starts with exactly the original's effective config (working directory,
+repos and so on), apart from its name. Later changes to the pack's override
+don't reach the fork.
+
 `.origin.json` still points at the original, plus the new name:
 
 ```json
@@ -166,7 +175,9 @@ starting point.
 
 `hash` covers the renamed copy, and `daimon outdated` / `daimon diff bug-queue`
 compare it with upstream through the same rewrite, so the rename alone is not
-an edit and the diff shows only real changes on either side.
+an edit and the diff shows only real changes on either side. The folded-in team
+overrides are not part of `hash`, so they show as edits to your copy (`YOUR COPY`
+`edited`, and in the diff), which is what they now are.
 
 A fork is a distinct daemon, never an override: `daimon validate` treats it like
 any other daemon, even in a pack. `daimon eject --as` refuses a name that isn't

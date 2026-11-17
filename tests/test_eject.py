@@ -375,6 +375,36 @@ class ForkTest(EjectBase):
         self.assertEqual((personal / "zeta.toml").read_text(), '[inputs]\nq = "zeta"\n')
         self.assertNotIn("settings", out)
 
+    def without_name(self, slug: str) -> dict:
+        d = dict(self.cfg().daemon(slug))
+        del d["slug"], d["command"]
+        return d
+
+    def test_team_overrides_are_folded_into_the_fork(self):
+        override = write(
+            self.pack / "overrides" / "alpha.toml",
+            '[daemon]\nworking_dir = "~/team/hub"\n'
+            '[inputs]\nq = "team"\nrepos = ["team/one", "team/two"]\n',
+        )
+        write(self.conf.parent / "daemons" / "alpha.toml", '[inputs]\nrepos = ["mine/x"]\n')
+        before = self.without_name("alpha")
+        self.assertEqual(before["working_dir"], str(self.home / "team" / "hub"))
+        for args, folder in (
+            (("--as", "omega"), self.fork),
+            (("--as", "zeta", "--pack"), self.pack / "daemons" / "zeta"),
+        ):
+            rc, out = self.run_cmd("eject", "alpha", *args)
+            self.assertEqual(rc, 0, out)
+            self.assertIn(f"folded in the team overrides of alpha: {override}", out)
+            self.assertEqual(self.without_name(folder.name), before)
+            toml = (folder / "daemon.toml").read_text()
+            self.assertIn("# from the team pack's overrides/alpha.toml", toml)
+            self.assertEqual(toml.count('q = "'), 1)
+            self.assertEqual(
+                eject.report(self.cfg())[0 if folder == self.fork else 1][1:], (False, True)
+            )
+        self.assertEqual(self.without_name("alpha"), before)
+
     def test_refusals(self):
         make_daemon(self.root / "daemons" / "mine", "mine")
         cases = {
