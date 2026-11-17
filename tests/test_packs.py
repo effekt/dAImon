@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
 import config  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from daimon import init, sync  # noqa: E402
+from daimon import sync  # noqa: E402
 
 
 def write(path: Path, text: str):
@@ -45,7 +45,7 @@ class PacksTest(unittest.TestCase):
         self.root = base / "install"
         self.pack = base / "team"
         daemon(
-            self.root / "daemons" / "watcher", "watcher", 'q = "base"\nepic = 1', 'sources = ["sc"]'
+            self.root / "catalog" / "watcher", "watcher", 'q = "base"\nepic = 1', 'sources = ["sc"]'
         )
         write(
             self.root / "profiles" / "sc" / "profile.toml",
@@ -90,7 +90,7 @@ class PacksTest(unittest.TestCase):
         cfg = config.Config.load()
         w = cfg.daemon("watcher")
         self.assertEqual((w["inputs"]["q"], w["inputs"]["epic"], w["role"]), ("team", 2, "errors"))
-        write(self.root / "daemons" / "watcher" / "daemon.local.toml", '[inputs]\nq = "mine"\n')
+        write(self.root / "catalog" / "watcher" / "daemon.local.toml", '[inputs]\nq = "mine"\n')
         w = config.Config.load().daemon("watcher")
         self.assertEqual((w["inputs"]["q"], w["inputs"]["epic"]), ("mine", 2))
 
@@ -122,7 +122,7 @@ class PacksTest(unittest.TestCase):
         self.assertEqual(config.validate(cfg), [])
 
     def test_declared_pack_commands_dirs_fill_from_packs(self):
-        daemon(self.root / "daemons" / "cmds", "cmds", "pack_commands_dirs = []")
+        daemon(self.root / "catalog" / "cmds", "cmds", "pack_commands_dirs = []")
         cfg = config.Config.load()
         self.assertEqual(
             cfg.daemon("cmds")["inputs"]["pack_commands_dirs"], [str(self.pack / "commands")]
@@ -142,8 +142,10 @@ class PacksTest(unittest.TestCase):
         self.assertEqual(cfg.packs, [])
         self.assertIn("no packs configured", config.describe_packs(cfg))
 
-    def test_init_lists_pack_daemons(self):
-        self.assertEqual(init.all_slugs(self.root, [self.pack]), ["report", "watcher"])
+    def test_catalog_lists_pack_daemons_after_the_install_roots(self):
+        catalog = config.Config.load().catalog()
+        self.assertEqual(list(catalog), ["watcher", "report"])
+        self.assertEqual(catalog["report"]["source"], self.pack.name)
 
     def test_sync_pulls_only_clean_git_packs(self):
         self.assertEqual(sync.pull_packs([self.pack]), [])  # not a git checkout

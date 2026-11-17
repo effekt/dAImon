@@ -5,7 +5,7 @@
 setup() {
   ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   T="$BATS_TEST_TMPDIR"
-  mkdir -p "$T/install/daemons/watch/skill" "$T/install/daemons/quiet/skill" "$T/state/logs" "$T/bin"
+  mkdir -p "$T/install/catalog/watch/skill" "$T/install/catalog/quiet/skill" "$T/state/logs" "$T/bin"
   ln -s "$ROOT/lib" "$T/install/lib"
   ln -s "$ROOT/profiles" "$T/install/profiles"
   printf '#!/usr/bin/env bash\nprintf -- "-\\t0\\tcom.t.watch\\n"\n' > "$T/bin/launchctl"
@@ -14,8 +14,8 @@ setup() {
   export PATH="$T/bin:$PATH"
   for d in watch quiet; do
     printf '[daemon]\ncommand = "/%s"\nschedule = { interval = 120 }\n' "$d" \
-      > "$T/install/daemons/$d/daemon.toml"
-    touch "$T/install/daemons/$d/skill/SKILL.md"
+      > "$T/install/catalog/$d/daemon.toml"
+    touch "$T/install/catalog/$d/skill/SKILL.md"
   done
 }
 

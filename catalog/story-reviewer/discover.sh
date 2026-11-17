@@ -15,8 +15,10 @@
 # label on purpose). Without that, such a story keeps the gate open every run.
 set -uo pipefail
 
-source "$(dirname "$0")/../../lib/common.sh"
-source "$(dirname "$0")/../../profiles/shortcut/lib.sh"
+# dAImon exports this when it runs the gate; fall back to the `daimon` on PATH.
+DAIMON_INSTALL_ROOT="${DAIMON_INSTALL_ROOT:-$(cd "$(dirname "$(readlink -f "$(command -v daimon)")")/.." && pwd)}"
+source "$DAIMON_INSTALL_ROOT/lib/common.sh"
+source "$DAIMON_INSTALL_ROOT/profiles/shortcut/lib.sh"
 
 if shortcut_marker_mode; then
   # Un-assessed = status field unset; searches can't see it, so filter results.

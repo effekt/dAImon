@@ -63,7 +63,7 @@ def materialize(cfg_mod, create_missing: bool = True):
     also creates absent ones. Returns (cfg, skipped_slugs)."""
     RELOAD_NOTES.clear()
     cfg = cfg_mod.Config.load()
-    schema_path = cfg.install_root / "daemons" / "daemon.schema.json"
+    schema_path = cfg.catalog_dir() / "daemon.schema.json"
     schema_path.write_text(json.dumps(cfg_mod.daemon_schema(), indent=2) + "\n")
     skills_root = Path(os.path.expanduser("~/.claude/skills"))
     agents = Path(os.path.expanduser("~/Library/LaunchAgents"))

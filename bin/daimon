@@ -19,19 +19,25 @@ dAImon — agent daemon pipeline
 
 usage: daimon <command> [args]
 
-  init [slug...]     choose active daemons + scaffold their personal settings
-  migrate            move legacy in-repo *.local.toml settings to ~/.config/daimon
+  init [slug...]     choose daemons from the catalog + scaffold their personal settings
+  catalog            list every daemon you can install, with its source and state
+  add <slug>...      install daemons (+ personal settings, sync); registers nothing
+  remove [--yes] <slug>...
+                     unregister and uninstall daemons (personal settings kept)
+  migrate            bring an install up to date: legacy in-repo settings to
+                     ~/.config/daimon, [daemons].installed written once
                      (idempotent; install and init run it for you)
   run <slug>         gated run (throttle/inbox/discovery), then launch
   launch <slug>      launch the agent now, bypassing gates
   watchdog           sweep orphan sessions, leaked MCP servers, old logs
   new [--pack [dir]] create a daemon with Claude (/daimon-builder); --pack puts it in a pack
-  scaffold <slug> [--pack [dir]]
-                     write an inert daemon skeleton (dAImon's daemons/, or a pack's)
+  scaffold <slug> [--pack [dir] | --catalog]
+                     write an inert daemon skeleton: your own daemons/ (default),
+                     a pack's daemons/, or dAImon's catalog/ to contribute it
   sync [--all]       render skills + refresh registered plists (--all also creates missing ones)
   update [--force]   fast-forward this install to its green upstream, then install + sync
                      (hourly when [update].auto is on; --force ignores the opt-out file)
-  daemons            list discovered daemons
+  daemons            list active daemons (installed + ejected, minus disabled)
   packs              list configured packs and what each adds
   state <slug>       show a daemon's work-tracking record (--clear to reset)
                      (get [slug] / set [slug] read/write raw JSON — used by agents)
@@ -59,6 +65,9 @@ EOF
 case "$CMD" in
   init)      exec python3 -m daimon.init "$@" ;;
   migrate)   exec python3 "$LIB/migrate.py" "$@" ;;
+  catalog)   exec python3 -m daimon.catalog list "$@" ;;
+  add)       exec python3 -m daimon.catalog add "$@" ;;
+  remove)    exec python3 -m daimon.catalog remove "$@" ;;
   run)       exec bash "$LIB/run.sh" "$@" ;;
   launch)    exec bash "$LIB/launch.sh" "$@" ;;
   watchdog)  exec bash "$LIB/watchdog.sh" "$@" ;;

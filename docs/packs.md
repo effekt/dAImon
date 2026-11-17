@@ -1,6 +1,6 @@
 # Packs: share a team's setup
 
-dAImon's own repo holds generic daemons. A team's real setup (its private
+dAImon's own repo holds generic daemons in its `catalog/`. A team's real setup (its private
 daemons, the settings everyone shares, its Slack runbooks) belongs in a repo the
 team owns, not in one person's settings on one machine. A **pack** is
 that repo: a folder dAImon loads alongside its own.
@@ -17,7 +17,7 @@ Every folder is optional.
 
 ```
 daimon-team/
-  daemons/<slug>/       whole daemons, exactly like dAImon's daemons/<slug>
+  daemons/<slug>/       whole daemons, exactly like dAImon's catalog/<slug>
   overrides/<slug>.toml team settings for any daemon: [daemon] and [inputs]
   profiles/<name>.toml  team [defaults] for a source profile
   commands/*.md         slack-commands runbooks
@@ -42,8 +42,11 @@ its `daemon.toml`, is still read and is moved there by `daimon migrate`
 
 ## Daemons in a pack
 
-- A slug defined in two places (dAImon and a pack, or two packs) is a validation
-  error.
+- A pack's `daemons/` is a [catalog](catalog.md): `daimon catalog` lists its
+  daemons beside dAImon's, and each person installs the ones they want with
+  `daimon add <slug>`. A pack daemon nobody installed does not run.
+- A slug defined in two catalogs (dAImon and a pack, or two packs) is a validation
+  error, unless you have your own copy in `daemons/`, which wins.
 - `disabled` works the same.
 - State and logs are keyed by slug, so moving a daemon into a pack keeps its
   history.
@@ -65,8 +68,11 @@ its `daemon.toml`, is still read and is moved there by `daimon migrate`
 (a skeleton) creates it in the first pack's `daemons/`; give `--pack <dir>` to
 pick another. The skeleton's gate already sources dAImon's libraries through
 `$DAIMON_INSTALL_ROOT`, and skips every run until you write it. Commit it in the
-pack's repo, and teammates get it on their next `daimon sync`. It runs on a
-machine only once someone registers it there.
+pack's repo, and teammates see it in `daimon catalog` after their next
+`daimon sync`. It runs on a machine only once someone installs it there
+(`daimon add <slug>`) and registers it (`r` in `daimon tui`).
+
+Team-specific daemons always go in a pack, never in dAImon's `catalog/`.
 
 A pack daemon can ship `doctor.sh` for its own needs
 ([writing a daemon](writing-a-daemon.md#4-doctorsh-optional)). A pack is kept
@@ -76,13 +82,13 @@ current by `daimon sync`, which runs hourly through `daimon update` when
 ## Runbooks
 
 slack-commands reads `commands/` in every pack, after its shared runbooks and
-before your `commands.local/`. Scaffold one into a pack with
+before your own in `~/.config/daimon/commands/`. Scaffold one into a pack with
 `daimon command new <name> --pack <dir>`.
 
 ## Commands
 
 - `daimon packs` lists each pack and what it adds.
 - `daimon sync` fast-forwards each pack that is a clean git checkout, then
-  re-renders as usual. It never loads a daemon that wasn't registered, so a pack
-  adding daemons doesn't start anything until you choose them (`daimon init`, or
-  `r` in the TUI).
+  re-renders as usual. A pack adding daemons doesn't start anything: each person
+  installs the ones they want (`daimon add`, or `daimon init`) and registers them
+  (`r` in the TUI).

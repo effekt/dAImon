@@ -32,7 +32,7 @@ STUB
   mkdir -p "$PROJ"
 }
 
-gate() { cd "$T/repo" && bash "$ROOT/daemons/pr-manager/discover.sh"; }
+gate() { cd "$T/repo" && DAIMON_INSTALL_ROOT="$ROOT" bash "$ROOT/catalog/pr-manager/discover.sh"; }
 
 @test "unhandled findings launch a run" {
   run gate

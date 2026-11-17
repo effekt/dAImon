@@ -1,7 +1,8 @@
 # Configuration reference
 
 dAImon reads one global file — `~/.config/daimon/daimon.toml` (override with
-`$DAIMON_CONFIG`) — plus one `daemon.toml` per daemon folder under `daemons/`.
+`$DAIMON_CONFIG`) — plus one `daemon.toml` per daemon folder: in dAImon's
+`catalog/`, a pack's `daemons/`, or your own `daemons/` ([catalog](catalog.md)).
 Run `daimon config validate` after editing. Plists are generated from these by
 `daimon sync`; never hand-edit the generated plists.
 
@@ -78,9 +79,10 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 
 | Key | Type | Meaning |
 |-----|------|---------|
-| `disabled` | string[] | Slugs of discovered daemons to skip (without deleting their folder). |
+| `installed` | string[] | The daemons this machine has, from `daimon catalog`. `daimon add` / `daimon remove` / `daimon init` edit it; installing registers nothing. Your own daemons in `daemons/` are active without an entry. Absent (an install from before the catalog): every catalog daemon counts as installed, and `daimon migrate` writes that set once. See [catalog](catalog.md). |
+| `disabled` | string[] | Installed (or your own) daemons to skip, without uninstalling or deleting them. |
 
-## Per-daemon file: `daemons/<slug>/daemon.toml`
+## Per-daemon file: `<slug>/daemon.toml`
 
 ### `[daemon]` — framework settings (override `[defaults]`)
 
@@ -142,11 +144,13 @@ once in `~/.config/daimon/profiles/<name>.toml`.
 
 **Legacy files.** Older installs kept these settings in gitignored
 `daemons/<slug>/daemon.local.toml` and `profiles/<name>/profile.local.toml` files
-inside the repo (or a pack). They are still read, under the new files, and
+inside the repo (or a pack). When dAImon's daemons moved to `catalog/`, those
+files stayed in `daemons/<slug>/`. They are still read, under the new files, and
 `daimon migrate` moves them: the text is copied verbatim (comments kept), or merged
 key by key when the new file already exists (its values win; overridden legacy
 values are kept as comments), and the old file is reduced to a one-line
-`# moved to … by daimon migrate` comment. It is idempotent, and `daimon install`
+`# moved to … by daimon migrate` comment. A `daemons/<slug>/` folder left with
+nothing but such stubs (and caches) is then removed. It is idempotent, and `daimon install`
 (so every self-update) and `daimon init` run it for you. The tracked
 `*.local.toml.example` files stay where they are: `daimon init` copies them into
 `~/.config/daimon/`.

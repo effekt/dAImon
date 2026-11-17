@@ -7,7 +7,9 @@
 # excluded epics, objectives and labels never open the gate.
 set -uo pipefail
 
-source "$(dirname "$0")/../../profiles/shortcut/lib.sh"
+# dAImon exports this when it runs the gate; fall back to the `daimon` on PATH.
+DAIMON_INSTALL_ROOT="${DAIMON_INSTALL_ROOT:-$(cd "$(dirname "$(readlink -f "$(command -v daimon)")")/.." && pwd)}"
+source "$DAIMON_INSTALL_ROOT/profiles/shortcut/lib.sh"
 
 if shortcut_marker_mode; then
   ids=$(shortcut_marked_ids "$DAIMON_INPUT_STATUS_ASSIST" \

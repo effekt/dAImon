@@ -5,7 +5,9 @@
 # the engine actually runs it.
 set -uo pipefail
 
-source "$(dirname "$0")/../../lib/common.sh"
+# dAImon exports this when it runs the gate; fall back to the `daimon` on PATH.
+DAIMON_INSTALL_ROOT="${DAIMON_INSTALL_ROOT:-$(cd "$(dirname "$(readlink -f "$(command -v daimon)")")/.." && pwd)}"
+source "$DAIMON_INSTALL_ROOT/lib/common.sh"
 
 tz="${DAIMON_INPUT_TZ:-America/New_York}"
 days="${DAIMON_INPUT_DAYS:-}"

@@ -4,7 +4,9 @@
 # "new human reply to a bot comment" filtering. gh targets the current repo.
 set -uo pipefail
 
-source "$(dirname "$0")/../../profiles/github/lib.sh"
+# dAImon exports this when it runs the gate; fall back to the `daimon` on PATH.
+DAIMON_INSTALL_ROOT="${DAIMON_INSTALL_ROOT:-$(cd "$(dirname "$(readlink -f "$(command -v daimon)")")/.." && pwd)}"
+source "$DAIMON_INSTALL_ROOT/profiles/github/lib.sh"
 
 count=$(gh_pr_count --state open)
 

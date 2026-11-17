@@ -25,14 +25,14 @@ class AgentStatusTest(unittest.TestCase):
         self._write_config("")
         for slug in ("alpha", "beta", "gamma", "delta"):
             write(
-                self.root / "daemons" / slug / "daemon.toml",
+                self.root / "catalog" / slug / "daemon.toml",
                 f"""
                 [daemon]
                 schedule = {{ interval = 600 }}
                 command = "/{slug}"
             """,
             )
-        write(self.root / "daemons" / "beta" / "daemon.local.toml", '[daemon]\nrole = "triage"\n')
+        write(self.root / "catalog" / "beta" / "daemon.local.toml", '[daemon]\nrole = "triage"\n')
         os.environ["DAIMON_CONFIG"] = str(self.conf)
         self.cfg = config.Config.load()
 
@@ -93,7 +93,7 @@ class AgentStatusTest(unittest.TestCase):
     def test_caps_at_32_agents(self):
         for i in range(40):
             write(
-                self.root / "daemons" / f"d{i:02d}" / "daemon.toml",
+                self.root / "catalog" / f"d{i:02d}" / "daemon.toml",
                 "[daemon]\nschedule = { interval = 600 }\n",
             )
         cfg = config.Config.load()

@@ -1,6 +1,9 @@
-"""Write a new daemon's folder: `daimon scaffold <slug> [--pack [dir]]`.
+"""Write a new daemon's folder: `daimon scaffold <slug> [--pack [dir] | --catalog]`.
 
-The files work wherever the daemon lives (dAImon's daemons/ or a pack's), and
+By default it goes in daemons/, your own (gitignored) daemons, active at once.
+--pack puts it in a pack's daemons/ for a team, --catalog in dAImon's catalog/
+to contribute it upstream; both then need `daimon add <slug>` to run here.
+The files work wherever the daemon lives, and
 the daemon starts inert: its gate skips every run until you write it, so a
 half-finished daemon can't launch an agent. `daimon new` (the /daimon-builder
 interview) runs this, then fills the files in."""
@@ -29,9 +32,12 @@ def _config():
     return mod
 
 
-def target_root(cfg, pack: str | None) -> Path:
-    """daemons/ in the install root, or in a pack: `pack` is "" for the first
-    configured pack, else a path (which must be a configured pack)."""
+def target_root(cfg, pack: str | None, catalog: bool = False) -> Path:
+    """daemons/ in the install root, catalog/ (`catalog`), or a pack's daemons/:
+    `pack` is "" for the first configured pack, else a path (which must be a
+    configured pack)."""
+    if catalog:
+        return cfg.catalog_dir()
     if pack is None:
         return cfg.daemons_dir()
     if pack == "":
@@ -44,13 +50,13 @@ def target_root(cfg, pack: str | None) -> Path:
     return chosen / "daemons"
 
 
-def scaffold(cfg, slug: str, pack: str | None = None) -> Path:
+def scaffold(cfg, slug: str, pack: str | None = None, catalog: bool = False) -> Path:
     if not SLUG_RE.match(slug):
         raise ValueError(f"{slug!r}: use lowercase words joined by hyphens, e.g. triage-issues")
     existing = cfg.daemon_locations().get(slug)
     if existing:
         raise ValueError(f"{slug} already exists: {existing[0]}")
-    folder = target_root(cfg, pack) / slug
+    folder = target_root(cfg, pack, catalog) / slug
     files = {
         "daemon.toml": DAEMON_TOML,
         "daemon.local.toml.example": LOCAL_EXAMPLE,
@@ -68,8 +74,10 @@ def scaffold(cfg, slug: str, pack: str | None = None) -> Path:
 def _parse(argv: list[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="daimon scaffold")
     p.add_argument("slug")
+    where = p.add_mutually_exclusive_group()
     # A bare --pack means the first configured pack.
-    p.add_argument("--pack", nargs="?", const="", default=None, metavar="DIR")
+    where.add_argument("--pack", nargs="?", const="", default=None, metavar="DIR")
+    where.add_argument("--catalog", action="store_true", help="contribute it to dAImon's catalog/")
     return p.parse_args(argv)
 
 
@@ -77,15 +85,18 @@ def main(argv: list[str]) -> int:
     args = _parse(argv)
     slug = args.slug
     try:
-        folder = scaffold(_config().Config.load(), slug, args.pack)
+        folder = scaffold(_config().Config.load(), slug, args.pack, args.catalog)
     except ValueError as e:
         print(f"✗ {e}", file=sys.stderr)
         return 1
     print(f"+ {folder}/")
     print("  daemon.toml, daemon.local.toml.example, skill/SKILL.md, discover.sh")
     print("  The gate skips every run until you write it (discover.sh), so nothing")
-    print(f"  launches yet. Then: daimon validate, daimon run {slug} to try it once,")
-    print("  and register it in daimon tui (r) to schedule it.")
+    if args.pack is not None or args.catalog:
+        print(f"  launches yet. Install it here with daimon add {slug}, then daimon validate,")
+    else:
+        print("  launches yet. Then: daimon validate,")
+    print(f"  daimon run {slug} to try it once, and register it in daimon tui (r).")
     return 0
 
 

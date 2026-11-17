@@ -140,7 +140,12 @@ class Config:
         self.roles = {**ROLES_DEFAULTS, **raw.get("roles", {})}
         self.status = {**STATUS_DEFAULTS, **raw.get("status", {})}
         self.update = {**UPDATE_DEFAULTS, **raw.get("update", {})}
-        self.disabled = list(raw.get("daemons", {}).get("disabled", []))
+        daemons = raw.get("daemons", {})
+        self.disabled = list(daemons.get("disabled", []))
+        # None = no `installed` key (an install from before the catalog).
+        self.installed_list = (
+            list(daemons["installed"]) if isinstance(daemons.get("installed"), list) else None
+        )
         # Packs: directories outside the install root that add daemons, team
         # overrides, profile defaults and slack-commands runbooks (docs/packs.md).
         self.packs = [expand(p) for p in raw.get("packs", {}).get("paths", [])]
@@ -158,25 +163,75 @@ class Config:
         return cls(raw, path if path.exists() else None)
 
     def daemons_dir(self) -> Path:
+        """Ejected daemons: <install_root>/daemons/, gitignored apart from its README.
+        Your own daemons and private `<slug>.local` ones live here too."""
         return self.install_root / "daemons"
 
-    def daemon_roots(self) -> list[Path]:
-        """Where daemons live: the install root's daemons/, then each pack's."""
-        return [self.daemons_dir(), *(p / "daemons" for p in self.packs)]
+    def catalog_dir(self) -> Path:
+        """dAImon's own catalog, in git: <install_root>/catalog/."""
+        return self.install_root / "catalog"
 
-    def daemon_locations(self) -> dict[str, list[Path]]:
-        """Every folder defining each slug, in root order. More than one is a
-        validation error; the first is the one that loads."""
-        out: dict[str, list[Path]] = {}
-        for root in self.daemon_roots():
-            for cfg in sorted(root.glob("*/daemon.toml")):
-                out.setdefault(slug_for_dir(cfg.parent.name), []).append(cfg.parent)
+    def catalog_roots(self) -> list[Path]:
+        """Where installable daemons come from: dAImon's catalog/, then each pack's
+        daemons/."""
+        return [self.catalog_dir(), *(p / "daemons" for p in self.packs)]
+
+    def daemon_roots(self) -> list[Path]:
+        """Every folder a daemon can load from: ejected first, then the catalogs."""
+        return [self.daemons_dir(), *self.catalog_roots()]
+
+    @staticmethod
+    def _scan_root(root: Path, out: dict[str, list[Path]]) -> dict[str, list[Path]]:
+        # Only a folder with a daemon.toml is a daemon: a leftover folder holding
+        # nothing but gitignored files (an old daemon.local.toml) is not.
+        for cfg in sorted(root.glob("*/daemon.toml")):
+            out.setdefault(slug_for_dir(cfg.parent.name), []).append(cfg.parent)
         return out
 
+    def catalog_locations(self) -> dict[str, list[Path]]:
+        """Every catalog folder offering each slug, in catalog order."""
+        out: dict[str, list[Path]] = {}
+        for root in self.catalog_roots():
+            self._scan_root(root, out)
+        return out
+
+    def ejected_locations(self) -> dict[str, list[Path]]:
+        """Ejected copies under daemons/: `<slug>` and/or private `<slug>.local`."""
+        return self._scan_root(self.daemons_dir(), {})
+
+    def daemon_locations(self) -> dict[str, list[Path]]:
+        """Every folder defining each slug, ejected first; the first one loads."""
+        out = {slug: list(dirs) for slug, dirs in self.ejected_locations().items()}
+        for slug, dirs in self.catalog_locations().items():
+            out.setdefault(slug, []).extend(dirs)
+        return out
+
+    def catalog_source(self, path: Path) -> str:
+        """A short name for where a daemon folder comes from."""
+        if path.parent == self.daemons_dir():
+            return "ejected"
+        if path.parent == self.catalog_dir():
+            return "dAImon"
+        return path.parent.parent.name  # <pack>/daemons/<slug>
+
+    def catalog(self) -> dict[str, dict]:
+        """Every installable slug: {slug: {"path": folder, "source": name}}, from
+        the first catalog that has it (dAImon's, then packs in order)."""
+        return {
+            slug: {"path": dirs[0], "source": self.catalog_source(dirs[0])}
+            for slug, dirs in self.catalog_locations().items()
+        }
+
+    def installed(self) -> list[str]:
+        """`[daemons].installed`. Absent (an install from before the catalog):
+        every catalog slug minus `disabled`, which is how it behaved then."""
+        if self.installed_list is not None:
+            return list(self.installed_list)
+        return [s for s in self.catalog_locations() if s not in self.disabled]
+
     def daemon_dir(self, slug: str) -> Path:
-        """The folder holding `slug`: daemons/<slug>, or daemons/<slug>.local for a
-        private daemon kept out of git by the `.local` suffix, in the install root
-        or a pack (install root first)."""
+        """The folder holding `slug`: an ejected daemons/<slug> (or the private
+        daemons/<slug>.local) when present, else the first catalog with it."""
         found = self.daemon_locations().get(slug)
         return found[0] if found else self.daemons_dir() / slug
 
@@ -186,18 +241,29 @@ class Config:
     def pack_commands_dirs(self) -> list[str]:
         return [str(p / "commands") for p in self.packs if (p / "commands").is_dir()]
 
+    def local_commands_dir(self) -> Path:
+        """slack-commands runbooks of your own: <personal dir>/commands."""
+        return personal_dir() / "commands"
+
+    def legacy_local_commands_dir(self) -> Path:
+        """Where your own runbooks lived before the catalog. Still read until
+        `daimon migrate` moves them to local_commands_dir()."""
+        return self.daemons_dir() / "slack-commands" / "commands.local"
+
     def discover(self) -> dict[str, dict]:
         if self._discover_cache is None:
             self._discover_cache = self._scan_daemons()
         return self._discover_cache
 
     def _scan_daemons(self) -> dict[str, dict]:
-        out: dict[str, dict] = {}
-        for slug, dirs in self.daemon_locations().items():
-            if slug in self.disabled:
-                continue
-            out[slug] = _load_toml(dirs[0] / "daemon.toml")
-        return out
+        """installed ∪ ejected − disabled. Ordered like the folders: the install
+        root's daemons (ejected or dAImon's catalog) sorted, then each pack's."""
+        locations = self.daemon_locations()
+        wanted = (set(self.installed()) | set(self.ejected_locations())) - set(self.disabled)
+        home = {self.daemons_dir(), self.catalog_dir()}
+        own = sorted(s for s in wanted if s in locations and locations[s][0].parent in home)
+        packs = [s for s in locations if s in wanted and s not in own]
+        return {slug: _load_toml(locations[slug][0] / "daemon.toml") for slug in own + packs}
 
     def profiles_dir(self) -> Path:
         return self.install_root / "profiles"
@@ -221,10 +287,14 @@ class Config:
         """This person's settings for `slug`: <personal dir>/daemons/<slug>.toml."""
         return personal_dir() / "daemons" / f"{slug}.toml"
 
-    def legacy_daemon_local_path(self, slug: str) -> Path:
-        """The pre-personal-dir location, beside daemon.toml. Still read (under the
-        personal file) until `daimon migrate` moves it."""
-        return self.daemon_dir(slug) / "daemon.local.toml"
+    def legacy_daemon_local_paths(self, slug: str) -> list[Path]:
+        """The pre-personal-dir locations, lowest first: daemons/<slug>/, where the
+        file stayed (gitignored) when the daemon's code moved to catalog/, then
+        beside the daemon.toml that loads. Still read (under the personal file)
+        until `daimon migrate` moves them."""
+        here = self.daemon_dir(slug) / "daemon.local.toml"
+        moved_out = self.daemons_dir() / slug / "daemon.local.toml"
+        return [here] if moved_out == here else [moved_out, here]
 
     def raw_daemon(self, slug: str) -> dict:
         raw = self.discover().get(slug, {})
@@ -233,7 +303,7 @@ class Config:
         # daemon.local.toml < the personal <personal dir>/daemons/<slug>.toml
         layers = [
             *self.pack_overrides(slug),
-            self.legacy_daemon_local_path(slug),
+            *self.legacy_daemon_local_paths(slug),
             self.daemon_local_path(slug),
         ]
         for layer in layers:
@@ -260,6 +330,14 @@ class Config:
         # pack's commands/ folder unless it set the list itself.
         if "pack_commands_dirs" in inputs and _is_empty(inputs["pack_commands_dirs"]):
             inputs["pack_commands_dirs"] = self.pack_commands_dirs()
+        # ...and an empty local_commands_dir means <personal dir>/commands. Runbooks
+        # not yet migrated from the old in-repo commands.local/ are read just
+        # before it, so they keep overriding shared and pack ones.
+        if "local_commands_dir" in inputs and _is_empty(inputs["local_commands_dir"]):
+            inputs["local_commands_dir"] = str(self.local_commands_dir())
+            legacy = self.legacy_local_commands_dir()
+            if any(legacy.glob("*.md")):
+                inputs["pack_commands_dirs"] = [*inputs.get("pack_commands_dirs", []), str(legacy)]
         merged["inputs"] = inputs
         merged["sources"] = [s["name"] for s in specs]
         merged["write_sources"] = [s["name"] for s in specs if s["write"]]
@@ -492,7 +570,7 @@ def validate(cfg: Config) -> list[str]:
     if default_fallback == cfg.defaults["backend"]:
         errors.append("[defaults].fallback_backend must differ from backend")
     daemons = cfg.discover()
-    if not daemons:
+    if not daemons and cfg.installed_list is None:
         errors.append(f"no daemons discovered under {', '.join(map(str, cfg.daemon_roots()))}")
     for pack in cfg.packs:
         if not pack.is_dir():
@@ -532,12 +610,30 @@ def validate(cfg: Config) -> list[str]:
             errors.extend(_required_input_errors(cfg, slug))
             errors.extend(_mcp_errors(cfg, slug))
         errors.extend(_role_errors(cfg, slug))
-    locations = cfg.daemon_locations()
-    for slug, dirs in sorted(locations.items()):
+    errors.extend(_catalog_errors(cfg))
+    return errors
+
+
+def _catalog_errors(cfg: Config) -> list[str]:
+    """Installed slugs nobody offers, slugs offered twice, unknown disabled ones."""
+    errors: list[str] = []
+    offered = cfg.catalog_locations()
+    ejected = cfg.ejected_locations()
+    for slug in cfg.installed_list or []:
+        if slug not in offered and slug not in ejected:
+            errors.append(
+                f"[daemons].installed: {slug} is in no catalog "
+                f"({', '.join(map(str, cfg.catalog_roots()))}); `daimon remove {slug}`"
+            )
+    for slug, dirs in sorted(ejected.items()):
         if len(dirs) > 1:
             errors.append(f"{slug}: defined twice ({' and '.join(map(str, dirs))})")
+    for slug, dirs in sorted(offered.items()):
+        # An ejected copy takes precedence, so it settles which one loads.
+        if len(dirs) > 1 and slug not in ejected:
+            errors.append(f"{slug}: defined twice ({' and '.join(map(str, dirs))})")
     for slug in cfg.disabled:
-        if slug not in locations:
+        if slug not in offered and slug not in ejected:
             errors.append(f"[daemons].disabled references unknown daemon: {slug}")
     return errors
 
@@ -697,7 +793,7 @@ def describe_packs(cfg: Config) -> str:
     if not cfg.packs:
         return "no packs configured ([packs].paths in daimon.toml)\n"
     lines = []
-    locations = cfg.daemon_locations()
+    locations = cfg.catalog_locations()
     for pack in cfg.packs:
         mine = sorted(s for s, dirs in locations.items() if dirs[0].parent == pack / "daemons")
         overrides = sorted(p.stem for p in (pack / "overrides").glob("*.toml"))
