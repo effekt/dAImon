@@ -165,7 +165,8 @@ one-line `MOVED` pointer. Paths in the moved `.toml` files that point into
 a scheduled job that fires between an update's `git merge` and its install runs as
 before. Anything already in `~/.daimon` that isn't part of this layout (state
 files from an older dAImon) is moved aside to `~/.daimon/legacy-<YYYYMMDD>/`, not
-deleted. If both folders hold a `daimon.toml`, `~/.daimon` wins and the old folder
+deleted; a dAImon checkout at `~/.daimon/app` (where a team pack's setup may clone
+it) stays where it is. If both folders hold a `daimon.toml`, `~/.daimon` wins and the old folder
 is left alone, with a warning. With `$DAIMON_CONFIG` set nothing moves.
 
 ## Run a daemon on one machine only

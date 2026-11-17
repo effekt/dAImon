@@ -278,9 +278,11 @@ def tidy_leftovers(cfg: config.Config) -> list[str]:
 
 # --- ~/.config/daimon -> ~/.daimon ------------------------------------------
 
-# What belongs in ~/.daimon. Anything else there when the config moves in is from
-# an older dAImon (its July 2026 state files) and is set aside, not deleted.
-LAYOUT = {"daimon.toml", "daemons", "profiles", "commands", "no-auto-update"}
+# What belongs in ~/.daimon. `app` is a dAImon checkout: where a team pack's
+# setup (tbl-agents' DAIMON_APP) clones dAImon for running, as ~/.acr/app and
+# ~/.relay/app. Anything else there when the config moves in is from an older
+# dAImon (its July 2026 state files) and is set aside, not deleted.
+LAYOUT = {"daimon.toml", "daemons", "profiles", "commands", "no-auto-update", "app"}
 MOVED = "MOVED"
 
 
@@ -358,8 +360,13 @@ def set_aside(new: Path, keep: set[str], today: datetime.date | None = None) -> 
     ~/.daimon/legacy-<YYYYMMDD>/."""
     if not new.is_dir():
         return []
+    running = Path(__file__).resolve()
     strays = sorted(
-        p for p in new.iterdir() if p.name not in LAYOUT | keep and not p.name.startswith("legacy-")
+        p
+        for p in new.iterdir()
+        if p.name not in LAYOUT | keep
+        and not p.name.startswith("legacy-")
+        and not running.is_relative_to(p.resolve())  # never the dAImon running this
     )
     if not strays:
         return []

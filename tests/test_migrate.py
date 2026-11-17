@@ -350,6 +350,24 @@ class PersonalDirMoveTest(unittest.TestCase):
             ["commands", "daemons", "daimon.toml", "legacy-20261117", "no-auto-update", "profiles"],
         )
 
+    def test_keeps_a_daimon_checkout_in_app(self):
+        self.seed_legacy()
+        self.seed_junk()
+        write(self.new / "app" / "bin" / "daimon", "#!/bin/sh\n")
+        self.run_move()
+        self.assert_moved()
+        self.assertTrue((self.new / "app" / "bin" / "daimon").exists())
+        self.assertFalse((self.new / "legacy-20261117" / "app").exists())
+
+    def test_never_sets_aside_the_running_install(self):
+        self.seed_junk()
+        running = self.new / "dAImon" / "lib" / "migrate.py"
+        write(running, "")
+        with patch.object(migrate, "__file__", str(running)):
+            self.run_move()
+        self.assertTrue(running.exists())
+        self.assertTrue((self.new / "legacy-20261117" / "state.json").exists())
+
     def test_idempotent(self):
         self.seed_legacy()
         self.seed_junk()
