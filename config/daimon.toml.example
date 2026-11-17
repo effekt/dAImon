@@ -43,5 +43,10 @@ command = ""
 # Best-effort; empty = no report. See docs/configuration.md.
 # command = "my-coordinator status --ttl {seconds}"
 
+# [packs]
+# Folders outside this repo that add daemons, team overrides, profile defaults
+# and slack-commands runbooks, e.g. a private team repo. See docs/packs.md.
+# paths = ["~/work/daimon-team"]
+
 [daemons]
 disabled = []

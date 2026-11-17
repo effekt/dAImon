@@ -26,6 +26,7 @@ usage: daimon <command> [args]
   new                scaffold a new daemon (opens /daimon-builder in Claude)
   sync [--all]       render skills + refresh registered plists (--all also creates missing ones)
   daemons            list discovered daemons
+  packs              list configured packs and what each adds
   state <slug>       show a daemon's work-tracking record (--clear to reset)
                      (get [slug] / set [slug] read/write raw JSON — used by agents)
   log <message>      record one outcome line on the daemon's log (used by agents)
@@ -42,7 +43,8 @@ usage: daimon <command> [args]
   kill <slug|all>    hard-kill a daemon's run
   ps <slug|all>      show a daemon's process tree
   tui                open the control panel
-  command new <name> scaffold a slack-commands plugin (--shared to commit it, --mutating)
+  command new <name> scaffold a slack-commands plugin (--shared to commit it,
+                     --pack <dir> to put it in a pack, --mutating)
   install            install plists, hooks, and the TUI venv
                      (--load schedules; --worklog adds the standup worklog hook)
 EOF
@@ -56,6 +58,7 @@ case "$CMD" in
   new)       exec claude "/daimon-builder" ;;
   sync)      exec python3 -m daimon.sync "$@" ;;
   daemons)   exec python3 "$LIB/config.py" daemons ;;
+  packs)     exec python3 "$LIB/config.py" packs ;;
   state)     exec bash "$LIB/state.sh" "$@" ;;
   log)       exec bash "$LIB/result.sh" "$@" ;;
   check-scope) exec bash "$LIB/check-scope.sh" "$@" ;;

@@ -32,7 +32,7 @@ Arguments, if any, arrive as everything after the command word.
 """
 
 
-def create(name: str, shared: bool, mutating: bool) -> int:
+def create(name: str, shared: bool, mutating: bool, pack: Path | None = None) -> int:
     if not NAME_RE.match(name):
         print(
             f"✗ {name!r} is not a valid command name — use one lowercase "
@@ -41,9 +41,12 @@ def create(name: str, shared: bool, mutating: bool) -> int:
         )
         return 1
 
-    target_dir = COMMANDS / ("commands" if shared else "commands.local")
+    if pack is not None:
+        target_dir = pack / "commands"
+    else:
+        target_dir = COMMANDS / ("commands" if shared else "commands.local")
     path = target_dir / f"{name}.md"
-    for existing in (COMMANDS / "commands", COMMANDS / "commands.local"):
+    for existing in (COMMANDS / "commands", COMMANDS / "commands.local", target_dir):
         if (existing / f"{name}.md").exists():
             print(f"✗ {name} already exists: {existing / f'{name}.md'}", file=sys.stderr)
             return 1
@@ -59,9 +62,19 @@ def create(name: str, shared: bool, mutating: bool) -> int:
 
 def main(argv: list[str]) -> int:
     if len(argv) < 2 or argv[0] != "new":
-        print("usage: daimon command new <name> [--shared] [--mutating]", file=sys.stderr)
+        print(
+            "usage: daimon command new <name> [--shared | --pack <dir>] [--mutating]",
+            file=sys.stderr,
+        )
         return 2
-    return create(argv[1], "--shared" in argv, "--mutating" in argv)
+    pack = None
+    if "--pack" in argv:
+        i = argv.index("--pack")
+        if i + 1 >= len(argv):
+            print("--pack needs a directory", file=sys.stderr)
+            return 2
+        pack = Path(argv[i + 1]).expanduser()
+    return create(argv[1], "--shared" in argv, "--mutating" in argv, pack)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ Handle Slack commands queued in the daimon inbox via plugin runbooks, with an al
 |-------|---------|-------|
 | `commands_dir` | `daemons/slack-commands/commands` | Command plugins: one markdown runbook per command. Shared plugins are committed; local_commands_dir (gitignored) holds personal/company runbooks and overrides shared ones on name conflict. Paths relative to install root. |
 | `local_commands_dir` | `daemons/slack-commands/commands.local` |  |
+| `pack_commands_dirs` | — | Absolute paths of extra runbook folders, read after commands_dir and before local_commands_dir. Empty = every configured pack's commands/ (docs/packs.md). |
 | `mutate_allowlist` | — | Slack user IDs allowed to run plugins marked `mutating: true`. Empty = nobody can run mutating commands. |
 
 ## Gate

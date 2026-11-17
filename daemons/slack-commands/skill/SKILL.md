@@ -43,9 +43,11 @@ in Slack.
 
 ## 2. Load command plugins
 
-Read every `*.md` in `{{inputs.commands_dir}}` then
-`{{inputs.local_commands_dir}}` (paths relative to the dAImon install root;
-a local plugin with the same `name` replaces the shared one). Each plugin has
+Read every `*.md` in `{{inputs.commands_dir}}`, then in each pack folder
+listed here (absolute paths; may be empty): `{{inputs.pack_commands_dirs}}`,
+then in `{{inputs.local_commands_dir}}` (the first and last are relative to
+the dAImon install root). A later plugin with the same `name` replaces an
+earlier one, so local beats pack beats shared. Each plugin has
 frontmatter — `name`, `match` (the command word), `mutating` (bool),
 optional `admin` (bool), `description` — and a body that is the runbook to
 follow. Command words are always a **single token**, named

@@ -91,9 +91,33 @@ def materialize(cfg_mod, create_missing: bool = True):
     return cfg, skipped
 
 
+def _git(pack: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", "-C", str(pack), *args], capture_output=True, text=True, check=False
+    )
+
+
+def pull_packs(packs: list[Path]) -> list[str]:
+    """Fast-forward each pack that is a clean git checkout; never merge or stash."""
+    notes = []
+    for pack in packs:
+        if not (pack / ".git").exists():
+            continue
+        if _git(pack, "status", "--porcelain").stdout.strip():
+            notes.append(f"pack {pack}: local changes, not pulled")
+            continue
+        r = _git(pack, "pull", "--ff-only", "--quiet")
+        notes.append(
+            f"pack {pack}: {'up to date' if r.returncode == 0 else 'pull failed: ' + r.stderr.strip()[:120]}"
+        )
+    return notes
+
+
 def main(argv: list[str]) -> int:
     create_missing = "--all" in argv
     cfg_mod = _import_from_path("daimon_config", INSTALL_ROOT / "lib" / "config.py")
+    for note in pull_packs(cfg_mod.Config.load().packs):
+        print(note)
     errs = cfg_mod.validate(cfg_mod.Config.load())
     if errs:
         print("config INVALID after sync:", *(f"  - {e}" for e in errs), sep="\n", file=sys.stderr)

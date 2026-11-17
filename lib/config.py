@@ -130,6 +130,9 @@ class Config:
         self.roles = {**ROLES_DEFAULTS, **raw.get("roles", {})}
         self.status = {**STATUS_DEFAULTS, **raw.get("status", {})}
         self.disabled = list(raw.get("daemons", {}).get("disabled", []))
+        # Packs: directories outside the install root that add daemons, team
+        # overrides, profile defaults and slack-commands runbooks (docs/packs.md).
+        self.packs = [expand(p) for p in raw.get("packs", {}).get("paths", [])]
         if "install_root" in self.core:
             self.install_root = expand(self.core["install_root"])
         else:
@@ -146,14 +149,31 @@ class Config:
     def daemons_dir(self) -> Path:
         return self.install_root / "daemons"
 
+    def daemon_roots(self) -> list[Path]:
+        """Where daemons live: the install root's daemons/, then each pack's."""
+        return [self.daemons_dir(), *(p / "daemons" for p in self.packs)]
+
+    def daemon_locations(self) -> dict[str, list[Path]]:
+        """Every folder defining each slug, in root order. More than one is a
+        validation error; the first is the one that loads."""
+        out: dict[str, list[Path]] = {}
+        for root in self.daemon_roots():
+            for cfg in sorted(root.glob("*/daemon.toml")):
+                out.setdefault(slug_for_dir(cfg.parent.name), []).append(cfg.parent)
+        return out
+
     def daemon_dir(self, slug: str) -> Path:
         """The folder holding `slug`: daemons/<slug>, or daemons/<slug>.local for a
-        private daemon kept out of git by the `.local` suffix."""
-        plain = self.daemons_dir() / slug
-        local = self.daemons_dir() / f"{slug}{LOCAL_SUFFIX}"
-        if not (plain / "daemon.toml").exists() and (local / "daemon.toml").exists():
-            return local
-        return plain
+        private daemon kept out of git by the `.local` suffix, in the install root
+        or a pack (install root first)."""
+        found = self.daemon_locations().get(slug)
+        return found[0] if found else self.daemons_dir() / slug
+
+    def pack_overrides(self, slug: str) -> list[Path]:
+        return [p / "overrides" / f"{slug}.toml" for p in self.packs]
+
+    def pack_commands_dirs(self) -> list[str]:
+        return [str(p / "commands") for p in self.packs if (p / "commands").is_dir()]
 
     def discover(self) -> dict[str, dict]:
         if self._discover_cache is None:
@@ -162,14 +182,10 @@ class Config:
 
     def _scan_daemons(self) -> dict[str, dict]:
         out: dict[str, dict] = {}
-        ddir = self.daemons_dir()
-        if not ddir.is_dir():
-            return out
-        for cfg in sorted(ddir.glob("*/daemon.toml")):
-            slug = slug_for_dir(cfg.parent.name)
+        for slug, dirs in self.daemon_locations().items():
             if slug in self.disabled:
                 continue
-            out[slug] = _load_toml(cfg)
+            out[slug] = _load_toml(dirs[0] / "daemon.toml")
         return out
 
     def profiles_dir(self) -> Path:
@@ -180,6 +196,10 @@ class Config:
         if not path.exists():
             return None
         prof = _load_toml(path)
+        for pack in self.packs:
+            team = pack / "profiles" / f"{name}.toml"
+            if team.exists():
+                prof.setdefault("defaults", {}).update(_load_toml(team).get("defaults", {}))
         local = self.profiles_dir() / name / "profile.local.toml"
         if local.exists():
             prof.setdefault("defaults", {}).update(_load_toml(local).get("defaults", {}))
@@ -191,11 +211,12 @@ class Config:
     def raw_daemon(self, slug: str) -> dict:
         raw = self.discover().get(slug, {})
         d, i = dict(raw.get("daemon", {})), dict(raw.get("inputs", {}))
-        lp = self.daemon_local_path(slug)
-        if lp.exists():
-            local = _load_toml(lp)
-            d.update(local.get("daemon", {}))
-            i.update(local.get("inputs", {}))
+        # daemon.toml < each pack's overrides/<slug>.toml (team) < daemon.local.toml
+        for layer in [*self.pack_overrides(slug), self.daemon_local_path(slug)]:
+            if layer.exists():
+                over = _load_toml(layer)
+                d.update(over.get("daemon", {}))
+                i.update(over.get("inputs", {}))
         return {"daemon": d, "inputs": i}
 
     def daemon(self, slug: str) -> dict:
@@ -211,6 +232,10 @@ class Config:
             if prof:
                 inputs.update(prof.get("defaults", {}))
         inputs.update(raw["inputs"])
+        # A daemon that declares pack_commands_dirs (slack-commands) gets every
+        # pack's commands/ folder unless it set the list itself.
+        if "pack_commands_dirs" in inputs and _is_empty(inputs["pack_commands_dirs"]):
+            inputs["pack_commands_dirs"] = self.pack_commands_dirs()
         merged["inputs"] = inputs
         merged["sources"] = [s["name"] for s in specs]
         merged["write_sources"] = [s["name"] for s in specs if s["write"]]
@@ -369,6 +394,7 @@ def render_skill(cfg: Config, slug: str) -> str:
         text = _append_ref(text, cfg.install_root / "references" / "learning.md")
     text = _append_ref(text, cfg.install_root / "references" / "unattended.md")
     text = _append_ref(text, cfg.install_root / "references" / "results.md")
+    text = text.replace("{{daemon_dir}}", str(cfg.daemon_dir(slug)))
     for key, val in d["inputs"].items():
         rendered = ", ".join(str(x) for x in val) if isinstance(val, list) else str(val)
         text = text.replace(f"{{{{inputs.{key}}}}}", rendered)
@@ -423,7 +449,10 @@ def validate(cfg: Config) -> list[str]:
         errors.append("[defaults].fallback_backend must differ from backend")
     daemons = cfg.discover()
     if not daemons:
-        errors.append(f"no daemons discovered under {cfg.daemons_dir()}")
+        errors.append(f"no daemons discovered under {', '.join(map(str, cfg.daemon_roots()))}")
+    for pack in cfg.packs:
+        if not pack.is_dir():
+            errors.append(f"[packs].paths: {pack} does not exist")
     for slug, raw in daemons.items():
         d = raw.get("daemon", {})
         merged = cfg.daemon(slug)
@@ -459,14 +488,12 @@ def validate(cfg: Config) -> list[str]:
             errors.extend(_required_input_errors(cfg, slug))
             errors.extend(_mcp_errors(cfg, slug))
         errors.extend(_role_errors(cfg, slug))
-    all_dirs = [p.parent.name for p in cfg.daemons_dir().glob("*/daemon.toml")]
-    for slug in sorted({slug_for_dir(n) for n in all_dirs}):
-        if slug in all_dirs and f"{slug}{LOCAL_SUFFIX}" in all_dirs:
-            errors.append(
-                f"{slug}: defined twice (daemons/{slug} and daemons/{slug}{LOCAL_SUFFIX})"
-            )
+    locations = cfg.daemon_locations()
+    for slug, dirs in sorted(locations.items()):
+        if len(dirs) > 1:
+            errors.append(f"{slug}: defined twice ({' and '.join(map(str, dirs))})")
     for slug in cfg.disabled:
-        if slug not in {slug_for_dir(n) for n in all_dirs}:
+        if slug not in locations:
             errors.append(f"[daemons].disabled references unknown daemon: {slug}")
     return errors
 
@@ -622,6 +649,27 @@ def bundle_daemon_env(cfg: Config, slug: str) -> str:
     return "".join(f"{k}={shlex.quote(_emit(v))}\n" for k, v in pairs)
 
 
+def describe_packs(cfg: Config) -> str:
+    if not cfg.packs:
+        return "no packs configured ([packs].paths in daimon.toml)\n"
+    lines = []
+    locations = cfg.daemon_locations()
+    for pack in cfg.packs:
+        mine = sorted(s for s, dirs in locations.items() if dirs[0].parent == pack / "daemons")
+        overrides = sorted(p.stem for p in (pack / "overrides").glob("*.toml"))
+        profiles = sorted(p.stem for p in (pack / "profiles").glob("*.toml"))
+        commands = sorted(p.stem for p in (pack / "commands").glob("*.md"))
+        lines.append(f"{pack}{'' if pack.is_dir() else '  (missing)'}")
+        for label, names in (
+            ("daemons", mine),
+            ("overrides", overrides),
+            ("profiles", profiles),
+            ("commands", commands),
+        ):
+            lines.append(f"  {label:<10} {', '.join(names) or '-'}")
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(prog="daimon-config")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -660,6 +708,9 @@ def main(argv: list[str]) -> int:
     rs = sub.add_parser("render-skill")
     rs.add_argument("slug")
     sub.add_parser("paths")
+    dd = sub.add_parser("daemon-dir")
+    dd.add_argument("slug")
+    sub.add_parser("packs")
     args = p.parse_args(argv)
     cfg = Config.load()
 
@@ -744,6 +795,12 @@ def main(argv: list[str]) -> int:
         return 0
     if args.cmd == "render-skill":
         print(render_skill(cfg, args.slug), end="")
+        return 0
+    if args.cmd == "daemon-dir":
+        print(cfg.daemon_dir(args.slug))
+        return 0
+    if args.cmd == "packs":
+        print(describe_packs(cfg), end="")
         return 0
     if args.cmd == "paths":
         print(f"DAIMON_INSTALL_ROOT='{cfg.install_root}'")
