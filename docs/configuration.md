@@ -1,6 +1,6 @@
 # Configuration reference
 
-dAImon reads one global file — `~/.config/daimon/daimon.toml` (override with
+dAImon reads one global file — `~/.daimon/daimon.toml` (override with
 `$DAIMON_CONFIG`) — plus one `daemon.toml` per daemon folder: in dAImon's
 `catalog/`, a pack's `daemons/`, or your own `daemons/` ([catalog](catalog.md)).
 Run `daimon config validate` after editing. Plists are generated from these by
@@ -67,7 +67,7 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 
 | Key | Type | Meaning |
 |-----|------|---------|
-| `auto` | bool | Default false. When true, `daimon sync` loads `com.<ns>.update`, which runs `daimon update` at login and hourly. An update only fast-forwards this checkout to its upstream, only to a commit whose CI check runs all passed, and never touches a checkout with local changes or switch branches. It then runs `daimon install` and `daimon sync`, which also fast-forwards clean packs and reloads only daemons that are already registered. Log: `logs/update.log`. To opt one machine out, `touch ~/.config/daimon/no-auto-update`. To update now, `daimon update`. |
+| `auto` | bool | Default false. When true, `daimon sync` loads `com.<ns>.update`, which runs `daimon update` at login and hourly. An update only fast-forwards this checkout to its upstream, only to a commit whose CI check runs all passed, and never touches a checkout with local changes or switch branches. It then runs `daimon install` and `daimon sync`, which also fast-forwards clean packs and reloads only daemons that are already registered. Log: `logs/update.log`. To opt one machine out, `touch ~/.daimon/no-auto-update`. To update now, `daimon update`. |
 
 ### `[packs]`
 
@@ -123,24 +123,24 @@ default template.
 ## Local overrides (keep your config out of git)
 
 The committed `daemon.toml` and `profile.toml` files are shareable templates with
-placeholder values. Your real values live outside the repo, in `~/.config/daimon/`
+placeholder values. Your real values live outside the repo, in `~/.daimon/`
 beside the global config (the folder holding `$DAIMON_CONFIG`, when that is set),
 so you can configure freely, update dAImon, and still push the repo:
 
 | Committed (template) | Your settings (outside the repo) |
 |----------------------|----------------------------------|
-| `daemons/<slug>/daemon.toml` | `~/.config/daimon/daemons/<slug>.toml` (`[daemon]`, `[inputs]`) |
-| `profiles/<name>/profile.toml` | `~/.config/daimon/profiles/<name>.toml` (`[defaults]`) |
-| `config/daimon.toml.example` | `~/.config/daimon/daimon.toml` |
+| `daemons/<slug>/daemon.toml` | `~/.daimon/daemons/<slug>.toml` (`[daemon]`, `[inputs]`) |
+| `profiles/<name>/profile.toml` | `~/.daimon/profiles/<name>.toml` (`[defaults]`) |
+| `config/daimon.toml.example` | `~/.daimon/daimon.toml` |
 
 Merge precedence (last wins): global `[defaults]` → profile `[defaults]` →
 a pack's `profiles/<name>.toml` → legacy `profile.local.toml` →
-`~/.config/daimon/profiles/<name>.toml` → `daemon.toml` → a pack's
+`~/.daimon/profiles/<name>.toml` → `daemon.toml` → a pack's
 `overrides/<slug>.toml` → legacy `daemon.local.toml` →
-`~/.config/daimon/daemons/<slug>.toml` ([packs](packs.md)). The TUI config screen
-(`c`) writes to `~/.config/daimon/daemons/<slug>.toml`, so editing a daemon never
+`~/.daimon/daemons/<slug>.toml` ([packs](packs.md)). The TUI config screen
+(`c`) writes to `~/.daimon/daemons/<slug>.toml`, so editing a daemon never
 touches the repo. Set workspace-wide values (e.g. your Shortcut workspace/labels)
-once in `~/.config/daimon/profiles/<name>.toml`.
+once in `~/.daimon/profiles/<name>.toml`.
 
 **Legacy files.** Older installs kept these settings in gitignored
 `daemons/<slug>/daemon.local.toml` and `profiles/<name>/profile.local.toml` files
@@ -153,7 +153,20 @@ values are kept as comments), and the old file is reduced to a one-line
 nothing but such stubs (and caches) is then removed. It is idempotent, and `daimon install`
 (so every self-update) and `daimon init` run it for you. The tracked
 `*.local.toml.example` files stay where they are: `daimon init` copies them into
-`~/.config/daimon/`.
+`~/.daimon/`.
+
+**`~/.config/daimon`.** Until this release the personal dir was
+`~/.config/daimon`. `daimon migrate` (so `daimon install`, every self-update, and
+`daimon init`) moves it to `~/.daimon`: every file is copied verbatim with its
+mode, `daimon.toml` last, then removed from the old folder, which keeps only a
+one-line `MOVED` pointer. Paths in the moved `.toml` files that point into
+`~/.config/daimon` are re-pointed. Until the move, dAImon keeps reading
+`~/.config/daimon/daimon.toml` whenever `~/.daimon/daimon.toml` does not exist, so
+a scheduled job that fires between an update's `git merge` and its install runs as
+before. Anything already in `~/.daimon` that isn't part of this layout (state
+files from an older dAImon) is moved aside to `~/.daimon/legacy-<YYYYMMDD>/`, not
+deleted. If both folders hold a `daimon.toml`, `~/.daimon` wins and the old folder
+is left alone, with a warning. With `$DAIMON_CONFIG` set nothing moves.
 
 ## Run a daemon on one machine only
 
@@ -162,11 +175,11 @@ reviewer run on three laptops files every story three times. Give such a daemon
 a `role`, and point `[roles].command` at whatever coordinates your machines:
 
 ```toml
-# ~/.config/daimon/daimon.toml
+# ~/.daimon/daimon.toml
 [roles]
 command = "my-coordinator hold {role} --for {seconds}"
 
-# ~/.config/daimon/daemons/datadog-log-reviewer.toml
+# ~/.daimon/daemons/datadog-log-reviewer.toml
 [daemon]
 role = "datadog-errors"
 ```
@@ -187,7 +200,7 @@ dAImon has no long-running process, so nothing outside it can ask which daemons
 are up. Set `[status].command` and dAImon tells it instead:
 
 ```toml
-# ~/.config/daimon/daimon.toml
+# ~/.daimon/daimon.toml
 [status]
 command = "my-coordinator status --ttl {seconds}"
 ```

@@ -178,7 +178,7 @@ if [ "$(cfg get update.auto)" = 1 ]; then
   launchctl print "gui/$(id -u)/com.${DAIMON_NS}.update" >/dev/null 2>&1 \
     && ok "auto-update on (com.${DAIMON_NS}.update loaded)" \
     || warn "auto-update on but com.${DAIMON_NS}.update isn't loaded: run daimon sync"
-  [ -e "$HOME/.config/daimon/no-auto-update" ] && warn "opted out on this machine (~/.config/daimon/no-auto-update)"
+  [ -e "$DAIMON_PERSONAL_DIR/no-auto-update" ] && warn "opted out on this machine ($DAIMON_PERSONAL_DIR/no-auto-update)"
   last="$(tail -1 "$(logs_dir)/update.log" 2>/dev/null | sed 's/.*msg="//; s/"$//')"
   [ -n "$last" ] && ok "last check: $last"
 else

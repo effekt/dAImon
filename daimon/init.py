@@ -237,26 +237,34 @@ def _write_selection(cfg, migrate, selected: list[str]) -> None:
         print(f"no longer disabled: {', '.join(enabled)}")
 
 
-def _migrate():
-    """Bring the install up to date first (legacy in-repo settings to the personal
-    dir, `installed` written once), so scaffolding sees (and never shadows) what
-    this person already set. Returns the migrate module."""
+def _migrate_module():
     sys.path.insert(0, str(INSTALL_ROOT / "lib"))
     import migrate
 
+    return migrate
+
+
+def _migrate(migrate) -> None:
+    """Bring the install up to date first (legacy in-repo settings to the personal
+    dir, `installed` written once), so scaffolding sees (and never shadows) what
+    this person already set."""
     for line in migrate.migrate():
         print(f"  migrate: {line}")
-    return migrate
 
 
 def main(argv: list[str]) -> int:
     cfg_mod = _import_config()
+    migrate = _migrate_module()
+    # ~/.config/daimon -> ~/.daimon before looking for daimon.toml, so a fresh one
+    # is never created in front of the legacy one.
+    for line in migrate.migrate_personal_dir():
+        print(f"  migrate: {line}")
     config_path = cfg_mod.global_config_path()
     if not config_path.exists():
         config_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(INSTALL_ROOT / "config" / "daimon.toml.example", config_path)
         print(f"  new   {config_path}")
-    migrate = _migrate()
+    _migrate(migrate)
 
     cfg = cfg_mod.Config.load()
     selected, explicit = _resolve_selection(cfg, argv)

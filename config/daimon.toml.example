@@ -1,4 +1,4 @@
-# dAImon global config. Copy to ~/.config/daimon/daimon.toml (or set $DAIMON_CONFIG).
+# dAImon global config. Copy to ~/.daimon/daimon.toml (or set $DAIMON_CONFIG).
 # Field reference: docs/configuration.md. Validate with `daimon config validate`.
 
 [core]
@@ -46,7 +46,7 @@ command = ""
 # [update]
 # Keep this install current: hourly, fast-forward to the upstream's latest
 # commit once its CI passes, then `daimon install` + `daimon sync`. Never a
-# checkout with local changes. Opt one machine out: touch ~/.config/daimon/no-auto-update
+# checkout with local changes. Opt one machine out: touch ~/.daimon/no-auto-update
 # auto = true
 
 # [packs]

@@ -1,5 +1,5 @@
 # Machine-specific overrides for slack-standup.
-# Copy to ~/.config/daimon/daemons/slack-standup.toml.
+# Copy to ~/.daimon/daemons/slack-standup.toml.
 [daemon]
 # Repo the standup is generated from.
 working_dir = "~/src/my-repo"

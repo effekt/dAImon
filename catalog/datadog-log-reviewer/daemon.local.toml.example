@@ -1,4 +1,4 @@
-# Copy to ~/.config/daimon/daemons/datadog-log-reviewer.toml (daimon init does it)
+# Copy to ~/.daimon/daemons/datadog-log-reviewer.toml (daimon init does it)
 # and set values for THIS machine.
 [daemon]
 working_dir = "~/code/your-repo"   # the repo whose production logs this daemon reviews

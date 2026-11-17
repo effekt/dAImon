@@ -14,7 +14,7 @@ Handle Slack commands queued in the daimon inbox via plugin runbooks, with an al
 
 | Input | Default | Notes |
 |-------|---------|-------|
-| `commands_dir` | `{{daemon_dir}}/commands` | Command plugins: one markdown runbook per command. Shared plugins ship with the daemon (commands_dir; {{daemon_dir}} is the folder this daemon loads from, so an ejected copy reads its own); local_commands_dir holds your own runbooks and overrides shared ones on name conflict. Empty = ~/.config/daimon/commands (the folder holding daimon.toml). |
+| `commands_dir` | `{{daemon_dir}}/commands` | Command plugins: one markdown runbook per command. Shared plugins ship with the daemon (commands_dir; {{daemon_dir}} is the folder this daemon loads from, so an ejected copy reads its own); local_commands_dir holds your own runbooks and overrides shared ones on name conflict. Empty = ~/.daimon/commands (the folder holding daimon.toml). |
 | `local_commands_dir` | — |  |
 | `pack_commands_dirs` | — | Absolute paths of extra runbook folders, read after commands_dir and before local_commands_dir. Empty = every configured pack's commands/ (docs/packs.md). |
 | `mutate_allowlist` | — | Slack user IDs allowed to run plugins marked `mutating: true`. Empty = nobody can run mutating commands. |

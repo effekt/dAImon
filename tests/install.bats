@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # Integration test for bin/daimon-install, run against a throwaway $HOME so it never
-# touches the real ~/.config, ~/.claude, ~/.local/bin, or ~/Library/LaunchAgents.
+# touches the real ~/.daimon, ~/.config, ~/.claude, ~/.local/bin, or ~/Library/LaunchAgents.
 # The TUI venv (network) step is skipped via DAIMON_SKIP_TUI_VENV; launchctl is not
 # invoked because --load is omitted. install_root points at a scratch copy of the
 # repo (without any *.local.toml), so the settings migration install runs can never
@@ -10,13 +10,13 @@ setup() {
   ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SBOX="$BATS_TEST_TMPDIR/home"
   INST="$BATS_TEST_TMPDIR/install"
-  mkdir -p "$SBOX/.config/daimon" "$SBOX/Library/LaunchAgents"
+  mkdir -p "$SBOX/.daimon" "$SBOX/Library/LaunchAgents"
   rsync -a --exclude .git --exclude .venv --exclude '*.local.toml' \
     --include 'daemons/README.md' --exclude 'daemons/*' \
     "$ROOT/" "$INST/"
   # Seed a valid global config: install_root is the scratch copy, state + plists
   # land under the sandbox, and a test namespace keeps plist labels distinct.
-  cat > "$SBOX/.config/daimon/daimon.toml" <<TOML
+  cat > "$SBOX/.daimon/daimon.toml" <<TOML
 [core]
 install_root = "$INST"
 state_dir = "$SBOX/state"
@@ -95,7 +95,7 @@ run_install() {
   ! grep -q 'standup-worklog' "$SBOX/.claude/settings.json"
 }
 
-@test "install: moves legacy in-repo settings to ~/.config/daimon" {
+@test "install: moves legacy in-repo settings to ~/.daimon" {
   # As left by the git merge that moved daemons/ to catalog/: the gitignored
   # daemon.local.toml stays behind in daemons/<slug>/.
   mkdir -p "$INST/daemons/review-prs"
@@ -103,8 +103,8 @@ run_install() {
   printf '[defaults]\nowner = "me"\n' > "$INST/profiles/shortcut/profile.local.toml"
   run_install
   [ "$status" -eq 0 ]
-  grep -q '# mine' "$SBOX/.config/daimon/daemons/review-prs.toml"
-  grep -q 'owner = "me"' "$SBOX/.config/daimon/profiles/shortcut.toml"
+  grep -q '# mine' "$SBOX/.daimon/daemons/review-prs.toml"
+  grep -q 'owner = "me"' "$SBOX/.daimon/profiles/shortcut.toml"
   # the leftover folder held only the migrated file, so it is gone
   [ ! -e "$INST/daemons/review-prs" ]
   [ -f "$INST/daemons/README.md" ]
@@ -113,10 +113,10 @@ run_install() {
 }
 
 @test "install: a config from before the catalog gets today's active set as installed" {
-  printf '\n[daemons]\n# skip this one\ndisabled = ["slack-standup"]\n' >> "$SBOX/.config/daimon/daimon.toml"
+  printf '\n[daemons]\n# skip this one\ndisabled = ["slack-standup"]\n' >> "$SBOX/.daimon/daimon.toml"
   run_install
   [ "$status" -eq 0 ]
-  conf="$SBOX/.config/daimon/daimon.toml"
+  conf="$SBOX/.daimon/daimon.toml"
   grep -q '# skip this one' "$conf"
   installed="$(python3 -c 'import sys,tomllib; print(" ".join(tomllib.load(open(sys.argv[1],"rb"))["daemons"]["installed"]))' "$conf")"
   expected="$(ls "$INST/catalog" | grep -v -e README.md -e daemon.schema.json | grep -vx slack-standup | tr '\n' ' ' | sed 's/ $//')"
@@ -128,8 +128,32 @@ run_install() {
 }
 
 @test "install: a fresh config installs no daemons" {
-  rm "$SBOX/.config/daimon/daimon.toml"
+  rm "$SBOX/.daimon/daimon.toml"
   run_install
   [ "$status" -eq 0 ]
-  grep -q '^installed = \[\]' "$SBOX/.config/daimon/daimon.toml"
+  grep -q '^installed = \[\]' "$SBOX/.daimon/daimon.toml"
+}
+
+@test "install: moves ~/.config/daimon to ~/.daimon, keeping modes, and sets old state aside" {
+  mkdir -p "$SBOX/.config"
+  mv "$SBOX/.daimon" "$SBOX/.config/daimon"
+  mkdir -p "$SBOX/.config/daimon/daemons" "$SBOX/.daimon/state"
+  printf '[inputs]\nq = "mine"\n' > "$SBOX/.config/daimon/daemons/review-prs.toml"
+  chmod 600 "$SBOX/.config/daimon/daemons/review-prs.toml"
+  touch "$SBOX/.config/daimon/no-auto-update"
+  echo '{}' > "$SBOX/.daimon/state.json"
+  run_install
+  [ "$status" -eq 0 ]
+  grep -q "install_root = \"$INST\"" "$SBOX/.daimon/daimon.toml"
+  grep -q 'q = "mine"' "$SBOX/.daimon/daemons/review-prs.toml"
+  [ "$(python3 -c 'import os,sys; print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$SBOX/.daimon/daemons/review-prs.toml")" = 0o600 ]
+  [ -e "$SBOX/.daimon/no-auto-update" ]
+  ls "$SBOX"/.daimon/legacy-*/state.json
+  ls -d "$SBOX"/.daimon/legacy-*/state
+  [ "$(ls -A "$SBOX/.config/daimon")" = MOVED ]
+  [ -d "$SBOX/state/logs" ]  # state_dir came from the moved daimon.toml
+  run_install
+  [ "$status" -eq 0 ]
+  [ "$(ls -A "$SBOX/.config/daimon")" = MOVED ]
+  [ "$(ls -d "$SBOX"/.daimon/legacy-* | wc -l | tr -d ' ')" = 1 ]
 }

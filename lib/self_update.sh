@@ -5,7 +5,7 @@
 # checkout with local changes, never a branch switch. After moving it re-runs
 # `daimon install` and `daimon sync` (which also fast-forwards clean packs and
 # reloads only jobs already registered), so it never schedules anything new.
-# Opt out on one machine: touch ~/.config/daimon/no-auto-update
+# Opt out on one machine: touch ~/.daimon/no-auto-update
 set -uo pipefail
 DAIMON_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
@@ -57,7 +57,7 @@ blocker() {  # head target
 }
 
 opted_out() {  # [--force]
-  [ -e "$HOME/.config/daimon/no-auto-update" ] && [ "${1:-}" != "--force" ]
+  [ -e "$DAIMON_PERSONAL_DIR/no-auto-update" ] && [ "${1:-}" != "--force" ]
 }
 
 # Sets UPSTREAM to the tracking ref, or says why there is none and fails.
@@ -78,7 +78,7 @@ apply_update() {  # head target
 }
 
 main() {
-  if opted_out "$@"; then say skip "opted out (~/.config/daimon/no-auto-update)"; return 0; fi
+  if opted_out "$@"; then say skip "opted out ($DAIMON_PERSONAL_DIR/no-auto-update)"; return 0; fi
   resolve_upstream || return 0
   g fetch --quiet 2>/dev/null || { say skip "fetch failed"; return 0; }
   local head target why

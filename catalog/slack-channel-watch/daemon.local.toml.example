@@ -1,5 +1,5 @@
 # Machine-specific overrides for slack-channel-watch.
-# Copy to ~/.config/daimon/daemons/slack-channel-watch.toml.
+# Copy to ~/.daimon/daemons/slack-channel-watch.toml.
 [daemon]
 danger = true
 # Poll cadence (seconds) = worst-case command latency. 120 on the agent

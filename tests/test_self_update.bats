@@ -70,8 +70,8 @@ head_of() { git -C "$1" rev-parse HEAD; }
   [[ "$output" == *"feat/x has no upstream"*"git switch main"* ]]
 }
 
-@test "opted out unless forced" {
-  upstream_moves; mkdir -p "$HOME/.config/daimon"; touch "$HOME/.config/daimon/no-auto-update"
+@test "opted out unless forced (no-auto-update beside daimon.toml)" {
+  upstream_moves; touch "$T/no-auto-update"
   update
   [[ "$output" == *"opted out"* ]]; [ ! -e "$T/post" ]
   update --force
