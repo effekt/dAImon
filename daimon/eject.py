@@ -9,7 +9,13 @@ records where it came from in `.origin.json`: {source, path, hash}, the hash
 covering the files as copied (daimon/fingerprint.py). Comparing that hash with
 upstream's files today, and with the copy's, tells which side changed since
 (`outdated`, `diff`). `daimon uneject <slug>` deletes a local copy so the
-daemon is linked again."""
+daemon is linked again.
+
+`daimon eject <slug> --as <new> [--pack [dir]]` forks instead: the copy goes to
+`daemons/<new>/` with the slug rewritten in its files (command, skill name,
+state file names), so it runs beside the original as a distinct daemon. Its
+.origin.json adds "as": <new>; `outdated` and `diff` compare it with upstream
+through the same rewrite."""
 
 from __future__ import annotations
 
@@ -18,11 +24,14 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
 from daimon.catalog import _confirm, _modules, _set_list, _sync
-from daimon.fingerprint import DIFF_EXCLUDES, content_hash, copy_content
+from daimon.fingerprint import DIFF_EXCLUDES, Rename, content_hash, copy_content
+from daimon.scaffold import SLUG_RE
 
 
 def _fail(message: str) -> int:
@@ -53,9 +62,20 @@ def upstream_dir(cfg, origin: dict) -> Path | None:
     return folder if (folder / "daemon.toml").exists() else None
 
 
-def copy_daemon(src: Path, dest: Path, source: str, rel_path: str) -> None:
-    copy_content(src, dest)
+def rename_of(origin: dict) -> Rename | None:
+    """(upstream slug, copy's slug) for a renamed copy, else None."""
+    new, path = origin.get("as"), origin.get("path")
+    if not isinstance(new, str) or not new or not isinstance(path, str) or not path:
+        return None
+    return Path(path).name, new
+
+
+def copy_daemon(src: Path, dest: Path, source: str, rel_path: str, new: str | None = None) -> None:
+    rename = (src.name, new) if new else None
+    copy_content(src, dest, rename)
     origin = {"source": source, "path": rel_path, "hash": content_hash(dest)}
+    if new:
+        origin["as"] = new
     (dest / ".origin.json").write_text(json.dumps(origin, indent=2) + "\n")
 
 
@@ -72,7 +92,9 @@ class Copy:
     def upstream_changed(self, cfg) -> bool | None:
         """None when upstream no longer has the daemon."""
         up = upstream_dir(cfg, self.origin)
-        return None if up is None else content_hash(up) != self.origin.get("hash")
+        if up is None:
+            return None
+        return content_hash(up, rename_of(self.origin)) != self.origin.get("hash")
 
 
 def copies(cfg) -> list[Copy]:
@@ -164,16 +186,113 @@ def eject_local(cfg, migrate, slug: str) -> Path:
     return dest
 
 
-def eject(config, migrate, slug: str, pack: str | None) -> int:
+def _check_new_slug(cfg, slug: str, new: str) -> None:
+    if new == slug:
+        raise ValueError(f"--as {new} is the daemon's own name: drop --as to eject it")
+    if not SLUG_RE.match(new):
+        raise ValueError(f"--as {new!r}: use lowercase words joined by hyphens, e.g. triage-issues")
+    existing = cfg.daemon_locations().get(new)
+    if existing:
+        raise ValueError(f"{new} already exists: {existing[0]}")
+
+
+def _copy_settings(cfg, slug: str, new: str) -> None:
+    """Start the fork from your settings for the original, when you have some."""
+    src, dest = cfg.daemon_local_path(slug), cfg.daemon_local_path(new)
+    if src.exists() and not dest.exists():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        print(f"+ {dest} (a copy of your {slug} settings)")
+
+
+Baked = dict[tuple[str, str], tuple[object, Path]]
+
+
+def _team_overrides(cfg, slug: str) -> Baked:
+    """The [daemon]/[inputs] values every pack's overrides/<slug>.toml sets, in
+    raw_daemon's order (a later pack wins), each with the file it came from.
+    They name `slug`, so a fork would lose them; it takes them into its own
+    daemon.toml instead."""
+    import toml_emit  # lib/, on sys.path once _modules() ran
+
+    baked: Baked = {}
+    for path in cfg.pack_overrides(slug):
+        if not path.exists():
+            continue
+        try:
+            data = tomllib.loads(path.read_text())
+        except (OSError, tomllib.TOMLDecodeError) as e:
+            raise ValueError(f"cannot read {path}: {e}") from e
+        for table in ("daemon", "inputs"):
+            for key, value in data.get(table, {}).items():
+                try:
+                    toml_emit.emit_value(value)
+                except TypeError as e:
+                    raise ValueError(f"{path}: cannot copy [{table}].{key}: {e}") from e
+                baked[(table, key)] = (value, path)
+    return baked
+
+
+def _bake(dest: Path, slug: str, baked: Baked) -> None:
+    import toml_emit
+
+    toml = dest / "daemon.toml"
+    text = toml.read_text()
+    for (table, key), (value, path) in baked.items():
+        note = (
+            f"from the {path.parent.parent.name} pack's overrides/{slug}.toml (daimon eject --as)"
+        )
+        text = toml_emit.set_key_text(text, table, key, value, comment=note)
+    toml.write_text(text)
+    files = ", ".join(dict.fromkeys(str(path) for _, path in baked.values()))
+    print(f"  folded in the team overrides of {slug}: {files}")
+
+
+def fork(cfg, migrate, slug: str, new: str, pack: str | None) -> Path:
+    """Copy `slug` from its catalog to daemons/<new> (or the pack's), renamed: a
+    distinct daemon with its own skill, launchd job, state and logs, carrying
+    the packs' team overrides of `slug` in its daemon.toml. The original is left
+    as it is."""
+    _check_new_slug(cfg, slug, new)
+    entry = cfg.catalog().get(slug)
+    if entry is None:
+        raise ValueError(f"{slug} is not in any catalog (see `daimon catalog`)")
+    src, source = entry["path"], entry["source"]
+    root = _root_of(cfg, source)
+    if root is None:
+        raise ValueError(f"cannot tell which catalog {src} belongs to")
+    target = cfg.daemons_dir() if pack is None else choose_pack(cfg, pack) / "daemons"
+    dest = target / new
+    if dest.exists():
+        raise ValueError(f"{dest} already exists")
+    rel = src.relative_to(root).as_posix()
+    baked = _team_overrides(cfg, slug)
+    copy_daemon(src, dest, source, rel, new)
+    _ensure_installed(cfg, migrate, new)
+    print(f"+ {dest}/ ({slug} from {source}: {rel}, renamed {new})")
+    if baked:
+        # After the hash: these are the fork's own values from now on.
+        _bake(dest, slug, baked)
+    _copy_settings(cfg, slug, new)
+    print(f"  {new} runs beside {slug} with its own job, state and logs; edit it there.")
+    print(f"  `daimon outdated` / `daimon diff {new}` show changes to {slug} upstream")
+    if pack is not None:
+        print("  commit it in the pack's repo")
+    return dest
+
+
+def eject(config, migrate, slug: str, pack: str | None, new: str | None = None) -> int:
     cfg = config.Config.load()
     try:
-        if pack is None:
+        if new is not None:
+            fork(cfg, migrate, slug, new, pack)
+        elif pack is None:
             eject_local(cfg, migrate, slug)
         else:
             eject_to_pack(cfg, slug, pack)
     except ValueError as e:
         return _fail(str(e))
-    return _sync_or_warn() if slug in config.Config.load().discover() else 0
+    return _sync_or_warn() if (new or slug) in config.Config.load().discover() else 0
 
 
 def _unejectable(cfg, slug: str) -> Copy:
@@ -190,6 +309,12 @@ def _unejectable(cfg, slug: str) -> Copy:
     local = [c for c in copies(cfg) if c.folder == mine[0]]
     if not local:
         raise ValueError(f"{mine[0]} has no .origin.json: it is your own daemon, not a copy")
+    renamed = rename_of(local[0].origin)
+    if renamed:
+        raise ValueError(
+            f"{slug} is a renamed copy of {renamed[0]}, with no original under its own name "
+            f"to link back to. To drop it: `daimon remove {slug}`, then delete {mine[0]}"
+        )
     if slug not in cfg.catalog():
         raise ValueError(f"no catalog offers {slug} any more: keeping {mine[0]}")
     return local[0]
@@ -262,8 +387,26 @@ def diff(config, slug: str) -> int:
     mine = "edited" if copy.edited() else "unchanged"
     print(f"# {slug}: --- upstream {up}  +++ your copy {copy.folder}")
     print(f"# since the eject: upstream {upstream}, your copy {mine}", flush=True)
+    rename = rename_of(copy.origin)
+    if rename is None:
+        return _run_diff(up, copy.folder)
+    print(f"# renamed: upstream shown with {rename[0]} -> {rename[1]}", flush=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        # Diff a renamed view of upstream, so the rename alone isn't an edit.
+        view = Path(tmp) / up.name
+        copy_content(up, view, rename)
+        return _run_diff(view, copy.folder, shown_as=up)
+
+
+def _run_diff(old: Path, new: Path, shown_as: Path | None = None) -> int:
     excludes = [arg for name in DIFF_EXCLUDES for arg in ("-x", name)]
-    proc = subprocess.run(["diff", "-ru", *excludes, str(up), str(copy.folder)], check=False)
+    argv = ["diff", "-ru", *excludes, str(old), str(new)]
+    if shown_as is None:
+        proc = subprocess.run(argv, check=False)
+    else:
+        proc = subprocess.run(argv, check=False, capture_output=True, text=True)
+        sys.stdout.write(proc.stdout.replace(str(old), str(shown_as)))
+        sys.stderr.write(proc.stderr)
     return 0 if proc.returncode in (0, 1) else proc.returncode
 
 
@@ -273,6 +416,7 @@ def _parse(argv: list[str]) -> argparse.Namespace:
     e = sub.add_parser("eject", help="copy a daemon into daemons/ (or a pack) to edit")
     e.add_argument("slug")
     e.add_argument("--pack", nargs="?", const="", default=None, metavar="DIR")
+    e.add_argument("--as", dest="new", metavar="NEW", help="fork it under a new slug")
     u = sub.add_parser("uneject", help="delete your ejected copy; link the daemon again")
     u.add_argument("slug")
     u.add_argument("--yes", "-y", action="store_true")
@@ -287,7 +431,7 @@ def main(argv: list[str]) -> int:
     args = _parse(argv)
     config, migrate = _modules()
     if args.cmd == "eject":
-        return eject(config, migrate, args.slug, args.pack)
+        return eject(config, migrate, args.slug, args.pack, args.new)
     if args.cmd == "uneject":
         return uneject(config, migrate, args.slug, args.yes)
     if args.cmd == "outdated":

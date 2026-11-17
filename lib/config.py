@@ -132,7 +132,8 @@ def slug_for_dir(name: str) -> str:
 
 # An ejected copy (`daimon eject`) records where it came from in this file:
 # {"source": "dAImon" or a pack's name, "path": the folder relative to that
-# root, "hash": the content hash of the files when they were copied}.
+# root, "hash": the content hash of the files when they were copied}, plus
+# "as": the copy's own slug when it was forked under a new name (`--as`).
 ORIGIN_FILE = ".origin.json"
 
 
@@ -205,10 +206,13 @@ class Config:
     def shadows_daimon(self, folder: Path, slug: str) -> bool:
         """A pack's copy of a dAImon catalog daemon (`daimon eject --pack`): its
         .origin.json names dAImon's catalog/<slug>, so it overrides that daemon on
-        purpose rather than duplicating it."""
+        purpose rather than duplicating it. A renamed copy (`--as`) is a distinct
+        daemon and never shadows anything."""
         if folder.parent == self.catalog_dir():
             return False
         origin = read_origin(folder) or {}
+        if origin.get("as"):
+            return False
         return origin.get("source") == "dAImon" and origin.get("path") == f"catalog/{slug}"
 
     def catalog_locations(self) -> dict[str, list[Path]]:
