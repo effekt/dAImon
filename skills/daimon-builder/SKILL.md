@@ -23,7 +23,10 @@ A new daemon goes in one of three places (`docs/catalog.md`):
 If the user wants a variant of a daemon that already exists in dAImon's catalog,
 don't build one from scratch: `daimon eject <slug>` copies it into `daemons/` to
 edit, and `daimon eject <slug> --pack` copies it into the team's pack. Either copy
-records its source, so `daimon outdated` shows later upstream fixes.
+replaces the original. To run the variant beside the original instead, fork it
+under a new slug: `daimon eject <slug> --as <new>` (add `--pack` for the team),
+which renames it in its files so it gets its own skill, job, state and logs. Every
+copy records its source, so `daimon outdated` shows later upstream fixes.
 
 - If the arguments include `--pack` (optionally with a directory), it goes in that
   pack, or the first configured one; with `--catalog`, in `catalog/`.

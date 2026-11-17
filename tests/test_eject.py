@@ -51,6 +51,16 @@ class EjectBase(CatalogBase):
     def origin(self, folder: Path) -> dict:
         return json.loads((folder / ".origin.json").read_text())
 
+    def diff(self, slug: str) -> subprocess.CompletedProcess:
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        return subprocess.run(
+            [sys.executable, "-m", "daimon.eject", "diff", slug],
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
 
 class EjectLocalTest(EjectBase):
     def test_round_trip_keeps_effective_config_and_settings(self):
@@ -231,16 +241,6 @@ class OutdatedDiffTest(EjectBase):
         shutil.rmtree(self.root / "catalog" / "beta")
         self.assertEqual(self.rows()[("beta", "team")], (None, False))
 
-    def diff(self, slug: str) -> subprocess.CompletedProcess:
-        env = {**os.environ, "PYTHONPATH": str(ROOT)}
-        return subprocess.run(
-            [sys.executable, "-m", "daimon.eject", "diff", slug],
-            env=env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-
     def test_diff_shows_the_edit_and_which_side_changed(self):
         (self.copy / "skill" / "SKILL.md").write_text("alpha, my way\n")
         proc = self.diff("alpha")
@@ -258,6 +258,139 @@ class OutdatedDiffTest(EjectBase):
 
     def test_diff_without_a_copy(self):
         self.assertEqual(self.diff("gamma").returncode, 1)
+
+
+class ForkTest(EjectBase):
+    """`daimon eject <slug> --as <new>`: a renamed copy that runs beside the original."""
+
+    def setUp(self):
+        super().setUp()
+        src = self.root / "catalog" / "alpha"
+        write(
+            src / "skill" / "SKILL.md",
+            "---\nname: alpha\ndescription: alpha does it\n---\n\n# alpha\n"
+            "Run `daimon state get alpha`; leave alpha-two alone.\n",
+        )
+        (src / "discover.sh").write_text('seen="$(state_file alpha)"\nexit 1\n')
+        self.fork = self.root / "daemons" / "omega"
+
+    def test_round_trip_both_resolve_and_the_fork_has_its_own_names(self):
+        rc, out = self.run_cmd("eject", "alpha", "--as", "omega")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(
+            self.origin(self.fork),
+            {
+                "source": "dAImon",
+                "path": "catalog/alpha",
+                "hash": content_hash(self.fork),
+                "as": "omega",
+            },
+        )
+        self.assertIn('command = "/omega"', (self.fork / "daemon.toml").read_text())
+        skill = (self.fork / "skill" / "SKILL.md").read_text()
+        self.assertIn("name: omega\n", skill)
+        self.assertIn("daimon state get omega`; leave alpha-two alone", skill)
+        self.assertIn("state_file omega", (self.fork / "discover.sh").read_text())
+        self.assertTrue(os.access(self.fork / "discover.sh", os.X_OK))
+
+        cfg = self.cfg()
+        self.assertEqual(cfg.daemon_dir("alpha"), self.root / "catalog" / "alpha")
+        self.assertEqual(cfg.daemon_dir("omega"), self.fork)
+        self.assertIn("alpha", cfg.discover())
+        self.assertIn("omega", cfg.discover())
+        self.assertEqual(self.daemons_key("installed"), ["alpha", "report", "omega"])
+        self.assertEqual(config.validate(cfg), [])
+        self.assertEqual(cfg.daemon("omega")["command"], "/omega")
+        rendered = config.render_skill(cfg, "omega")
+        self.assertIn("name: omega\n", rendered)
+        self.assertNotIn("name: alpha\n", rendered)
+        self.assertIn("name: alpha\n", config.render_skill(cfg, "alpha"))
+        plist = config.render_plist(cfg, "omega")
+        self.assertIn(f"<string>com.{cfg.core['namespace']}.omega</string>", plist)
+        self.assertIn("logs/omega.log", plist)
+        self.assertEqual(eject.report(cfg)[0][1:], (False, False))
+
+        rc, out = self.run_cmd("uneject", "--yes", "omega")
+        self.assertEqual(rc, 1)
+        self.assertIn("renamed copy of alpha", out)
+        self.assertIn("daimon remove omega", out)
+        self.assertTrue(self.fork.exists())
+
+    def test_pack_fork_is_a_distinct_daemon_not_an_override(self):
+        rc, out = self.run_cmd("eject", "alpha", "--as", "omega", "--pack")
+        self.assertEqual(rc, 0, out)
+        copy = self.pack / "daemons" / "omega"
+        self.assertEqual(self.origin(copy)["as"], "omega")
+        self.assertIn("commit it in the pack", out)
+        cfg = self.cfg()
+        self.assertFalse(cfg.shadows_daimon(copy, "omega"))
+        self.assertEqual(cfg.daemon_dir("alpha"), self.root / "catalog" / "alpha")
+        self.assertEqual(cfg.catalog()["alpha"]["source"], "dAImon")
+        self.assertEqual(cfg.catalog()["omega"]["source"], "team")
+        self.assertEqual(config.validate(cfg), [])
+        self.assertFalse(self.fork.exists())
+
+    def test_forking_a_pack_daemon_records_the_pack(self):
+        rc, out = self.run_cmd("eject", "report", "--as", "digest")
+        self.assertEqual(rc, 0, out)
+        origin = self.origin(self.root / "daemons" / "digest")
+        self.assertEqual((origin["source"], origin["path"]), ("team", "daemons/report"))
+        self.assertEqual(self.cfg().daemon("digest")["command"], "/digest")
+
+    def test_outdated_and_diff_track_the_original_through_the_rename(self):
+        self.run_cmd("eject", "alpha", "--as", "omega")
+        proc = self.diff("omega")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("upstream unchanged, your copy unchanged", proc.stdout)
+        self.assertIn("alpha -> omega", proc.stdout)
+        self.assertNotIn("\n-", proc.stdout)
+        self.assertNotIn("\n+", proc.stdout)
+
+        skill = self.root / "catalog" / "alpha" / "skill" / "SKILL.md"
+        skill.write_text(skill.read_text() + "Then tell alpha's owner.\n")
+        self.assertEqual(eject.report(self.cfg())[0][1:], (True, False))
+        proc = self.diff("omega")
+        self.assertIn("upstream changed, your copy unchanged", proc.stdout)
+        self.assertIn("-Then tell omega's owner.", proc.stdout)
+        self.assertIn(f"--- {self.root}/catalog/alpha/skill/SKILL.md", proc.stdout)
+        self.assertNotIn("name: ", proc.stdout)
+
+        (self.fork / "NOTES.md").write_text("mine\n")
+        self.assertEqual(eject.report(self.cfg())[0][1:], (True, True))
+        _, brief = self.run_cmd("outdated", "--brief")
+        self.assertEqual(brief, "omega (local): upstream changed\n")
+
+    def test_personal_settings_are_copied_once(self):
+        personal = self.conf.parent / "daemons"
+        write(personal / "alpha.toml", '[inputs]\nq = "mine"\n')
+        rc, out = self.run_cmd("eject", "alpha", "--as", "omega")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual((personal / "omega.toml").read_text(), '[inputs]\nq = "mine"\n')
+        self.assertIn("a copy of your alpha settings", out)
+        self.assertEqual(self.cfg().daemon("omega")["inputs"]["q"], "mine")
+
+        write(personal / "zeta.toml", '[inputs]\nq = "zeta"\n')
+        rc, out = self.run_cmd("eject", "alpha", "--as", "zeta")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual((personal / "zeta.toml").read_text(), '[inputs]\nq = "zeta"\n')
+        self.assertNotIn("settings", out)
+
+    def test_refusals(self):
+        make_daemon(self.root / "daemons" / "mine", "mine")
+        cases = {
+            ("alpha", "alpha"): "the daemon's own name",
+            ("alpha", "Not_A_Slug"): "lowercase words joined by hyphens",
+            ("alpha", "beta"): "beta already exists",
+            ("alpha", "report"): "report already exists",
+            ("alpha", "mine"): "mine already exists",
+            ("ghost", "omega"): "not in any catalog",
+        }
+        for (slug, new), message in cases.items():
+            rc, out = self.run_cmd("eject", slug, "--as", new)
+            self.assertEqual(rc, 1, (slug, new, out))
+            self.assertIn(message, out)
+        self.assertFalse(self.fork.exists())
+        self.assertEqual(self.daemons_key("installed"), ["alpha", "report"])
 
 
 class DaemonDirInputTest(EjectBase):

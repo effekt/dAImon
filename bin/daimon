@@ -27,6 +27,8 @@ usage: daimon <command> [args]
   eject <slug> [--pack [dir]]
                      copy a daemon into daemons/ to edit (or, --pack, a dAImon
                      catalog daemon into a pack); .origin.json records the source
+  eject <slug> --as <new> [--pack [dir]]
+                     fork it as a new daemon <new>, beside the original
   uneject [--yes] <slug>
                      delete your ejected copy so the daemon is linked again
   outdated           ejected copies (yours and packs') whose upstream or copy changed
