@@ -47,7 +47,7 @@ work-queue session that wrote the PR.
 ```bash
 #!/usr/bin/env bash
 set -uo pipefail
-source "$(dirname "$0")/../../profiles/github/lib.sh"
+source "$DAIMON_INSTALL_ROOT/profiles/github/lib.sh"  # exported by dAImon; works in a pack too
 [ "$(gh_pr_count --search "$DAIMON_INPUT_FILTER")" -gt 0 ]
 ```
 

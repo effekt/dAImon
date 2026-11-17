@@ -56,6 +56,15 @@ gitignored by the pack.
 - In a skill, `{{daemon_dir}}` renders as the daemon's absolute folder, for
   scripts it ships.
 
+## Adding a daemon to a pack
+
+`daimon new --pack` (Claude interviews you) or `daimon scaffold <slug> --pack`
+(a skeleton) creates it in the first pack's `daemons/`; give `--pack <dir>` to
+pick another. The skeleton's gate already sources dAImon's libraries through
+`$DAIMON_INSTALL_ROOT`, and skips every run until you write it. Commit it in the
+pack's repo, and teammates get it on their next `daimon sync`. It runs on a
+machine only once someone registers it there.
+
 ## Runbooks
 
 slack-commands reads `commands/` in every pack, after its shared runbooks and
