@@ -21,7 +21,16 @@ usage: daimon <command> [args]
 
   init [slug...]     choose daemons from the catalog + scaffold their personal settings
   catalog            list every daemon you can install, with its source and state
-  add <slug>...      install daemons (+ personal settings, sync); registers nothing
+  add [--pack [dir]] <slug>...
+                     install daemons (+ personal settings, sync); registers nothing.
+                     --pack first copies each from dAImon's catalog into a pack
+  eject <slug> [--pack [dir]]
+                     copy a daemon into daemons/ to edit (or, --pack, a dAImon
+                     catalog daemon into a pack); .origin.json records the source
+  uneject [--yes] <slug>
+                     delete your ejected copy so the daemon is linked again
+  outdated           ejected copies (yours and packs') whose upstream or copy changed
+  diff <slug>        diff -ru upstream's current files against your copy
   remove [--yes] <slug>...
                      unregister and uninstall daemons (personal settings kept)
   migrate            bring an install up to date: legacy in-repo settings to
@@ -68,6 +77,8 @@ case "$CMD" in
   catalog)   exec python3 -m daimon.catalog list "$@" ;;
   add)       exec python3 -m daimon.catalog add "$@" ;;
   remove)    exec python3 -m daimon.catalog remove "$@" ;;
+  eject|uneject|outdated|diff)
+             exec python3 -m daimon.eject "$CMD" "$@" ;;
   run)       exec bash "$LIB/run.sh" "$@" ;;
   launch)    exec bash "$LIB/launch.sh" "$@" ;;
   watchdog)  exec bash "$LIB/watchdog.sh" "$@" ;;

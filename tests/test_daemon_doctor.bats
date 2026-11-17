@@ -37,3 +37,18 @@ setup() {
   run bash "$ROOT/lib/doctor.sh"
   [[ "$output" == *"auto-update off ([update].auto)"* ]]
 }
+
+@test "notes an ejected copy whose upstream changed since the eject" {
+  mkdir -p "$T/install/daemons"
+  cp -R "$T/install/catalog/plain" "$T/install/daemons/plain"
+  printf '{"source": "dAImon", "path": "catalog/plain", "hash": "sha256:old"}\n' \
+    > "$T/install/daemons/plain/.origin.json"
+  run bash "$ROOT/lib/doctor.sh"
+  [[ "$output" == *"ejected daemons"* ]]
+  [[ "$output" == *"note  plain (local): upstream changed — see: daimon diff plain"* ]]
+}
+
+@test "no ejected-daemons section when nothing is ejected" {
+  run bash "$ROOT/lib/doctor.sh"
+  [[ "$output" != *"ejected daemons"* ]]
+}

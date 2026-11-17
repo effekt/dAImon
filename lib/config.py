@@ -130,6 +130,20 @@ def slug_for_dir(name: str) -> str:
     return name[: -len(LOCAL_SUFFIX)] if name.endswith(LOCAL_SUFFIX) else name
 
 
+# An ejected copy (`daimon eject`) records where it came from in this file:
+# {"source": "dAImon" or a pack's name, "path": the folder relative to that
+# root, "hash": the content hash of the files when they were copied}.
+ORIGIN_FILE = ".origin.json"
+
+
+def read_origin(folder: Path) -> dict | None:
+    try:
+        data = json.loads((folder / ORIGIN_FILE).read_text())
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
 class Config:
     def __init__(self, raw: dict, source: Path | None):
         self.source = source
@@ -188,12 +202,25 @@ class Config:
             out.setdefault(slug_for_dir(cfg.parent.name), []).append(cfg.parent)
         return out
 
+    def shadows_daimon(self, folder: Path, slug: str) -> bool:
+        """A pack's copy of a dAImon catalog daemon (`daimon eject --pack`): its
+        .origin.json names dAImon's catalog/<slug>, so it overrides that daemon on
+        purpose rather than duplicating it."""
+        if folder.parent == self.catalog_dir():
+            return False
+        origin = read_origin(folder) or {}
+        return origin.get("source") == "dAImon" and origin.get("path") == f"catalog/{slug}"
+
     def catalog_locations(self) -> dict[str, list[Path]]:
-        """Every catalog folder offering each slug, in catalog order."""
+        """Every catalog folder offering each slug, in catalog order, except that a
+        pack copy taken from dAImon's catalog comes before the original it shadows."""
         out: dict[str, list[Path]] = {}
         for root in self.catalog_roots():
             self._scan_root(root, out)
-        return out
+        return {
+            slug: sorted(dirs, key=lambda d, s=slug: not self.shadows_daimon(d, s))
+            for slug, dirs in out.items()
+        }
 
     def ejected_locations(self) -> dict[str, list[Path]]:
         """Ejected copies under daemons/: `<slug>` and/or private `<slug>.local`."""
@@ -338,7 +365,10 @@ class Config:
             legacy = self.legacy_local_commands_dir()
             if any(legacy.glob("*.md")):
                 inputs["pack_commands_dirs"] = [*inputs.get("pack_commands_dirs", []), str(legacy)]
-        merged["inputs"] = inputs
+        # {{daemon_dir}} in an input is the folder the daemon loads from, so a path
+        # into the daemon's own files follows it when it is ejected or in a pack.
+        here = str(self.daemon_dir(slug))
+        merged["inputs"] = {k: _with_daemon_dir(v, here) for k, v in inputs.items()}
         merged["sources"] = [s["name"] for s in specs]
         merged["write_sources"] = [s["name"] for s in specs if s["write"]]
         merged["source"] = specs[0]["name"] if specs else ""
@@ -523,6 +553,14 @@ def render_skill(cfg: Config, slug: str) -> str:
     return text
 
 
+def _with_daemon_dir(value, here: str):
+    if isinstance(value, str):
+        return value.replace("{{daemon_dir}}", here)
+    if isinstance(value, list):
+        return [_with_daemon_dir(v, here) for v in value]
+    return value
+
+
 def _is_empty(value) -> bool:
     if value is None or value == [] or value == {}:
         return True
@@ -629,6 +667,9 @@ def _catalog_errors(cfg: Config) -> list[str]:
         if len(dirs) > 1:
             errors.append(f"{slug}: defined twice ({' and '.join(map(str, dirs))})")
     for slug, dirs in sorted(offered.items()):
+        # A pack copy of a dAImon daemon (`daimon eject --pack`) overrides it.
+        if any(cfg.shadows_daimon(d, slug) for d in dirs):
+            dirs = [d for d in dirs if d.parent != cfg.catalog_dir()]
         # An ejected copy takes precedence, so it settles which one loads.
         if len(dirs) > 1 and slug not in ejected:
             errors.append(f"{slug}: defined twice ({' and '.join(map(str, dirs))})")

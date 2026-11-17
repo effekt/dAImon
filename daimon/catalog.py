@@ -132,9 +132,26 @@ def _sync() -> bool:
     return proc.returncode == 0
 
 
-def add(config, migrate, slugs: list[str]) -> int:
+def _copy_into_pack(cfg, slugs: list[str], pack: str) -> bool:
+    """`add --pack`: copy each dAImon catalog daemon into the pack first."""
+    from daimon.eject import eject_to_pack  # daimon.eject imports this module
+
+    try:
+        for slug in slugs:
+            eject_to_pack(cfg, slug, pack)
+    except ValueError as e:
+        print(f"✗ {e}", file=sys.stderr)
+        return False
+    return True
+
+
+def add(config, migrate, slugs: list[str], pack: str | None = None) -> int:
     cfg = config.Config.load()
     slugs = list(dict.fromkeys(slugs))
+    if pack is not None:
+        if not _copy_into_pack(cfg, slugs, pack):
+            return 1
+        cfg = config.Config.load()
     unknown = [s for s in slugs if s not in cfg.catalog() and s not in cfg.ejected_locations()]
     if unknown:
         print(f"✗ not in any catalog: {', '.join(unknown)} (see `daimon catalog`)", file=sys.stderr)
@@ -209,6 +226,8 @@ def _parse(argv: list[str]) -> argparse.Namespace:
     sub.add_parser("list", help="list every daemon you can install")
     a = sub.add_parser("add", help="install daemons (registers nothing)")
     a.add_argument("slugs", nargs="+")
+    # A bare --pack means the only configured pack.
+    a.add_argument("--pack", nargs="?", const="", default=None, metavar="DIR")
     r = sub.add_parser("remove", help="unregister and uninstall daemons")
     r.add_argument("slugs", nargs="+")
     r.add_argument("--yes", "-y", action="store_true", help="unregister loaded daemons unasked")
@@ -219,7 +238,7 @@ def main(argv: list[str]) -> int:
     args = _parse(argv)
     config, migrate = _modules()
     if args.cmd == "add":
-        return add(config, migrate, args.slugs)
+        return add(config, migrate, args.slugs, args.pack)
     if args.cmd == "remove":
         return remove(config, migrate, args.slugs, args.yes)
     return list_catalog(config.Config.load())

@@ -60,7 +60,9 @@ its `daemon.toml`, is still read and is moved there by `daimon migrate`
   ```
 
 - In a skill, `{{daemon_dir}}` renders as the daemon's absolute folder, for
-  scripts it ships.
+  scripts it ships. An `[inputs]` value can use it too (slack-commands'
+  `commands_dir = "{{daemon_dir}}/commands"`), so the path follows the daemon
+  into a pack or an ejected copy.
 
 ## Adding a daemon to a pack
 
@@ -73,6 +75,11 @@ pack's repo, and teammates see it in `daimon catalog` after their next
 (`daimon add <slug>`) and registers it (`r` in `daimon tui`).
 
 Team-specific daemons always go in a pack, never in dAImon's `catalog/`.
+
+To adapt one of dAImon's daemons for the team instead, copy it into the pack
+with `daimon eject <slug> --pack` (or `daimon add <slug> --pack` to install it
+too). The pack's copy replaces dAImon's, and `daimon outdated` shows when
+dAImon's changes: see [ejecting into a pack](catalog.md#ejecting-into-a-pack).
 
 A pack daemon can ship `doctor.sh` for its own needs
 ([writing a daemon](writing-a-daemon.md#4-doctorsh-optional)). A pack is kept

@@ -34,6 +34,9 @@ TUI is the control panel.
   catalog with `daimon add` ([docs/catalog.md](docs/catalog.md)). Installing
   schedules nothing: registering a daemon (a launchd job) is a separate step.
   Your own daemons live in `daemons/`, gitignored, and are always installed.
+  An installed daemon is linked (it runs from its catalog, so updates reach it)
+  until you `daimon eject` it into `daemons/` to edit; `daimon outdated` and
+  `daimon diff` then show what changed upstream since.
 - **Backend** — the agent CLI that drives the session. Claude and Codex ship
   today; provider-specific capacity classifiers allow an opt-in Codex fallback
   only when Claude is actually capped. Backends remain pluggable via
@@ -146,6 +149,10 @@ daimon launch <slug>     launch now, bypass gates
 daimon catalog           every daemon you can install: source, installed/ejected
 daimon add <slug>…       install (+ personal settings, sync); registers nothing
 daimon remove <slug>…    unregister (asks if loaded; --yes) + uninstall
+daimon eject <slug>      copy into daemons/ to edit (--pack: into your pack)
+daimon outdated          ejected copies whose upstream or copy changed
+daimon diff <slug>       diff -ru upstream against your copy
+daimon uneject <slug>    delete your copy; the daemon is linked again
 daimon daemons           list active daemons (installed + your own, minus disabled)
 daimon status            launchd + running-session state
 daimon models <backend>  available models (live API or bundled fallback)
