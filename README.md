@@ -141,7 +141,7 @@ daimon tui               control panel
 ## Configuration
 
 Global settings in `~/.config/daimon/daimon.toml`; per-daemon in
-`daemons/<slug>/daemon.toml`. Full field reference: [docs/configuration.md](docs/configuration.md).
+`daemons/<slug>/daemon.toml`. Full field reference: [docs/configuration.md](docs/configuration.md). Share a team setup from its own repo: [docs/packs.md](docs/packs.md).
 Run-dangerous, model, schedule, backend, capacity fallback, and idle timeout are
 all configurable globally and per daemon. Set `fallback_backend = "codex"` under
 `[defaults]` to fall back fleet-wide only when Claude reports a provider cap.

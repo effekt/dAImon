@@ -62,6 +62,12 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 |-----|------|---------|
 | `command` | string | Optional. Receives this machine's daemon status as one JSON document on stdin after every watchdog sweep and when an agent run starts and ends. `{seconds}` is filled in (shell-quoted) with how long the report should be trusted (900). Best-effort: a failure is logged to `logs/agent-status.log` and never affects a run. Empty (default) = no report. See [Report agent status](#report-agent-status). |
 
+### `[packs]`
+
+| Key | Type | Meaning |
+|-----|------|---------|
+| `paths` | string[] | Folders (`~` expanded) that add daemons, team overrides, profile defaults and slack-commands runbooks, so a team can commit its setup in its own repo. See [packs](packs.md). |
+
 ### `[daemons]`
 
 | Key | Type | Meaning |
@@ -119,7 +125,8 @@ you can configure freely and still push the repo:
 | `config/daimon.toml.example` | `~/.config/daimon/daimon.toml` (outside the repo) |
 
 Merge precedence (last wins): global `[defaults]` → profile `[defaults]` →
-`profile.local.toml` → `daemon.toml` → `daemon.local.toml`. The TUI config screen
+a pack's `profiles/<name>.toml` → `profile.local.toml` → `daemon.toml` → a pack's
+`overrides/<slug>.toml` → `daemon.local.toml` ([packs](packs.md)). The TUI config screen
 (`c`) writes to `daemon.local.toml`, so editing a daemon never touches a committed
 file. Set workspace-wide values (e.g. your Shortcut workspace/labels) once in
 `profiles/<name>/profile.local.toml`.

@@ -30,10 +30,16 @@ def _import_config():
     return mod
 
 
-def all_slugs(root: Path) -> list[str]:
-    # daemons/<slug>.local is a private (gitignored) daemon under the plain slug.
+def all_slugs(root: Path, packs: list[Path] | None = None) -> list[str]:
+    # daemons/<slug>.local is a private (gitignored) daemon under the plain slug;
+    # packs add their own daemons/ folders.
+    roots = [root, *(packs or [])]
     return sorted(
-        p.parent.name.removesuffix(".local") for p in (root / "daemons").glob("*/daemon.toml")
+        {
+            p.parent.name.removesuffix(".local")
+            for r in roots
+            for p in (r / "daemons").glob("*/daemon.toml")
+        }
     )
 
 
@@ -241,8 +247,8 @@ def main(argv: list[str]) -> int:
         shutil.copy(INSTALL_ROOT / "config" / "daimon.toml.example", config_path)
         print(f"  new   {config_path}")
 
-    slugs = all_slugs(INSTALL_ROOT)
     cfg = cfg_mod.Config.load()
+    slugs = all_slugs(INSTALL_ROOT, cfg.packs)
     selected, explicit = _resolve_selection(slugs, cfg.disabled, argv)
 
     if explicit:

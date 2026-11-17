@@ -41,10 +41,11 @@ if [ "$ROLE_SKIP" -eq 1 ]; then
   exit 0
 fi
 
-# A private daemon lives in daemons/<slug>.local (gitignored); same slug.
-DDIR="$DAIMON_INSTALL_ROOT/daemons/$SLUG"
-[ -f "$DDIR/daemon.toml" ] || DDIR="$DDIR.local"
+# daemons/<slug>, daemons/<slug>.local, or a pack's daemons/ (config.py decides).
+DDIR="$(cfg daemon-dir "$SLUG")"
 DISCOVER="$DDIR/discover.sh"
+# A gate outside the install root (a pack's) finds dAImon's libs through these.
+export DAIMON_INSTALL_ROOT DAIMON_DAEMON_DIR="$DDIR"
 if [ -f "$DISCOVER" ]; then
   set -a; eval "$(cfg env "$SLUG")"; set +a
 
