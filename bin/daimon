@@ -23,7 +23,9 @@ usage: daimon <command> [args]
   run <slug>         gated run (throttle/inbox/discovery), then launch
   launch <slug>      launch the agent now, bypassing gates
   watchdog           sweep orphan sessions, leaked MCP servers, old logs
-  new                scaffold a new daemon (opens /daimon-builder in Claude)
+  new [--pack [dir]] create a daemon with Claude (/daimon-builder); --pack puts it in a pack
+  scaffold <slug> [--pack [dir]]
+                     write an inert daemon skeleton (dAImon's daemons/, or a pack's)
   sync [--all]       render skills + refresh registered plists (--all also creates missing ones)
   daemons            list discovered daemons
   packs              list configured packs and what each adds
@@ -55,7 +57,8 @@ case "$CMD" in
   run)       exec bash "$LIB/run.sh" "$@" ;;
   launch)    exec bash "$LIB/launch.sh" "$@" ;;
   watchdog)  exec bash "$LIB/watchdog.sh" "$@" ;;
-  new)       exec claude "/daimon-builder" ;;
+  new)       exec claude "/daimon-builder $*" ;;
+  scaffold)  exec python3 -m daimon.scaffold "$@" ;;
   sync)      exec python3 -m daimon.sync "$@" ;;
   daemons)   exec python3 "$LIB/config.py" daemons ;;
   packs)     exec python3 "$LIB/config.py" packs ;;

@@ -111,12 +111,17 @@ daemon's schedule, inputs, and config (every daemon has its own generated README
 
 ## Adding a daemon
 
-Two ways, both producing the same `daemons/<slug>/` folder:
+Three ways, all producing a `<slug>/` folder in dAImon's `daemons/` or, with
+`--pack`, a [pack](docs/packs.md)'s:
 
-1. **Interactive** — run `/daimon-builder` in Claude; it interviews you and writes
-   the folder.
-2. **By hand** — copy an existing `daemons/<slug>/`, edit `daemon.toml`, then
-   `daimon sync` to regenerate its plist and render its skill.
+1. **Interactive:** `daimon new [--pack]` opens `/daimon-builder` in Claude. It
+   interviews you, scaffolds the folder and writes it.
+2. **Skeleton:** `daimon scaffold <slug> [--pack [dir]]` writes `daemon.toml`,
+   `skill/SKILL.md` and a gate that skips until you write it, so nothing runs
+   half-finished. Fill them in following [writing a daemon](docs/writing-a-daemon.md).
+3. **By hand:** copy an existing daemon folder and edit it.
+
+Then `daimon validate`, `daimon run <slug>` to try it once, and `daimon sync`.
 
 ## CLI
 
