@@ -111,8 +111,9 @@ class ProfileTest(unittest.TestCase):
         before = committed.read_text()
         self.cfg.update_local("wq", {"stuck_after": 999}, None)
         self.assertEqual(committed.read_text(), before)
-        local = self.root / "daemons" / "wq" / "daemon.local.toml"
+        local = self.root / "config" / "daemons" / "wq.toml"
         self.assertIn("999", local.read_text())
+        self.assertFalse((self.root / "daemons" / "wq" / "daemon.local.toml").exists())
         self.assertEqual(config.Config.load().daemon("wq")["stuck_after"], 999)
 
     def test_render_appends_reference_and_joins_lists(self):

@@ -53,6 +53,11 @@ ln -sf "$ROOT/bin/daimon" "$HOME/.local/bin/daimon"
 ln -sf "$ROOT/bin/daimonctl" "$HOME/.local/bin/daimonctl"
 echo "linked daimon + daimonctl into ~/.local/bin (ensure it is on your PATH)"
 
+# Personal settings live in ~/.config/daimon, not the repo: move any legacy
+# daemon.local.toml / profile.local.toml there (idempotent; a no-op once done).
+# Runs on every install, so the self-updater migrates after a fast-forward.
+python3 "$ROOT/lib/migrate.py" || echo "warning: settings migration incomplete — run 'daimon migrate'" >&2
+
 # A plist in ~/Library/LaunchAgents is a registration: launchd loads it at the
 # next login whether or not anything loaded it now. So a plain install only
 # refreshes daemons already registered; --load (scheduling is the point there)

@@ -2,16 +2,22 @@
 # Integration test for bin/daimon-install, run against a throwaway $HOME so it never
 # touches the real ~/.config, ~/.claude, ~/.local/bin, or ~/Library/LaunchAgents.
 # The TUI venv (network) step is skipped via DAIMON_SKIP_TUI_VENV; launchctl is not
-# invoked because --load is omitted.
+# invoked because --load is omitted. install_root points at a scratch copy of the
+# repo (without any *.local.toml), so the settings migration install runs can never
+# move a developer's real in-repo settings into the throwaway HOME.
 
 setup() {
   ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SBOX="$BATS_TEST_TMPDIR/home"
+  INST="$BATS_TEST_TMPDIR/install"
   mkdir -p "$SBOX/.config/daimon" "$SBOX/Library/LaunchAgents"
-  # Seed a valid global config: no install_root (defaults to the repo), state + plists
+  rsync -a --exclude .git --exclude .venv --exclude '*.local.toml' --exclude 'daemons/*.local' \
+    "$ROOT/" "$INST/"
+  # Seed a valid global config: install_root is the scratch copy, state + plists
   # land under the sandbox, and a test namespace keeps plist labels distinct.
   cat > "$SBOX/.config/daimon/daimon.toml" <<TOML
 [core]
+install_root = "$INST"
 state_dir = "$SBOX/state"
 namespace = "daimon-test"
 timezone = "UTC"
@@ -86,4 +92,17 @@ run_install() {
   run_install
   [ ! -e "$SBOX/.claude/hooks/standup-worklog.sh" ]
   ! grep -q 'standup-worklog' "$SBOX/.claude/settings.json"
+}
+
+@test "install: moves legacy in-repo settings to ~/.config/daimon" {
+  printf '# mine\n[inputs]\nrepos = ["api"]\n' > "$INST/daemons/review-prs/daemon.local.toml"
+  printf '[defaults]\nowner = "me"\n' > "$INST/profiles/shortcut/profile.local.toml"
+  run_install
+  [ "$status" -eq 0 ]
+  grep -q '# mine' "$SBOX/.config/daimon/daemons/review-prs.toml"
+  grep -q 'owner = "me"' "$SBOX/.config/daimon/profiles/shortcut.toml"
+  grep -q 'by daimon migrate' "$INST/daemons/review-prs/daemon.local.toml"
+  ! grep -q 'repos' "$INST/daemons/review-prs/daemon.local.toml"
+  # the tracked example is never touched
+  diff -q "$ROOT/daemons/review-prs/daemon.local.toml.example" "$INST/daemons/review-prs/daemon.local.toml.example"
 }

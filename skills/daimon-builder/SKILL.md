@@ -51,8 +51,8 @@ daimon scaffold <slug> --pack     # the first pack (or --pack <dir>)
 ```
 
 It prints the folder it created; edit the files there (below, `<dir>`). In a pack,
-put values the team shares in `daemon.toml` and anything personal in
-`daemon.local.toml` (gitignored).
+put values the team shares in `daemon.toml`; anything personal goes in
+`~/.config/daimon/daemons/<slug>.toml`, outside every repo.
 
 Fill in `<dir>/daemon.toml`:
 

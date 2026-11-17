@@ -79,14 +79,22 @@ def set_disabled_text(text: str, disabled: list[str]) -> str:
     return result + "\n" if text.endswith("\n") else result
 
 
-def _scaffold(example: Path) -> Path:
-    dest = example.with_suffix("")  # drop the trailing .example
-    rel = dest.relative_to(INSTALL_ROOT)
+def _shown(path: Path) -> str:
+    """A path for messages: relative to the install root when inside it, else ~-abbreviated."""
+    if path.is_relative_to(INSTALL_ROOT):
+        return str(path.relative_to(INSTALL_ROOT))
+    home = Path.home()
+    return f"~/{path.relative_to(home)}" if path.is_relative_to(home) else str(path)
+
+
+def _scaffold(example: Path, dest: Path) -> Path:
+    """Copy a tracked *.example to this person's settings file `dest` unless it exists."""
     if dest.exists():
-        print(f"  skip  {rel} (exists)")
+        print(f"  skip  {_shown(dest)} (exists)")
     else:
+        dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(example, dest)
-        print(f"  new   {rel}")
+        print(f"  new   {_shown(dest)}")
     return dest
 
 
@@ -207,11 +215,11 @@ def _configure_working_dirs(local_paths: list[Path], default: str, interactive: 
     working_dir = _resolve_working_dir(default, interactive)
     if not working_dir:
         for path in pending:
-            print(f"  keep  {path.relative_to(INSTALL_ROOT)} working_dir placeholder")
+            print(f"  keep  {_shown(path)} working_dir placeholder")
         return
     for path in pending:
         _set_working_dir(path, working_dir)
-        print(f"  set   {path.relative_to(INSTALL_ROOT)} working_dir = {working_dir}")
+        print(f"  set   {_shown(path)} working_dir = {working_dir}")
 
 
 def _resolve_selection(
@@ -239,6 +247,16 @@ def _resolve_selection(
     return [s for s in slugs if s not in disabled], False
 
 
+def _migrate() -> None:
+    """Move legacy in-repo *.local.toml settings to the personal dir first, so
+    scaffolding sees (and never shadows) what this person already set."""
+    sys.path.insert(0, str(INSTALL_ROOT / "lib"))
+    import migrate
+
+    for line in migrate.migrate():
+        print(f"  migrate: {line}")
+
+
 def main(argv: list[str]) -> int:
     cfg_mod = _import_config()
     config_path = cfg_mod.global_config_path()
@@ -246,6 +264,7 @@ def main(argv: list[str]) -> int:
         config_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(INSTALL_ROOT / "config" / "daimon.toml.example", config_path)
         print(f"  new   {config_path}")
+    _migrate()
 
     cfg = cfg_mod.Config.load()
     slugs = all_slugs(INSTALL_ROOT, cfg.packs)
@@ -267,16 +286,16 @@ def main(argv: list[str]) -> int:
     for slug in selected:
         ex = cfg.daemon_dir(slug) / "daemon.local.toml.example"
         if ex.exists():
-            local_path = _scaffold(ex)
-            local_paths.append(local_path)
+            local_paths.append(_scaffold(ex, cfg.daemon_local_path(slug)))
         sources.update(cfg.daemon(slug)["sources"])
     _configure_working_dirs(local_paths, default_working_dir, interactive)
     for src in sorted(sources):
-        ex = INSTALL_ROOT / "profiles" / src / "profile.local.toml.example"
+        ex = cfg.profiles_dir() / src / "profile.local.toml.example"
         if ex.exists():
-            _scaffold(ex)
+            _scaffold(ex, cfg.profile_local_path(src))
 
-    print("\nnext: review daemons/*/daemon.local.toml, then run 'daimon doctor'.")
+    personal = _shown(cfg_mod.personal_dir())
+    print(f"\nnext: review {personal}/daemons/*.toml, then run 'daimon doctor'.")
     return 0
 
 

@@ -121,21 +121,35 @@ default template.
 ## Local overrides (keep your config out of git)
 
 The committed `daemon.toml` and `profile.toml` files are shareable templates with
-placeholder values. Your real values go in gitignored `*.local.toml` siblings, so
-you can configure freely and still push the repo:
+placeholder values. Your real values live outside the repo, in `~/.config/daimon/`
+beside the global config (the folder holding `$DAIMON_CONFIG`, when that is set),
+so you can configure freely, update dAImon, and still push the repo:
 
-| Committed (template) | Local override (gitignored) |
-|----------------------|------------------------------|
-| `daemons/<slug>/daemon.toml` | `daemons/<slug>/daemon.local.toml` |
-| `profiles/<name>/profile.toml` | `profiles/<name>/profile.local.toml` |
-| `config/daimon.toml.example` | `~/.config/daimon/daimon.toml` (outside the repo) |
+| Committed (template) | Your settings (outside the repo) |
+|----------------------|----------------------------------|
+| `daemons/<slug>/daemon.toml` | `~/.config/daimon/daemons/<slug>.toml` (`[daemon]`, `[inputs]`) |
+| `profiles/<name>/profile.toml` | `~/.config/daimon/profiles/<name>.toml` (`[defaults]`) |
+| `config/daimon.toml.example` | `~/.config/daimon/daimon.toml` |
 
 Merge precedence (last wins): global `[defaults]` → profile `[defaults]` →
-a pack's `profiles/<name>.toml` → `profile.local.toml` → `daemon.toml` → a pack's
-`overrides/<slug>.toml` → `daemon.local.toml` ([packs](packs.md)). The TUI config screen
-(`c`) writes to `daemon.local.toml`, so editing a daemon never touches a committed
-file. Set workspace-wide values (e.g. your Shortcut workspace/labels) once in
-`profiles/<name>/profile.local.toml`.
+a pack's `profiles/<name>.toml` → legacy `profile.local.toml` →
+`~/.config/daimon/profiles/<name>.toml` → `daemon.toml` → a pack's
+`overrides/<slug>.toml` → legacy `daemon.local.toml` →
+`~/.config/daimon/daemons/<slug>.toml` ([packs](packs.md)). The TUI config screen
+(`c`) writes to `~/.config/daimon/daemons/<slug>.toml`, so editing a daemon never
+touches the repo. Set workspace-wide values (e.g. your Shortcut workspace/labels)
+once in `~/.config/daimon/profiles/<name>.toml`.
+
+**Legacy files.** Older installs kept these settings in gitignored
+`daemons/<slug>/daemon.local.toml` and `profiles/<name>/profile.local.toml` files
+inside the repo (or a pack). They are still read, under the new files, and
+`daimon migrate` moves them: the text is copied verbatim (comments kept), or merged
+key by key when the new file already exists (its values win; overridden legacy
+values are kept as comments), and the old file is reduced to a one-line
+`# moved to … by daimon migrate` comment. It is idempotent, and `daimon install`
+(so every self-update) and `daimon init` run it for you. The tracked
+`*.local.toml.example` files stay where they are: `daimon init` copies them into
+`~/.config/daimon/`.
 
 ## Run a daemon on one machine only
 
@@ -148,7 +162,7 @@ a `role`, and point `[roles].command` at whatever coordinates your machines:
 [roles]
 command = "my-coordinator hold {role} --for {seconds}"
 
-# daemons/datadog-log-reviewer/daemon.local.toml
+# ~/.config/daimon/daemons/datadog-log-reviewer.toml
 [daemon]
 role = "datadog-errors"
 ```
