@@ -2,7 +2,7 @@
 
 dAImon's own repo holds generic daemons. A team's real setup (its private
 daemons, the settings everyone shares, its Slack runbooks) belongs in a repo the
-team owns, not in gitignored `*.local.toml` files on one machine. A **pack** is
+team owns, not in one person's settings on one machine. A **pack** is
 that repo: a folder dAImon loads alongside its own.
 
 ```toml
@@ -29,13 +29,16 @@ daimon-team/
 Last wins:
 
 - **Daemon:** `daemon.toml` → `overrides/<slug>.toml` (each pack, in `paths`
-  order) → `daemon.local.toml`.
-- **Profile:** `profile.toml` → `profiles/<name>.toml` → `profile.local.toml`.
+  order) → legacy `daemon.local.toml` → `~/.config/daimon/daemons/<slug>.toml`.
+- **Profile:** `profile.toml` → `profiles/<name>.toml` → legacy
+  `profile.local.toml` → `~/.config/daimon/profiles/<name>.toml`.
 
 Put what everyone on the team shares in the pack: the log query, the epic,
 labels, the `role`. Keep what is yours (your member ID, your schedule) in
-`daemon.local.toml`. For a pack daemon that file sits beside its `daemon.toml`,
-gitignored by the pack.
+`~/.config/daimon/daemons/<slug>.toml` — the same place for a pack daemon as for
+one of dAImon's own. A pack daemon's older gitignored `daemon.local.toml`, beside
+its `daemon.toml`, is still read and is moved there by `daimon migrate`
+([configuration](configuration.md#local-overrides-keep-your-config-out-of-git)).
 
 ## Daemons in a pack
 

@@ -10,11 +10,12 @@ command = "/{slug}"
 
 [inputs]
 # What the skill and gate need, as {{{{inputs.<key>}}}} / $DAIMON_INPUT_<KEY>.
-# Shared values go here; each person's own go in daemon.local.toml.
+# Shared values go here; each person's own go in ~/.config/daimon/daemons/<slug>.toml.
 """
 
 LOCAL_EXAMPLE = """\
-# Copy to daemon.local.toml (gitignored) for values that are yours alone.
+# Copy to ~/.config/daimon/daemons/<slug>.toml (daimon init does it) for values
+# that are yours alone.
 [daemon]
 # working_dir = "~/code/your-repo"
 

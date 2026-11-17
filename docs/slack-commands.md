@@ -29,7 +29,7 @@ daemons post updates back. Three pieces:
 ## Set up the front door
 
 **Channel watcher (no app, no admin approval).** Configure
-`daemons/slack-channel-watch/daemon.local.toml` with the channel IDs to
+`~/.config/daimon/daemons/slack-channel-watch.toml` with the channel IDs to
 watch; anyone types `?help` in one of them. Two polling modes:
 
 - *Scripted* (preferred): set `token_command` to a command printing a
@@ -81,7 +81,7 @@ Conventions:
 
 ## Access control
 
-`mutate_allowlist` in `daemon.local.toml` is the root of trust (Slack user
+`mutate_allowlist` in your `~/.config/daimon/daemons/slack-commands.toml` is the root of trust (Slack user
 IDs, machine-only). Those admins manage everyone else from Slack:
 `access list` / `access grant @user` / `access revoke @user`, persisted in
 daemon state. Grants never confer admin.

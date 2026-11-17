@@ -19,7 +19,9 @@ dAImon — agent daemon pipeline
 
 usage: daimon <command> [args]
 
-  init [slug...]     choose active daemons + scaffold their local config
+  init [slug...]     choose active daemons + scaffold their personal settings
+  migrate            move legacy in-repo *.local.toml settings to ~/.config/daimon
+                     (idempotent; install and init run it for you)
   run <slug>         gated run (throttle/inbox/discovery), then launch
   launch <slug>      launch the agent now, bypassing gates
   watchdog           sweep orphan sessions, leaked MCP servers, old logs
@@ -56,6 +58,7 @@ EOF
 
 case "$CMD" in
   init)      exec python3 -m daimon.init "$@" ;;
+  migrate)   exec python3 "$LIB/migrate.py" "$@" ;;
   run)       exec bash "$LIB/run.sh" "$@" ;;
   launch)    exec bash "$LIB/launch.sh" "$@" ;;
   watchdog)  exec bash "$LIB/watchdog.sh" "$@" ;;

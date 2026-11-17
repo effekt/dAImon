@@ -1,4 +1,5 @@
-# Machine-specific overrides for slack-commands. Copy to daemon.local.toml.
+# Machine-specific overrides for slack-commands.
+# Copy to ~/.config/daimon/daemons/slack-commands.toml.
 [daemon]
 # Repo the command runbooks operate on.
 working_dir = "~/src/my-repo"

@@ -110,6 +110,12 @@ def global_config_path() -> Path:
     return Path(os.path.expanduser("~/.config/daimon/daimon.toml"))
 
 
+def personal_dir() -> Path:
+    """Where each person's own settings live, outside any repo: the folder holding
+    the global config (~/.config/daimon, or $DAIMON_CONFIG's parent)."""
+    return global_config_path().parent
+
+
 def _load_toml(path: Path) -> dict:
     with open(path, "rb") as fh:
         return tomllib.load(fh)
@@ -205,19 +211,32 @@ class Config:
             team = pack / "profiles" / f"{name}.toml"
             if team.exists():
                 prof.setdefault("defaults", {}).update(_load_toml(team).get("defaults", {}))
-        local = self.profiles_dir() / name / "profile.local.toml"
-        if local.exists():
-            prof.setdefault("defaults", {}).update(_load_toml(local).get("defaults", {}))
+        # profile.toml < pack profiles < legacy profile.local.toml < personal file
+        for local in (self.legacy_profile_local_path(name), self.profile_local_path(name)):
+            if local.exists():
+                prof.setdefault("defaults", {}).update(_load_toml(local).get("defaults", {}))
         return prof
 
     def daemon_local_path(self, slug: str) -> Path:
+        """This person's settings for `slug`: <personal dir>/daemons/<slug>.toml."""
+        return personal_dir() / "daemons" / f"{slug}.toml"
+
+    def legacy_daemon_local_path(self, slug: str) -> Path:
+        """The pre-personal-dir location, beside daemon.toml. Still read (under the
+        personal file) until `daimon migrate` moves it."""
         return self.daemon_dir(slug) / "daemon.local.toml"
 
     def raw_daemon(self, slug: str) -> dict:
         raw = self.discover().get(slug, {})
         d, i = dict(raw.get("daemon", {})), dict(raw.get("inputs", {}))
-        # daemon.toml < each pack's overrides/<slug>.toml (team) < daemon.local.toml
-        for layer in [*self.pack_overrides(slug), self.daemon_local_path(slug)]:
+        # daemon.toml < each pack's overrides/<slug>.toml (team) < legacy
+        # daemon.local.toml < the personal <personal dir>/daemons/<slug>.toml
+        layers = [
+            *self.pack_overrides(slug),
+            self.legacy_daemon_local_path(slug),
+            self.daemon_local_path(slug),
+        ]
+        for layer in layers:
             if layer.exists():
                 over = _load_toml(layer)
                 d.update(over.get("daemon", {}))
@@ -281,6 +300,7 @@ class Config:
         raw.setdefault("daemon", {}).update(daemon)
         if inputs is not None:
             raw["inputs"] = inputs
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             toml_emit.dump_sections(
                 {"daemon": raw.get("daemon", {}), "inputs": raw.get("inputs", {})}
@@ -295,18 +315,23 @@ class Config:
         self._merge_write(self.daemon_local_path(slug), daemon, inputs)
 
     def profile_local_path(self, name: str) -> Path:
+        """This person's settings for profile `name`: <personal dir>/profiles/<name>.toml."""
+        return personal_dir() / "profiles" / f"{name}.toml"
+
+    def legacy_profile_local_path(self, name: str) -> Path:
         return self.profiles_dir() / name / "profile.local.toml"
 
     def update_profile_local(self, name: str, defaults: dict) -> None:
         path = self.profile_local_path(name)
         raw = _load_toml(path) if path.exists() else {}
         merged = {**raw.get("defaults", {}), **defaults}
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(toml_emit.dump_sections({"defaults": merged}))
         self._discover_cache = None
 
     def input_provenance(self, slug: str) -> dict:
         """Split a daemon's effective inputs by origin: keys it owns (edited in its
-        daemon.local.toml) versus keys inherited from each source profile's defaults
+        personal settings file) versus keys inherited from each source profile's defaults
         (edited profile-wide). A key the daemon overrides counts as daemon-owned."""
         owned = self.raw_daemon(slug)["inputs"]
         profiles: dict[str, dict] = {}

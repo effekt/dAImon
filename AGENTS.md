@@ -33,11 +33,15 @@ same checks. Use feature branches and PRs; never commit to `main` directly.
   `daimon/` may import a third-party package — daemons and gates run with no
   venv. Only `tui/` may depend on `textual`. New deps go in pyproject's `dev`
   group, never in `[project.dependencies]`.
-- **Every daemon must set `working_dir`** (in its gitignored `daemon.local.toml`)
+- **Every daemon must set `working_dir`** (in `~/.config/daimon/daemons/<slug>.toml`)
   to the target repo. Left unset, `config.py` defaults it to the dAImon install
   root, so the agent would run against this repo instead of its target.
-- **`*.local.toml` is gitignored** and holds machine-specific `working_dir` +
-  `[inputs]`. Committed `daemon.toml` holds shared defaults only.
+- **Personal settings live in `~/.config/daimon/`, never the repo:**
+  `daemons/<slug>.toml` (machine-specific `working_dir` + `[inputs]`) and
+  `profiles/<name>.toml`, beside the global config. Committed `daemon.toml` holds
+  shared defaults only. Legacy in-repo `*.local.toml` files (still gitignored) are
+  read under the new files and moved by `lib/migrate.py`, which install and init
+  run; `config.py` writes only the new files.
 
 ## Documentation
 

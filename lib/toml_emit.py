@@ -22,8 +22,12 @@ def emit_value(v) -> str:
     raise TypeError(f"cannot emit {v!r}")
 
 
+def emit_kv(key: str, value) -> str:
+    return f"{key} = {emit_value(value)}"
+
+
 def _section_lines(name: str, table: dict) -> list[str]:
-    return [f"[{name}]"] + [f"{k} = {emit_value(v)}" for k, v in table.items()]
+    return [f"[{name}]"] + [emit_kv(k, v) for k, v in table.items()]
 
 
 def dump_sections(sections: dict[str, dict]) -> str:

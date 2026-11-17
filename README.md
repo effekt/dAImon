@@ -75,15 +75,20 @@ PATH); `make help` lists targets.
 ### Shared vs machine-local config
 
 Each daemon splits its config in two: **`daemon.toml`** (committed — shared defaults,
-schedule, task inputs) and **`daemon.local.toml`** (gitignored — your `working_dir`
-and any per-machine overrides). Edit the `.local.toml` copies and never commit them.
-Source-wide settings (e.g. your Shortcut `owner`/`team`) live the same way in
-`profiles/<name>/profile.local.toml`. API tokens are never stored in these files —
-use `gh auth login` and `$SHORTCUT_API_TOKEN`.
+schedule, task inputs) and **`~/.config/daimon/daemons/<slug>.toml`** (outside the
+repo — your `working_dir` and any per-machine overrides). Source-wide settings (e.g.
+your Shortcut `owner`/`team`) live the same way in
+`~/.config/daimon/profiles/<name>.toml`. Older installs kept these as gitignored
+`*.local.toml` files in the repo; those are still read, and `daimon install` (every
+update) moves them for you — or run `daimon migrate`
+([details](docs/configuration.md#local-overrides-keep-your-config-out-of-git)). API
+tokens are never stored in these files — use `gh auth login` and
+`$SHORTCUT_API_TOKEN`.
 
 `daimon init` defines which daemons run on this machine: name the ones you want and
 the rest are added to `[daemons].disabled` (excluded from sync and scheduling), and
-the chosen ones get their `.local.toml` scaffolded from the tracked examples. It
+the chosen ones get their settings in `~/.config/daimon/` scaffolded from the tracked
+`*.local.toml.example` files. It
 prompts once for `working_dir`, defaulting to the current directory; press Enter to
 use it for all selected daemons with placeholder paths, or type a different repo or
 workspace path.
