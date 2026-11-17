@@ -31,6 +31,16 @@ class TomlEmitTest(unittest.TestCase):
         self.assertEqual(parsed["daemon"]["danger"], True)
         self.assertEqual(parsed["inputs"]["labels"], ["a", "b"])
 
+    def test_strings_with_quotes_backslashes_and_newlines_roundtrip(self):
+        tricky = {
+            "marker": '"kind":"findings"',
+            "regex": "\\*\\*0 findings",
+            "json": '{"a": 1,\n  "b": "two"}\n',
+            "unicode": "café 🤖",
+        }
+        parsed = tomllib.loads(toml_emit.dump_sections({"inputs": tricky}))
+        self.assertEqual(parsed["inputs"], tricky)
+
     def test_empty_section_skipped(self):
         text = toml_emit.dump_sections({"daemon": {"x": 1}, "inputs": {}})
         self.assertNotIn("[inputs]", text)

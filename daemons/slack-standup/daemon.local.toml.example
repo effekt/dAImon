@@ -11,11 +11,11 @@ channel_name = "my-standup-channel"
 test_mode = true
 tracker_hints = """
 Query Shortcut with `shortcut-cli search "owner:me" 'state:"In Progress"'` and
-the ready state named "Ready for Development". Tickets are tagged [sc-NNNNN]
+the ready state named "Ready". Tickets are tagged [sc-NNNNN]
 in PR titles; story URLs look like https://app.shortcut.com/org/story/NNNNN.
 """
 focus_hints = """
-Split design-system PRs into their own :art: section. Also check the
+Split docs-only PRs into their own :memo: section. Also check the
 Cloudflare audit log for changes I made, and surface noteworthy
 non-PR digs from my own assistant sessions (skip autonomous daemon runs).
 """

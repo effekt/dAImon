@@ -190,24 +190,24 @@ _marker_fixture() {
 
 # --- include_epics: epics opted back in out of an excluded objective.
 @test "_sc_queries: no objective exclusion -> just the query" {
-  export DAIMON_INPUT_INCLUDE_EPICS="51278"
+  export DAIMON_INPUT_INCLUDE_EPICS="7001"
   run _sc_queries 'label:"x" !epic:9'
   [ "$output" = 'label:"x" !epic:9' ]
 }
 
 @test "_sc_queries: objective excluded -> one variant per opted-in epic, other exclusions kept" {
-  export DAIMON_INPUT_INCLUDE_EPICS="51278 54504"
-  run _sc_queries 'state:"To Do" !epic:9 !objective:48339 !label:"milestone"'
+  export DAIMON_INPUT_INCLUDE_EPICS="7001 7002"
+  run _sc_queries 'state:"To Do" !epic:9 !objective:9001 !label:"milestone"'
   [ "$output" = "$(printf '%s\n' \
-    'state:"To Do" !epic:9 !objective:48339 !label:"milestone"' \
-    'state:"To Do" !epic:9 !label:"milestone" epic:51278' \
-    'state:"To Do" !epic:9 !label:"milestone" epic:54504')" ]
+    'state:"To Do" !epic:9 !objective:9001 !label:"milestone"' \
+    'state:"To Do" !epic:9 !label:"milestone" epic:7001' \
+    'state:"To Do" !epic:9 !label:"milestone" epic:7002')" ]
 }
 
 @test "_sc_queries: nothing opted in -> just the query" {
   unset DAIMON_INPUT_INCLUDE_EPICS
-  run _sc_queries '!objective:48339'
-  [ "$output" = '!objective:48339' ]
+  run _sc_queries '!objective:9001'
+  [ "$output" = '!objective:9001' ]
 }
 
 @test "shortcut_search_ids: merges opted-in epics' stories, deduped in order" {
