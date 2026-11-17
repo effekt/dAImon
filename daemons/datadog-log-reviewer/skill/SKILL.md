@@ -43,7 +43,14 @@ Your durable JSON memory (read it first with `daimon state get`) is an array of
 - A cluster whose signature you've already filed is **known** — do not file a
   second story. (Optionally note it recurred by updating `last_seen`; never open
   a duplicate.)
-- A cluster with a new signature is a **candidate**.
+- A cluster with a new signature is a **candidate** — but people file stories
+  too. Before filing, search your write source (see **Source: … — writing**) for
+  an **open** item about the same error: the service plus the error's distinctive
+  words (exception type, message fragment, failing call). If one clearly covers
+  it, adopt it — record `{signature, story_id, title, last_seen}` with that item's
+  id and file nothing. Adopted clusters don't count toward the per-run cap. When
+  unsure whether it's the same root cause, adopt rather than file: a missed
+  duplicate costs a triager's time, a missed new error recurs next run.
 
 ## 4. File a story per new cluster
 
@@ -81,4 +88,5 @@ occurrence count first); leave the rest for the next run. For each:
 
 Append each filed cluster as `{signature, story_id, title, last_seen}` and write
 the record back with `daimon state set`. Summarize briefly: each cluster, its
-occurrence count, and the story you opened (or "known — skipped").
+occurrence count, and the story you opened (or "known — skipped", or "adopted
+sc-N").
