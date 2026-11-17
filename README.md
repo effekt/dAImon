@@ -24,6 +24,8 @@ TUI is the control panel.
   <img src="assets/tui.png" alt="dAImon control panel — daemon list with live status, config, processes, and log" width="900">
 </p>
 
+> **Upgrading from before the catalog (Nov 2026)?** Your next `daimon install` migrates you automatically; see [docs/migrating.md](docs/migrating.md) for what moved and the few cases that need you.
+
 ## Concepts
 
 - **Daemon** — a self-contained folder `<slug>/` with `daemon.toml`
