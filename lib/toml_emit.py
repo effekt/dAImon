@@ -3,6 +3,8 @@ arrays, plus [section] headers). Shared by config.py and the sync compiler."""
 
 from __future__ import annotations
 
+import json
+
 
 def emit_value(v) -> str:
     if isinstance(v, bool):
@@ -10,7 +12,9 @@ def emit_value(v) -> str:
     if isinstance(v, (int, float)):
         return str(v)
     if isinstance(v, str):
-        return f'"{v}"'
+        # JSON's string escaping (\", \\, \n, \uXXXX) is valid in a TOML basic
+        # string, so quotes, backslashes and newlines survive a round trip.
+        return json.dumps(v, ensure_ascii=False)
     if isinstance(v, dict):
         return "{ " + ", ".join(f"{k} = {emit_value(val)}" for k, val in v.items()) + " }"
     if isinstance(v, list):
