@@ -67,7 +67,7 @@ daimon scaffold <slug> --catalog  # dAImon's catalog/, to contribute it
 
 It prints the folder it created; edit the files there (below, `<dir>`). In a pack,
 put values the team shares in `daemon.toml`; anything personal goes in
-`~/.config/daimon/daemons/<slug>.toml`, outside every repo.
+`~/.daimon/daemons/<slug>.toml`, outside every repo.
 
 Fill in `<dir>/daemon.toml`:
 

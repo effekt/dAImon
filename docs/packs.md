@@ -6,7 +6,7 @@ team owns, not in one person's settings on one machine. A **pack** is
 that repo: a folder dAImon loads alongside its own.
 
 ```toml
-# ~/.config/daimon/daimon.toml
+# ~/.daimon/daimon.toml
 [packs]
 paths = ["~/work/daimon-team"]
 ```
@@ -29,13 +29,13 @@ daimon-team/
 Last wins:
 
 - **Daemon:** `daemon.toml` → `overrides/<slug>.toml` (each pack, in `paths`
-  order) → legacy `daemon.local.toml` → `~/.config/daimon/daemons/<slug>.toml`.
+  order) → legacy `daemon.local.toml` → `~/.daimon/daemons/<slug>.toml`.
 - **Profile:** `profile.toml` → `profiles/<name>.toml` → legacy
-  `profile.local.toml` → `~/.config/daimon/profiles/<name>.toml`.
+  `profile.local.toml` → `~/.daimon/profiles/<name>.toml`.
 
 Put what everyone on the team shares in the pack: the log query, the epic,
 labels, the `role`. Keep what is yours (your member ID, your schedule) in
-`~/.config/daimon/daemons/<slug>.toml` — the same place for a pack daemon as for
+`~/.daimon/daemons/<slug>.toml` — the same place for a pack daemon as for
 one of dAImon's own. A pack daemon's older gitignored `daemon.local.toml`, beside
 its `daemon.toml`, is still read and is moved there by `daimon migrate`
 ([configuration](configuration.md#local-overrides-keep-your-config-out-of-git)).
@@ -89,7 +89,7 @@ current by `daimon sync`, which runs hourly through `daimon update` when
 ## Runbooks
 
 slack-commands reads `commands/` in every pack, after its shared runbooks and
-before your own in `~/.config/daimon/commands/`. Scaffold one into a pack with
+before your own in `~/.daimon/commands/`. Scaffold one into a pack with
 `daimon command new <name> --pack <dir>`.
 
 ## Commands

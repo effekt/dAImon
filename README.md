@@ -69,8 +69,8 @@ git clone <your-fork> ~/dev/dAImon
 cd ~/dev/dAImon
 make install                 # the shell: hooks, TUI venv, skills; puts `daimon` on PATH; installs no daemon
 daimon catalog               # every daemon you can install, and where it comes from
-daimon add review-prs        # install one: scaffolds ~/.config/daimon/daemons/review-prs.toml, syncs
-$EDITOR ~/.config/daimon/daemons/review-prs.toml           # working_dir = the repo it operates on
+daimon add review-prs        # install one: scaffolds ~/.daimon/daemons/review-prs.toml, syncs
+$EDITOR ~/.daimon/daemons/review-prs.toml   # working_dir = the repo it operates on
 daimon doctor                # verify tools, gh auth, hooks, config
 daimon validate
 daimon run review-prs        # one gated run, now — watch with `daimon tui`
@@ -83,10 +83,10 @@ PATH); `make help` lists targets.
 ### Shared vs machine-local config
 
 Each daemon splits its config in two: **`daemon.toml`** (committed — shared defaults,
-schedule, task inputs) and **`~/.config/daimon/daemons/<slug>.toml`** (outside the
+schedule, task inputs) and **`~/.daimon/daemons/<slug>.toml`** (outside the
 repo — your `working_dir` and any per-machine overrides). Source-wide settings (e.g.
 your Shortcut `owner`/`team`) live the same way in
-`~/.config/daimon/profiles/<name>.toml`. Older installs kept these as gitignored
+`~/.daimon/profiles/<name>.toml`. Older installs kept these as gitignored
 `*.local.toml` files in the repo; those are still read, and `daimon install` (every
 update) moves them for you — or run `daimon migrate`
 ([details](docs/configuration.md#local-overrides-keep-your-config-out-of-git)). API
@@ -95,7 +95,7 @@ tokens are never stored in these files — use `gh auth login` and
 
 `daimon add <slug>…` installs daemons one at a time; `daimon init` chooses the
 whole set at once. Name the ones you want and they become `[daemons].installed`
-in `daimon.toml`; the chosen ones get their settings in `~/.config/daimon/`
+in `daimon.toml`; the chosen ones get their settings in `~/.daimon/`
 scaffolded from the tracked `*.local.toml.example` files. It prompts once for
 `working_dir`, defaulting to the current directory; press Enter to use it for all
 selected daemons with placeholder paths, or type a different repo or workspace
@@ -170,8 +170,8 @@ daimon tui               control panel
 
 ## Configuration
 
-Global settings in `~/.config/daimon/daimon.toml`; per-daemon in
-`<slug>/daemon.toml` in its catalog, and yours in `~/.config/daimon/daemons/<slug>.toml`. Full field reference: [docs/configuration.md](docs/configuration.md). Share a team setup from its own repo: [docs/packs.md](docs/packs.md).
+Global settings in `~/.daimon/daimon.toml`; per-daemon in
+`<slug>/daemon.toml` in its catalog, and yours in `~/.daimon/daemons/<slug>.toml`. Full field reference: [docs/configuration.md](docs/configuration.md). Share a team setup from its own repo: [docs/packs.md](docs/packs.md).
 Run-dangerous, model, schedule, backend, capacity fallback, and idle timeout are
 all configurable globally and per daemon. Set `fallback_backend = "codex"` under
 `[defaults]` to fall back fleet-wide only when Claude reports a provider cap.

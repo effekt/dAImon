@@ -103,16 +103,28 @@ def expand(p: str) -> Path:
     return Path(os.path.expanduser(p)).resolve()
 
 
+PERSONAL_DIR = "~/.daimon"
+# Where personal settings lived before ~/.daimon. `daimon migrate` moves them.
+LEGACY_PERSONAL_DIR = "~/.config/daimon"
+
+
 def global_config_path() -> Path:
+    """$DAIMON_CONFIG, else ~/.daimon/daimon.toml. Until `daimon migrate` has moved
+    it, a legacy ~/.config/daimon/daimon.toml is read instead: a launchd job that
+    fires after an update's fast-forward but before its install still finds it."""
     env = os.environ.get("DAIMON_CONFIG")
     if env:
         return Path(os.path.expanduser(env))
-    return Path(os.path.expanduser("~/.config/daimon/daimon.toml"))
+    current = Path(os.path.expanduser(PERSONAL_DIR)) / "daimon.toml"
+    legacy = Path(os.path.expanduser(LEGACY_PERSONAL_DIR)) / "daimon.toml"
+    if not current.exists() and legacy.exists():
+        return legacy
+    return current
 
 
 def personal_dir() -> Path:
     """Where each person's own settings live, outside any repo: the folder holding
-    the global config (~/.config/daimon, or $DAIMON_CONFIG's parent)."""
+    the global config (~/.daimon, or $DAIMON_CONFIG's parent)."""
     return global_config_path().parent
 
 
@@ -993,6 +1005,7 @@ def main(argv: list[str]) -> int:
         print(f"DAIMON_STATE_DIR='{cfg.state_dir}'")
         print(f"DAIMON_NS='{cfg.core['namespace']}'")
         print(f"DAIMON_TIMEZONE='{cfg.core['timezone']}'")
+        print(f"DAIMON_PERSONAL_DIR='{personal_dir()}'")
         return 0
     return 2
 

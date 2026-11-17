@@ -55,7 +55,7 @@ A read-only daemon never sees this, so keep read vs write cleanly split. See
 
 Each person's overrides of `[defaults]`, shared across every daemon on the source
 (e.g. your Shortcut `owner`), live outside the repo in
-`~/.config/daimon/profiles/<name>.toml`. Commit a `profile.local.toml.example` to
+`~/.daimon/profiles/<name>.toml`. Commit a `profile.local.toml.example` to
 show the shape; `daimon init` copies it there.
 
 ## How a daemon uses it

@@ -29,7 +29,7 @@ daemons post updates back. Three pieces:
 ## Set up the front door
 
 **Channel watcher (no app, no admin approval).** Configure
-`~/.config/daimon/daemons/slack-channel-watch.toml` with the channel IDs to
+`~/.daimon/daemons/slack-channel-watch.toml` with the channel IDs to
 watch; anyone types `?help` in one of them. Two polling modes:
 
 - *Scripted* (preferred): set `token_command` to a command printing a
@@ -46,7 +46,7 @@ Commands are markdown runbooks, one file per command:
 
 - `catalog/slack-commands/commands/` — committed, shared by everyone.
 - `commands/` in each [pack](packs.md) — your team's.
-- `~/.config/daimon/commands/` — yours, outside every repo; a file here
+- `~/.daimon/commands/` — yours, outside every repo; a file here
   overrides a shared or pack one of the same `name`. `daimon command new <name>`
   writes here. (Older installs kept these in the gitignored
   `daemons/slack-commands/commands.local/`; it is still read until
@@ -85,7 +85,7 @@ Conventions:
 
 ## Access control
 
-`mutate_allowlist` in your `~/.config/daimon/daemons/slack-commands.toml` is the root of trust (Slack user
+`mutate_allowlist` in your `~/.daimon/daemons/slack-commands.toml` is the root of trust (Slack user
 IDs, machine-only). Those admins manage everyone else from Slack:
 `access list` / `access grant @user` / `access revoke @user`, persisted in
 daemon state. Grants never confer admin.

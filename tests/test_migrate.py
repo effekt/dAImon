@@ -250,5 +250,216 @@ class InitScaffoldTest(PersonalSettingsBase):
         self.assertFalse((self.root / "profiles" / "sc" / "profile.local.toml").exists())
 
 
+def mode(path: Path) -> int:
+    return path.stat().st_mode & 0o777
+
+
+def tree(root: Path) -> dict[str, tuple[int, bytes]]:
+    return {
+        str(p.relative_to(root)): (mode(p), p.read_bytes() if p.is_file() else b"")
+        for p in sorted(root.rglob("*"))
+    }
+
+
+class PersonalDirMoveTest(unittest.TestCase):
+    """~/.config/daimon -> ~/.daimon, in a scratch HOME."""
+
+    TODAY = migrate.datetime.date(2026, 11, 17)
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.home = Path(self.tmp.name).resolve()
+        self.old = self.home / ".config" / "daimon"
+        self.new = self.home / ".daimon"
+        env = {k: v for k, v in os.environ.items() if k != "DAIMON_CONFIG"}
+        env["HOME"] = str(self.home)
+        self.env = patch.dict(os.environ, env, clear=True)
+        self.env.start()
+
+    def tearDown(self):
+        self.env.stop()
+        self.tmp.cleanup()
+
+    def seed_legacy(self):
+        write(
+            self.old / "daimon.toml",
+            f"""
+            # mine
+            [core]
+            state_dir = "~/.local/state/daimon"
+            [packs]
+            paths = ["{self.old}/packs/team", "~/tbl/tbl-agents"]
+            """,
+        )
+        write(
+            self.old / "daemons" / "slack-commands.toml",
+            '[inputs]\nlocal_commands_dir = "~/.config/daimon/commands"\n',
+        )
+        write(self.old / "profiles" / "shortcut.toml", '[defaults]\nowner = "me"\n')
+        write(self.old / "commands" / "deploy.md", "# deploy ~/.config/daimon/x\n")
+        (self.old / "no-auto-update").touch()
+        for f in ("daemons/slack-commands.toml", "profiles/shortcut.toml"):
+            (self.old / f).chmod(0o600)
+        (self.old / "daimon.toml").chmod(0o644)
+
+    def seed_junk(self):
+        write(self.new / "state" / "reply-to-pr-comments.json", "{}")
+        write(self.new / "state.json", '{"old": true}')
+        write(self.new / "reply-to-story-comments.json", "[]")
+
+    def run_move(self) -> list[str]:
+        return migrate.migrate_personal_dir(today=self.TODAY)
+
+    def assert_moved(self):
+        self.assertEqual(sorted(p.name for p in self.old.iterdir()), ["MOVED"])
+        self.assertIn(str(self.new), (self.old / "MOVED").read_text())
+        conf = (self.new / "daimon.toml").read_text()
+        self.assertTrue(conf.startswith("# mine\n"))
+        self.assertIn(f'"{self.new}/packs/team", "~/tbl/tbl-agents"', conf)
+        self.assertIn(
+            'local_commands_dir = "~/.daimon/commands"',
+            (self.new / "daemons" / "slack-commands.toml").read_text(),
+        )
+        # not a .toml: verbatim
+        self.assertIn("~/.config/daimon/x", (self.new / "commands" / "deploy.md").read_text())
+        self.assertTrue((self.new / "no-auto-update").exists())
+        self.assertEqual(mode(self.new / "daemons" / "slack-commands.toml"), 0o600)
+        self.assertEqual(mode(self.new / "profiles" / "shortcut.toml"), 0o600)
+        self.assertEqual(mode(self.new / "daimon.toml"), 0o644)
+        self.assertEqual(config.global_config_path(), self.new / "daimon.toml")
+
+    def test_moves_everything_and_leaves_a_pointer(self):
+        self.seed_legacy()
+        lines = self.run_move()
+        self.assertEqual(lines, [f"moved {self.old} -> {self.new} (5 file(s))"])
+        self.assert_moved()
+        self.assertFalse(any(p.name.startswith("legacy-") for p in self.new.iterdir()))
+
+    def test_sets_an_older_daimons_files_aside_first(self):
+        self.seed_legacy()
+        self.seed_junk()
+        lines = self.run_move()
+        self.assertIn("state, state.json", lines[0])
+        self.assert_moved()
+        aside = self.new / "legacy-20261117"
+        self.assertEqual((aside / "state.json").read_text(), '{"old": true}')
+        self.assertTrue((aside / "state" / "reply-to-pr-comments.json").exists())
+        self.assertTrue((aside / "reply-to-story-comments.json").exists())
+        self.assertEqual(
+            sorted(p.name for p in self.new.iterdir()),
+            ["commands", "daemons", "daimon.toml", "legacy-20261117", "no-auto-update", "profiles"],
+        )
+
+    def test_keeps_a_daimon_checkout_in_app(self):
+        self.seed_legacy()
+        self.seed_junk()
+        write(self.new / "app" / "bin" / "daimon", "#!/bin/sh\n")
+        self.run_move()
+        self.assert_moved()
+        self.assertTrue((self.new / "app" / "bin" / "daimon").exists())
+        self.assertFalse((self.new / "legacy-20261117" / "app").exists())
+
+    def test_never_sets_aside_the_running_install(self):
+        self.seed_junk()
+        running = self.new / "dAImon" / "lib" / "migrate.py"
+        write(running, "")
+        with patch.object(migrate, "__file__", str(running)):
+            self.run_move()
+        self.assertTrue(running.exists())
+        self.assertTrue((self.new / "legacy-20261117" / "state.json").exists())
+
+    def test_idempotent(self):
+        self.seed_legacy()
+        self.seed_junk()
+        self.run_move()
+        before_new, before_old = tree(self.new), tree(self.old)
+        self.assertEqual(self.run_move(), [])
+        self.assertEqual((tree(self.new), tree(self.old)), (before_new, before_old))
+        self.assertEqual(migrate.migrate_personal_dir(), [])  # another day: still nothing
+
+    def test_resumes_a_run_that_stopped_before_daimon_toml(self):
+        self.seed_legacy()
+        self.seed_junk()
+        write(self.new / "profiles" / "shortcut.toml", '[defaults]\nowner = "me"\n')
+        (self.new / "profiles" / "shortcut.toml").chmod(0o600)
+        # a launchd job firing now still reads the legacy config
+        self.assertEqual(config.global_config_path(), self.old / "daimon.toml")
+        self.run_move()
+        self.assert_moved()
+
+    def test_resumes_a_run_that_stopped_before_cleaning_up(self):
+        self.seed_legacy()
+        self.run_move()
+        # put back what the cleanup would have removed: copies identical to ~/.daimon's
+        write(self.old / "profiles" / "shortcut.toml", '[defaults]\nowner = "me"\n')
+        (self.old / "MOVED").unlink()
+        write(
+            self.old / "daimon.toml",
+            (self.new / "daimon.toml").read_text().replace(str(self.new), str(self.old)),
+        )
+        self.assertEqual(self.run_move(), [])
+        self.assert_moved()
+
+    def test_never_deletes_a_file_it_did_not_copy(self):
+        self.seed_legacy()
+        write(self.new / "profiles" / "shortcut.toml", '[defaults]\nowner = "someone else"\n')
+        lines = self.run_move()
+        self.assertTrue(
+            any(line.startswith("skip  ") and "shortcut.toml" in line for line in lines)
+        )
+        self.assertEqual(
+            (self.old / "profiles" / "shortcut.toml").read_text(), '[defaults]\nowner = "me"\n'
+        )
+        self.assertTrue((self.new / "daimon.toml").exists())
+        self.assertFalse((self.old / "daimon.toml").exists())
+
+    def test_both_present_prefers_dot_daimon_and_leaves_the_legacy_dir_alone(self):
+        self.seed_legacy()
+        write(self.new / "daimon.toml", "# made by hand\n")
+        before = tree(self.old)
+        lines = self.run_move()
+        self.assertEqual(len(lines), 1)
+        self.assertTrue(lines[0].startswith("warn  both"))
+        self.assertEqual(tree(self.old), before)
+        self.assertEqual((self.new / "daimon.toml").read_text(), "# made by hand\n")
+        self.assertEqual(config.global_config_path(), self.new / "daimon.toml")
+
+    def test_fresh_machine_with_an_older_daimons_files(self):
+        self.seed_junk()
+        self.run_move()
+        self.assertEqual(sorted(p.name for p in self.new.iterdir()), ["legacy-20261117"])
+        self.assertFalse(self.old.exists())
+
+    def test_nothing_anywhere_is_a_no_op(self):
+        self.assertEqual(self.run_move(), [])
+        self.assertFalse(self.new.exists())
+        self.assertEqual(config.global_config_path(), self.new / "daimon.toml")
+
+    def test_daimon_config_wins_and_nothing_moves(self):
+        self.seed_legacy()
+        self.seed_junk()
+        explicit = self.home / "elsewhere" / "daimon.toml"
+        before = (tree(self.old), tree(self.new))
+        with patch.dict(os.environ, {"DAIMON_CONFIG": str(explicit)}):
+            self.assertEqual(config.global_config_path(), explicit)
+            self.assertEqual(config.personal_dir(), explicit.parent)
+            self.assertEqual(self.run_move(), [])
+        self.assertEqual((tree(self.old), tree(self.new)), before)
+
+    def test_update_window_reads_the_legacy_config(self):
+        self.seed_legacy()
+        self.seed_junk()  # ~/.daimon exists, but holds no daimon.toml
+        self.assertEqual(config.global_config_path(), self.old / "daimon.toml")
+        self.assertEqual(config.personal_dir(), self.old)
+        self.assertEqual(config.Config.load().source, self.old / "daimon.toml")
+
+    def test_migrate_moves_the_dir_before_loading_the_config(self):
+        self.seed_legacy()
+        with redirect_stdout(io.StringIO()):
+            lines = migrate.migrate()
+        self.assertTrue(lines[0].startswith(f"moved {self.old} -> {self.new}"))
+        self.assert_moved()
+
+
 if __name__ == "__main__":
     unittest.main()

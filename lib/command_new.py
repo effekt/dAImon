@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Scaffold a slack-commands plugin: `daimon command new <name> [--shared]`.
 
-Plugins are markdown runbooks: your own in ~/.config/daimon/commands (beside
+Plugins are markdown runbooks: your own in ~/.daimon/commands (beside
 daimon.toml), shared ones in catalog/slack-commands/commands (--shared,
 committed), or a pack's commands/ (--pack). Naming is {domain}-{action}, one
 hyphenated token."""

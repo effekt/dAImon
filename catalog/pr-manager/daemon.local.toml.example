@@ -1,4 +1,4 @@
-# Copy to ~/.config/daimon/daemons/pr-manager.toml (daimon init does it)
+# Copy to ~/.daimon/daemons/pr-manager.toml (daimon init does it)
 # and set values for THIS machine.
 [daemon]
 working_dir = "~/code/your-repo"   # the repo whose PRs this daemon shepherds

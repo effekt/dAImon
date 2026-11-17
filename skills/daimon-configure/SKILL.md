@@ -17,7 +17,7 @@ Modify a daemon the user names (or list `daimon daemons` and ask which).
    capacity-only fallback backend, danger, `stuck_after`, an `[inputs]` value, or
    the prompt itself.
 3. **Settings** (any `[daemon]` field or an `[inputs]` value): write only the
-   changed keys to the personal file `~/.config/daimon/daemons/<slug>.toml`, under
+   changed keys to the personal file `~/.daimon/daemons/<slug>.toml`, under
    `[daemon]` / `[inputs]`, keeping what is already there. It overrides the
    daemon's `daemon.toml` wherever that lives, and is outside every repo.
 4. **Structural changes** (the prompt, the gate, new or renamed inputs, shipped

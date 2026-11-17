@@ -35,8 +35,9 @@ usage: daimon <command> [args]
   diff <slug>        diff -ru upstream's current files against your copy
   remove [--yes] <slug>...
                      unregister and uninstall daemons (personal settings kept)
-  migrate            bring an install up to date: legacy in-repo settings to
-                     ~/.config/daimon, [daemons].installed written once
+  migrate            bring an install up to date: ~/.config/daimon moved to
+                     ~/.daimon, legacy in-repo settings moved there too,
+                     [daemons].installed written once
                      (idempotent; install and init run it for you)
   run <slug>         gated run (throttle/inbox/discovery), then launch
   launch <slug>      launch the agent now, bypassing gates

@@ -1,4 +1,4 @@
-# Copy to ~/.config/daimon/daemons/review-prs.toml (daimon init does it)
+# Copy to ~/.daimon/daemons/review-prs.toml (daimon init does it)
 # and set values for THIS machine.
 # Only override what differs from daemon.toml. working_dir is the one you must set.
 [daemon]

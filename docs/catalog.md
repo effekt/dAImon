@@ -21,7 +21,7 @@ pack, never in `catalog/`.
 
 ## Installed, registered, active
 
-- **Installed:** listed in `[daemons].installed` in `~/.config/daimon/daimon.toml`.
+- **Installed:** listed in `[daemons].installed` in `~/.daimon/daimon.toml`.
 - **Active:** installed, plus your own daemons in `daemons/`, minus
   `[daemons].disabled`. Active daemons are what `daimon sync` renders, `daimon
   validate` checks, and `daimon daemons` / the TUI list.
@@ -52,7 +52,7 @@ daimon uneject <slug>          # delete your copy (asks; --yes skips): linked ag
 ```
 
 `daimon add` copies the daemon's `daemon.local.toml.example` (and its source
-profiles' `profile.local.toml.example`) to `~/.config/daimon/` when you have no
+profiles' `profile.local.toml.example`) to `~/.daimon/` when you have no
 settings file yet; edit `working_dir` and any inputs there. It edits
 `daimon.toml` in place, keeping your comments and other settings. `daimon remove`
 keeps your personal settings, so adding the daemon back picks them up again.
@@ -61,7 +61,7 @@ keeps your personal settings, so adding the daemon back picks them up again.
 
 An installed daemon is **linked**: it runs from its catalog, so a dAImon update
 or a pull of the pack brings its fixes. Settings never need a copy: change them
-in `~/.config/daimon/daemons/<slug>.toml` (or the TUI), which overrides the
+in `~/.daimon/daemons/<slug>.toml` (or the TUI), which overrides the
 daemon's `daemon.toml` without touching it.
 
 To change the daemon itself (its prompt, gate or default inputs), **eject** it:
@@ -196,11 +196,13 @@ before.
 `daimon install` (which every self-update runs) and `daimon init` then run
 `daimon migrate`, which:
 
+- moves the personal dir from `~/.config/daimon` to `~/.daimon`
+  ([details](configuration.md#local-overrides-keep-your-config-out-of-git));
 - writes `installed` as that active set, once, leaving `disabled` as it is;
 - moves the gitignored `daemon.local.toml` files the move left in
-  `daemons/<slug>/` to `~/.config/daimon/daemons/<slug>.toml`, and your
+  `daemons/<slug>/` to `~/.daimon/daemons/<slug>.toml`, and your
   slack-commands runbooks from `daemons/slack-commands/commands.local/` to
-  `~/.config/daimon/commands/`;
+  `~/.daimon/commands/`;
 - removes a `daemons/<slug>/` folder left holding only migration stubs and caches.
 
 Slugs, state, logs and launchd plists don't change, so registered jobs keep
