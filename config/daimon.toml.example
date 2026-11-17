@@ -43,6 +43,12 @@ command = ""
 # Best-effort; empty = no report. See docs/configuration.md.
 # command = "my-coordinator status --ttl {seconds}"
 
+# [update]
+# Keep this install current: hourly, fast-forward to the upstream's latest
+# commit once its CI passes, then `daimon install` + `daimon sync`. Never a
+# checkout with local changes. Opt one machine out: touch ~/.config/daimon/no-auto-update
+# auto = true
+
 # [packs]
 # Folders outside this repo that add daemons, team overrides, profile defaults
 # and slack-commands runbooks, e.g. a private team repo. See docs/packs.md.

@@ -88,7 +88,27 @@ def materialize(cfg_mod, create_missing: bool = True):
             cfg_mod.render_watchdog_plist(cfg),
             f"com.{ns}.watchdog",
         )
+        sync_updater(cfg_mod, cfg, agents / f"com.{ns}.update.plist", f"com.{ns}.update")
     return cfg, skipped
+
+
+def sync_updater(cfg_mod, cfg, plist: Path, label: str) -> None:
+    """[update].auto on: write com.<ns>.update and make sure it is loaded (it is
+    infrastructure the user turned on, not a daemon to register). Off: unload
+    and remove it."""
+    live = sys.platform == "darwin" and not os.environ.get("DAIMON_SYNC_NO_RELOAD")
+    target = f"gui/{os.getuid()}/{label}"
+    if not cfg.update["auto"]:
+        if plist.exists():
+            if live:
+                _launchctl("bootout", target)
+            plist.unlink()
+            RELOAD_NOTES.append(f"{label}: auto-update off, removed")
+        return
+    _write_plist(plist, cfg_mod.render_update_plist(cfg), label)
+    if live and _launchctl("print", target).returncode != 0:
+        ok = _launchctl("bootstrap", f"gui/{os.getuid()}", str(plist)).returncode == 0
+        RELOAD_NOTES.append(f"{label}: {'loaded' if ok else 'LOAD FAILED'} (auto-update on)")
 
 
 def _git(pack: Path, *args: str) -> subprocess.CompletedProcess:

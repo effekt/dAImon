@@ -70,6 +70,29 @@ for slug in $(cfg daemons); do
   [ "$msg" = "$slug" ] && ok "$slug" || warn "$msg"
 done
 
+# A daemon can ship doctor.sh for what only it knows it needs (a keychain item,
+# a personal setting): exit 0 ok, 1 warn, 2 fail, first line of output as the
+# message. Run for registered daemons only, with the daemon's inputs in env.
+daemon_check() {  # slug dir
+  local out rc
+  out="$(set -a; eval "$(cfg env "$1")"; set +a
+         DAIMON_DAEMON_DIR="$2" bash "$2/doctor.sh" 2>&1)"; rc=$?
+  out="$(printf '%s' "$out" | head -1)"
+  case "$rc" in
+    0) ok "$1: ${out:-ok}" ;;
+    1) warn "$1: ${out:-needs attention}" ;;
+    *) bad "$1: ${out:-check failed (exit $rc)}" ;;
+  esac
+}
+checks_header=0
+for slug in $(cfg daemons); do
+  [ -f "$HOME/Library/LaunchAgents/com.${DAIMON_NS}.${slug}.plist" ] || continue
+  dir="$(cfg daemon-dir "$slug")"
+  [ -f "$dir/doctor.sh" ] || continue
+  [ "$checks_header" = 1 ] || { echo "daemon checks"; checks_header=1; }
+  daemon_check "$slug" "$dir"
+done
+
 if [ "$needs_codex" = 1 ]; then
   echo "codex"
   codex_bin="${DAIMON_CODEX_BIN:-codex}"
@@ -139,6 +162,18 @@ if [ "$needs_datadog" = 1 ]; then
   else
     warn "pup not installed (make tooling, or brew install datadog-labs/pack/pup) — datadog daemons never fire"
   fi
+fi
+
+echo "updates"
+if [ "$(cfg get update.auto)" = 1 ]; then
+  launchctl print "gui/$(id -u)/com.${DAIMON_NS}.update" >/dev/null 2>&1 \
+    && ok "auto-update on (com.${DAIMON_NS}.update loaded)" \
+    || warn "auto-update on but com.${DAIMON_NS}.update isn't loaded: run daimon sync"
+  [ -e "$HOME/.config/daimon/no-auto-update" ] && warn "opted out on this machine (~/.config/daimon/no-auto-update)"
+  last="$(tail -1 "$(logs_dir)/update.log" 2>/dev/null | sed 's/.*msg="//; s/"$//')"
+  [ -n "$last" ] && ok "last check: $last"
+else
+  ok "auto-update off ([update].auto)"
 fi
 
 echo ""
