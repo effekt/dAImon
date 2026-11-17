@@ -66,7 +66,7 @@ $EDITOR ~/.config/daimon/daimon.toml                       # optional globals: s
 daimon doctor                # verify tools, gh auth, hooks, config
 daimon validate
 daimon run review-prs        # one gated run, now — watch with `daimon tui`
-daimon install --load        # schedule everything via launchd (macOS only)
+daimon install --load        # schedule the daemons init left active (not disabled) via launchd (macOS only)
 ```
 
 `make install` symlinks `daimon`/`daimonctl` into `~/.local/bin` (ensure it's on your
