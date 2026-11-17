@@ -59,7 +59,7 @@ macOS: `brew install python@3.12 tmux gh jq` (plus the [Claude CLI](https://docs
 ```bash
 git clone <your-fork> ~/dev/dAImon
 cd ~/dev/dAImon
-make install                 # hooks, TUI venv, skills, plists (not scheduled); puts `daimon` on PATH
+make install                 # hooks, TUI venv, skills; puts `daimon` on PATH; registers no daemon
 cd /path/to/your-target-repo # repo the daemon should operate on
 daimon init review-prs       # pick daemons + accept/change the working_dir prompt
 $EDITOR ~/.config/daimon/daimon.toml                       # optional globals: state_dir, defaults

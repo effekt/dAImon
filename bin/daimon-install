@@ -53,7 +53,15 @@ ln -sf "$ROOT/bin/daimon" "$HOME/.local/bin/daimon"
 ln -sf "$ROOT/bin/daimonctl" "$HOME/.local/bin/daimonctl"
 echo "linked daimon + daimonctl into ~/.local/bin (ensure it is on your PATH)"
 
-PYTHONPATH="$ROOT" python3 -m daimon.sync --all
+# A plist in ~/Library/LaunchAgents is a registration: launchd loads it at the
+# next login whether or not anything loaded it now. So a plain install only
+# refreshes daemons already registered; --load (scheduling is the point there)
+# creates one for every active daemon.
+if [ "$LOAD" -eq 1 ]; then
+  PYTHONPATH="$ROOT" python3 -m daimon.sync --all
+else
+  PYTHONPATH="$ROOT" python3 -m daimon.sync
+fi
 
 if [ "$LOAD" -eq 1 ]; then
   load_fail=0
