@@ -50,10 +50,18 @@ run_install() {
   [ -L "$SBOX/.local/bin/daimon" ]
 }
 
-@test "install: renders daemon skills and generates plists" {
+@test "install: renders daemon skills but registers no daemon" {
   run_install
   [ -f "$SBOX/.claude/skills/review-prs/SKILL.md" ]
-  [ -f "$SBOX/Library/LaunchAgents/com.daimon-test.review-prs.plist" ]
+  # A plist would be loaded at the next login: install must not create one.
+  [ ! -e "$SBOX/Library/LaunchAgents/com.daimon-test.review-prs.plist" ]
+}
+
+@test "install: refreshes a daemon that is already registered" {
+  mkdir -p "$SBOX/Library/LaunchAgents"
+  echo stale > "$SBOX/Library/LaunchAgents/com.daimon-test.review-prs.plist"
+  run_install
+  grep -q "<plist" "$SBOX/Library/LaunchAgents/com.daimon-test.review-prs.plist"
 }
 
 @test "install: is idempotent (second run also succeeds)" {
