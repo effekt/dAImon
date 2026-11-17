@@ -49,7 +49,7 @@ class PersonalSettingsBase(unittest.TestCase):
         self.root = base / "install"
         self.pack = base / "team"
         self.home = base / "home"
-        make_daemon(self.root / "daemons" / "alpha", "alpha")
+        make_daemon(self.root / "catalog" / "alpha", "alpha")
         make_daemon(self.root / "daemons" / "secret.local", "secret")
         make_daemon(self.pack / "daemons" / "report", "report")
         write(
@@ -61,7 +61,8 @@ class PersonalSettingsBase(unittest.TestCase):
         write(
             self.conf,
             f'[core]\ninstall_root = "{self.root}"\nstate_dir = "{base}/state"\n'
-            f'[packs]\npaths = ["{self.pack}"]\n',
+            f'[packs]\npaths = ["{self.pack}"]\n'
+            '[daemons]\ninstalled = ["alpha", "report"]\n',
         )
         os.environ["DAIMON_CONFIG"] = str(self.conf)
 
@@ -70,7 +71,7 @@ class PersonalSettingsBase(unittest.TestCase):
         os.environ.pop("DAIMON_CONFIG", None)
 
     def legacy(self, slug_dir: str) -> Path:
-        return self.root / "daemons" / slug_dir / "daemon.local.toml"
+        return self.root / "catalog" / slug_dir / "daemon.local.toml"
 
     def personal(self, slug: str) -> Path:
         return self.home / "daemons" / f"{slug}.toml"
@@ -81,7 +82,10 @@ class LayeringTest(PersonalSettingsBase):
         cfg = config.Config.load()
         self.assertEqual(cfg.daemon_local_path("alpha"), self.personal("alpha"))
         self.assertEqual(cfg.profile_local_path("sc"), self.home / "profiles" / "sc.toml")
-        self.assertEqual(cfg.legacy_daemon_local_path("alpha"), self.legacy("alpha"))
+        self.assertEqual(
+            cfg.legacy_daemon_local_paths("alpha"),
+            [self.root / "daemons" / "alpha" / "daemon.local.toml", self.legacy("alpha")],
+        )
 
     def test_personal_file_wins_over_legacy_which_wins_over_pack(self):
         write(self.pack / "overrides" / "alpha.toml", '[inputs]\nq = "team"\nr = "team"\ns = 1\n')
@@ -176,7 +180,7 @@ class MigrateTest(PersonalSettingsBase):
 
     def test_pack_and_private_daemons_and_profiles_migrate(self):
         write(self.pack / "daemons" / "report" / "daemon.local.toml", '[inputs]\nq = "p"\n')
-        write(self.legacy("secret.local"), '[inputs]\nq = "s"\n')
+        write(self.root / "daemons" / "secret.local" / "daemon.local.toml", '[inputs]\nq = "s"\n')
         write(
             self.root / "profiles" / "sc" / "profile.local.toml", '# me\n[defaults]\nowner = "me"\n'
         )
@@ -190,7 +194,7 @@ class MigrateTest(PersonalSettingsBase):
         self.assertEqual(self.effective(), before)
 
     def test_examples_and_invalid_files_are_left_alone(self):
-        example = self.root / "daemons" / "alpha" / "daemon.local.toml.example"
+        example = self.root / "catalog" / "alpha" / "daemon.local.toml.example"
         write(example, '[inputs]\nq = "example"\n')
         write(self.legacy("alpha"), "[inputs\nbroken")
         lines = self.run_migrate()
@@ -210,14 +214,14 @@ class MigrateTest(PersonalSettingsBase):
 class InitScaffoldTest(PersonalSettingsBase):
     def seed(self):
         ex = '[daemon]\nworking_dir = "~/code"\n'
-        write(self.root / "daemons" / "alpha" / "daemon.local.toml.example", ex)
+        write(self.root / "catalog" / "alpha" / "daemon.local.toml.example", ex)
         write(
             self.root / "profiles" / "sc" / "profile.local.toml.example",
             '[defaults]\nowner = "x"\n',
         )
-        make_daemon(self.root / "daemons" / "beta", "beta")
+        make_daemon(self.root / "catalog" / "beta", "beta")
         write(self.legacy("beta"), '[inputs]\nq = "legacy"\n')
-        write(self.root / "daemons" / "beta" / "daemon.local.toml.example", '[inputs]\nq = "ex"\n')
+        write(self.root / "catalog" / "beta" / "daemon.local.toml.example", '[inputs]\nq = "ex"\n')
 
     def run_init(self, slugs: list[str]) -> int:
         old_cwd = Path.cwd()

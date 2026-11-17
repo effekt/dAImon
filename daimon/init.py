@@ -1,10 +1,12 @@
-"""Scaffold machine-local config from *.example files and choose which daemons to
-enable on this machine. Run via `daimon init [slug ...]` or `python -m daimon.init`.
+"""Choose which catalog daemons this machine has, and scaffold their personal
+settings from *.example files. Run via `daimon init [slug ...]` or
+`python -m daimon.init`.
 
-With slugs, those daemons are the active set; the rest are added to
-`[daemons].disabled` so they aren't synced or scheduled. With no slugs, prompts
-interactively (defaulting to all); non-interactively it configures the current
-active set without changing what's disabled."""
+With slugs, those daemons become `[daemons].installed` (and come off
+`disabled`). With no slugs, a terminal gets a multi-select of the catalog
+(dAImon's catalog/ plus each pack's daemons/), starting from what is installed
+now; non-interactively it scaffolds the current set without changing it.
+Installing registers nothing: schedule a daemon with `daimon tui` → r."""
 
 from __future__ import annotations
 
@@ -28,55 +30,6 @@ def _import_config():
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
-
-
-def all_slugs(root: Path, packs: list[Path] | None = None) -> list[str]:
-    # daemons/<slug>.local is a private (gitignored) daemon under the plain slug;
-    # packs add their own daemons/ folders.
-    roots = [root, *(packs or [])]
-    return sorted(
-        {
-            p.parent.name.removesuffix(".local")
-            for r in roots
-            for p in (r / "daemons").glob("*/daemon.toml")
-        }
-    )
-
-
-def set_disabled_text(text: str, disabled: list[str]) -> str:
-    """Rewrite the `disabled = [...]` line under `[daemons]`, preserving comments and
-    other sections. Adds the section/line if absent."""
-    arr = "[" + ", ".join(f'"{s}"' for s in disabled) + "]"
-    new_line = f"disabled = {arr}"
-    out: list[str] = []
-    in_daemons = False
-    done = False
-    for ln in text.splitlines():
-        stripped = ln.strip()
-        is_header = (
-            stripped.startswith("[") and stripped.endswith("]") and not stripped.startswith("[[")
-        )
-        if is_header:
-            if in_daemons and not done:
-                out.append(new_line)
-                done = True
-            in_daemons = stripped == "[daemons]"
-            out.append(ln)
-            continue
-        if in_daemons and not done and re.match(r"\s*disabled\s*=", ln):
-            out.append(new_line)
-            done = True
-            continue
-        out.append(ln)
-    if in_daemons and not done:
-        out.append(new_line)
-        done = True
-    if not done:
-        if out and out[-1].strip():
-            out.append("")
-        out += ["[daemons]", new_line]
-    result = "\n".join(out)
-    return result + "\n" if text.endswith("\n") else result
 
 
 def _shown(path: Path) -> str:
@@ -222,39 +175,78 @@ def _configure_working_dirs(local_paths: list[Path], default: str, interactive: 
         print(f"  set   {_shown(path)} working_dir = {working_dir}")
 
 
-def _resolve_selection(
-    slugs: list[str], disabled: list[str], argv: list[str]
-) -> tuple[list[str], bool]:
-    """Return (selected, explicit). `explicit` means the disabled set should be rewritten."""
+def _parse_choice(resp: str, offered: list[str], current: list[str]) -> list[str]:
+    """A multi-select answer: numbers and/or slugs, `all`, `none`, or blank to
+    keep `current`."""
+    if resp == "":
+        return current
+    if resp == "all":
+        return offered
+    if resp == "none":
+        return []
+    chosen = []
+    for tok in resp.replace(",", " ").split():
+        if tok.isdigit() and 1 <= int(tok) <= len(offered):
+            chosen.append(offered[int(tok) - 1])
+        elif tok in offered:
+            chosen.append(tok)
+        else:
+            raise ValueError(f"not in the catalog: {tok}")
+    return list(dict.fromkeys(chosen))
+
+
+def _prompt_selection(cfg, offered: list[str], current: list[str]) -> list[str]:
+    print("catalog (● installed, ○ not):")
+    for n, slug in enumerate(offered, 1):
+        source = cfg.catalog()[slug]["source"]
+        print(f"  {n:>2}. {'●' if slug in current else '○'} {slug}  ({source})")
+    while True:
+        resp = input("install which? numbers or names, 'all', 'none' [keep ●]: ").strip()
+        try:
+            return _parse_choice(resp, offered, current)
+        except ValueError as e:
+            print(f"  {e}")
+
+
+def _resolve_selection(cfg, argv: list[str]) -> tuple[list[str], bool]:
+    """Return (selected, explicit). `explicit` means `installed` should be rewritten."""
+    offered = list(cfg.catalog())
+    current = [s for s in cfg.installed() if s in offered]
     if argv:
-        unknown = [s for s in argv if s not in slugs]
+        known = set(offered) | set(cfg.ejected_locations())
+        unknown = [s for s in argv if s not in known]
         if unknown:
-            sys.exit(f"unknown daemon(s): {', '.join(unknown)}\nknown: {', '.join(slugs)}")
-        return sorted(set(argv)), True
+            sys.exit(f"not in any catalog: {', '.join(unknown)}\nknown: {', '.join(offered)}")
+        return list(dict.fromkeys(argv)), True
     if sys.stdin.isatty():
-        print("daemons (● active, ○ disabled):")
-        for s in slugs:
-            print(f"  {'○' if s in disabled else '●'} {s}")
-        resp = input("enable which? space-separated, or 'all' [all]: ").strip()
-        if resp in ("", "all"):
-            return slugs, True
-        chosen = resp.split()
-        unknown = [s for s in chosen if s not in slugs]
-        if unknown:
-            sys.exit(f"unknown daemon(s): {', '.join(unknown)}")
-        return sorted(set(chosen)), True
-    # non-interactive, no args: keep the current active set, don't touch disabled
-    return [s for s in slugs if s not in disabled], False
+        return _prompt_selection(cfg, offered, current), True
+    # non-interactive, no args: keep what is installed
+    return current, False
 
 
-def _migrate() -> None:
-    """Move legacy in-repo *.local.toml settings to the personal dir first, so
-    scaffolding sees (and never shadows) what this person already set."""
+def _write_selection(cfg, migrate, selected: list[str]) -> None:
+    offered = cfg.catalog()
+    migrate.set_config_key(
+        cfg.source, "daemons", "installed", [s for s in selected if s in offered]
+    )
+    print(f"installed: {', '.join(selected) or '(none)'}")
+    if enabled := [s for s in cfg.disabled if s in selected]:
+        migrate.set_config_key(
+            cfg.source, "daemons", "disabled", [s for s in cfg.disabled if s not in enabled]
+        )
+        print(f"no longer disabled: {', '.join(enabled)}")
+
+
+def _migrate():
+    """Bring the install up to date first (legacy in-repo settings to the personal
+    dir, `installed` written once), so scaffolding sees (and never shadows) what
+    this person already set. Returns the migrate module."""
     sys.path.insert(0, str(INSTALL_ROOT / "lib"))
     import migrate
 
     for line in migrate.migrate():
         print(f"  migrate: {line}")
+    return migrate
 
 
 def main(argv: list[str]) -> int:
@@ -264,21 +256,15 @@ def main(argv: list[str]) -> int:
         config_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(INSTALL_ROOT / "config" / "daimon.toml.example", config_path)
         print(f"  new   {config_path}")
-    _migrate()
+    migrate = _migrate()
 
     cfg = cfg_mod.Config.load()
-    slugs = all_slugs(INSTALL_ROOT, cfg.packs)
-    selected, explicit = _resolve_selection(slugs, cfg.disabled, argv)
-
+    selected, explicit = _resolve_selection(cfg, argv)
     if explicit:
-        disabled = [s for s in slugs if s not in selected]
-        config_path.write_text(set_disabled_text(config_path.read_text(), disabled))
-        print(f"active: {', '.join(selected) or '(none)'}")
-        if disabled:
-            print(f"disabled: {', '.join(disabled)}")
+        _write_selection(cfg, migrate, selected)
 
-    print("scaffolding local config for active daemons:")
-    cfg = cfg_mod.Config.load()  # reload so newly-enabled daemons are discoverable
+    print("scaffolding personal settings for installed daemons:")
+    cfg = cfg_mod.Config.load()  # reload so newly-installed daemons are discoverable
     sources: set[str] = set()
     default_working_dir = _cwd_working_dir_default()
     interactive = sys.stdin.isatty()
@@ -296,6 +282,7 @@ def main(argv: list[str]) -> int:
 
     personal = _shown(cfg_mod.personal_dir())
     print(f"\nnext: review {personal}/daemons/*.toml, then run 'daimon doctor'.")
+    print("installing registers nothing: schedule a daemon with `daimon tui` → r.")
     return 0
 
 

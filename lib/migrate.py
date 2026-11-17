@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
-"""Move each person's settings out of the repo into the personal config dir.
+"""Bring an install up to the current layout: personal settings out of the repo
+into the personal config dir, and an explicit list of installed daemons.
 
 Legacy files sat beside the committed ones (gitignored):
   <daemon dir>/daemon.local.toml      -> <personal dir>/daemons/<slug>.toml
   profiles/<name>/profile.local.toml  -> <personal dir>/profiles/<name>.toml
-where <personal dir> is the folder holding daimon.toml (~/.config/daimon).
+  daemons/slack-commands/commands.local/*  -> <personal dir>/commands/
+where <personal dir> is the folder holding daimon.toml (~/.config/daimon). When
+dAImon's daemons moved from daemons/ to catalog/, a daemon.local.toml stayed
+behind in daemons/<slug>/ (it is gitignored); it is migrated from there too, and
+the leftover folder is removed once only migration stubs and caches remain.
+
+A daimon.toml without `[daemons].installed` predates the catalog: every catalog
+daemon not in `disabled` was active. That set is written as `installed` once,
+so nothing starts or stops; `disabled` is left as it is.
 
 Idempotent, stdlib only. A legacy file's text moves verbatim (comments kept); when
 the personal file already exists, only the keys it lacks are appended, and its own
@@ -17,6 +26,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import sys
 import tempfile
 import tomllib
@@ -52,6 +62,21 @@ def atomic_write(path: Path, text: str) -> None:
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
+
+
+def set_config_key(path: Path, table: str, key: str, value) -> None:
+    """Set `key = value` under [table] in a TOML file (daimon.toml), keeping its
+    comments and every other setting. Refuses to write a file that would not
+    load back to exactly that value."""
+    text = path.read_text() if path.exists() else ""
+    new = toml_emit.set_key_text(text, table, key, value)
+    try:
+        written = tomllib.loads(new).get(table, {}).get(key)
+    except tomllib.TOMLDecodeError as e:
+        raise ValueError(f"cannot set [{table}].{key} in {path}: {e}") from e
+    if written != value:
+        raise ValueError(f"cannot set [{table}].{key} in {path}: it would read back {written!r}")
+    atomic_write(path, new)
 
 
 def _section_end(lines: list[str], name: str) -> int | None:
@@ -173,17 +198,85 @@ def pairs(cfg: config.Config) -> list[tuple[Path, Path]]:
     `.local` folders) and in packs, then the install root's profiles. Only the
     folder that loads a slug is migrated, so a duplicate can't change behaviour."""
     out: list[tuple[Path, Path]] = []
-    for slug, dirs in sorted(cfg.daemon_locations().items()):
-        out.append((dirs[0] / "daemon.local.toml", cfg.daemon_local_path(slug)))
+    for slug in sorted(cfg.daemon_locations()):
+        for legacy in cfg.legacy_daemon_local_paths(slug):
+            out.append((legacy, cfg.daemon_local_path(slug)))
     for local in sorted(cfg.profiles_dir().glob("*/profile.local.toml")):
         name = local.parent.name
         out.append((local, cfg.profile_local_path(name)))
     return out
 
 
+def migrate_installed(cfg: config.Config) -> str | None:
+    """Write `[daemons].installed` as today's active set when it is absent."""
+    if cfg.source is None or cfg.installed_list is not None:
+        return None
+    active = [s for s in cfg.catalog_locations() if s not in cfg.disabled]
+    set_config_key(cfg.source, "daemons", "installed", active)
+    return f"installed {cfg.source}: [daemons].installed = the {len(active)} active daemon(s)"
+
+
+def migrate_commands(cfg: config.Config) -> list[str]:
+    """Move your own slack-commands runbooks to <personal dir>/commands/."""
+    legacy, new = cfg.legacy_local_commands_dir(), cfg.local_commands_dir()
+    if not legacy.is_dir():
+        return []
+    lines: list[str] = []
+    for src in sorted(p for p in legacy.iterdir() if p.is_file() and p.name != ".DS_Store"):
+        dest = new / src.name
+        if dest.exists() and dest.read_bytes() != src.read_bytes():
+            lines.append(f"skip  {src}: {dest} exists and differs; left both in place")
+            continue
+        if not dest.exists():
+            atomic_write(dest, src.read_text())
+        src.unlink()
+        lines.append(f"moved {src} -> {dest}")
+    return lines
+
+
+LEFTOVER_JUNK = {"__pycache__", ".DS_Store"}
+
+
+def _tidy(folder: Path) -> bool:
+    """Empty `folder` of migration stubs, caches and empty subfolders; remove it
+    if nothing else is left. Never touches anything else."""
+    for entry in folder.iterdir():
+        if entry.name in LEFTOVER_JUNK:
+            if entry.is_dir():
+                shutil.rmtree(entry)
+            else:
+                entry.unlink()
+        elif entry.is_file() and entry.suffix == ".toml" and is_stub(entry.read_text()):
+            entry.unlink()
+        elif entry.is_dir() and not entry.is_symlink():
+            _tidy(entry)
+    if any(folder.iterdir()):
+        return False
+    folder.rmdir()
+    return True
+
+
+def tidy_leftovers(cfg: config.Config) -> list[str]:
+    """Remove daemons/<slug>/ folders the move to catalog/ left behind (no
+    daemon.toml, only stubs and caches). Anything with real content stays."""
+    root = cfg.daemons_dir()
+    if not root.is_dir():
+        return []
+    lines = []
+    for folder in sorted(p for p in root.iterdir() if p.is_dir() and not p.is_symlink()):
+        if not (folder / "daemon.toml").exists() and _tidy(folder):
+            lines.append(f"removed {folder} (left behind when daemons moved to catalog/)")
+    return lines
+
+
 def migrate(cfg: config.Config | None = None) -> list[str]:
     cfg = cfg or config.Config.load()
-    return [line for legacy, new in pairs(cfg) if (line := migrate_file(legacy, new))]
+    lines = [line for legacy, new in pairs(cfg) if (line := migrate_file(legacy, new))]
+    lines += migrate_commands(cfg)
+    lines += tidy_leftovers(cfg)
+    if line := migrate_installed(cfg):
+        lines.append(line)
+    return lines
 
 
 def main() -> int:
@@ -191,7 +284,7 @@ def main() -> int:
     for line in lines:
         print(f"migrate: {line}")
     if not lines:
-        print("migrate: personal settings already in place — nothing to move")
+        print("migrate: already up to date — nothing to move")
     return 1 if any(line.startswith("skip") for line in lines) else 0
 
 

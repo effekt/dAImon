@@ -32,7 +32,7 @@ class MaterializeTest(unittest.TestCase):
         """,
         )
         write(
-            self.root / "daemons" / "alpha" / "daemon.toml",
+            self.root / "catalog" / "alpha" / "daemon.toml",
             """
             [daemon]
             schedule = { interval = 1200 }
@@ -40,7 +40,7 @@ class MaterializeTest(unittest.TestCase):
         """,
         )
         write(
-            self.root / "daemons" / "alpha" / "skill" / "SKILL.md",
+            self.root / "catalog" / "alpha" / "skill" / "SKILL.md",
             "---\nname: alpha\ndescription: a\n---\nHi.\n",
         )
         os.environ["DAIMON_CONFIG"] = str(self.root / "config" / "daimon.toml")

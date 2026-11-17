@@ -44,9 +44,13 @@ watch; anyone types `?help` in one of them. Two polling modes:
 
 Commands are markdown runbooks, one file per command:
 
-- `daemons/slack-commands/commands/` — committed, shared by everyone.
-- `daemons/slack-commands/commands.local/` — gitignored, yours or your
-  company's; a local file overrides a shared one of the same `name`.
+- `catalog/slack-commands/commands/` — committed, shared by everyone.
+- `commands/` in each [pack](packs.md) — your team's.
+- `~/.config/daimon/commands/` — yours, outside every repo; a file here
+  overrides a shared or pack one of the same `name`. `daimon command new <name>`
+  writes here. (Older installs kept these in the gitignored
+  `daemons/slack-commands/commands.local/`; it is still read until
+  `daimon migrate` moves its files.)
 
 Drop a file in, and it's live on the next run — no sync, no restart.
 

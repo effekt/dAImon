@@ -60,7 +60,7 @@ test:
 lint:
 	@uv run ruff check .
 	@uv run ruff format --check .
-	@find lib backends daemons -name '*.sh' -print0 | xargs -0 shellcheck -x
+	@find lib backends catalog -name '*.sh' -print0 | xargs -0 shellcheck -x
 
 fmt:
 	@uv run ruff format .

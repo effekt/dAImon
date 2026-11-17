@@ -6,6 +6,8 @@
 # Fails closed (no pup, no auth, bad query) to "skip".
 set -uo pipefail
 
-source "$(dirname "$0")/../../profiles/datadog/lib.sh"
+# dAImon exports this when it runs the gate; fall back to the `daimon` on PATH.
+DAIMON_INSTALL_ROOT="${DAIMON_INSTALL_ROOT:-$(cd "$(dirname "$(readlink -f "$(command -v daimon)")")/.." && pwd)}"
+source "$DAIMON_INSTALL_ROOT/profiles/datadog/lib.sh"
 
 [ "$(dd_log_count "$DAIMON_INPUT_LOG_QUERY" "${DAIMON_INPUT_LOOKBACK:-30m}")" -gt 0 ]

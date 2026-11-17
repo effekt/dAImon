@@ -11,8 +11,10 @@
 # closed (no gh, no auth) means "skip", the safe default.
 set -uo pipefail
 
-source "$(dirname "$0")/../../lib/common.sh"
-source "$(dirname "$0")/../../profiles/github/lib.sh"
+# dAImon exports this when it runs the gate; fall back to the `daimon` on PATH.
+DAIMON_INSTALL_ROOT="${DAIMON_INSTALL_ROOT:-$(cd "$(dirname "$(readlink -f "$(command -v daimon)")")/.." && pwd)}"
+source "$DAIMON_INSTALL_ROOT/lib/common.sh"
+source "$DAIMON_INSTALL_ROOT/profiles/github/lib.sh"
 
 prs="$(gh_pr_json --author @me --state open \
   --json number,headRefName,reviewDecision,mergeable,isDraft,labels,statusCheckRollup,createdAt,reviewRequests,latestReviews)"

@@ -5,7 +5,7 @@
 setup() {
   ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   T="$(cd "$BATS_TEST_TMPDIR" && pwd -P)"
-  mkdir -p "$T/install/daemons" "$T/pack/daemons/report/skill" "$T/state"
+  mkdir -p "$T/install/catalog" "$T/pack/daemons/report/skill" "$T/state"
   ln -s "$ROOT/lib" "$T/install/lib"
   ln -s "$ROOT/profiles" "$T/install/profiles"
   printf '[core]\nstate_dir = "%s/state"\nnamespace = "t"\ninstall_root = "%s/install"\n[packs]\npaths = ["%s/pack"]\n' \

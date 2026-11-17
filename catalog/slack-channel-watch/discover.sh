@@ -11,7 +11,9 @@
 # polls via the Slack MCP per SKILL.md.
 set -uo pipefail
 
-source "$(dirname "$0")/../../lib/common.sh"
+# dAImon exports this when it runs the gate; fall back to the `daimon` on PATH.
+DAIMON_INSTALL_ROOT="${DAIMON_INSTALL_ROOT:-$(cd "$(dirname "$(readlink -f "$(command -v daimon)")")/.." && pwd)}"
+source "$DAIMON_INSTALL_ROOT/lib/common.sh"
 
 [ -n "${DAIMON_INPUT_TOKEN_COMMAND:-}" ] || exit 0
 

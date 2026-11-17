@@ -7,7 +7,9 @@ description: Edit an existing dAImon daemon's settings or inputs, then re-valida
 
 Modify a daemon the user names (or list `daimon daemons` and ask which).
 
-1. Read its `daemons/<slug>/daemon.toml` and `skill/SKILL.md`.
+1. Find its folder with `daimon config daemon-dir <slug>` (your own `daemons/`,
+   dAImon's `catalog/`, or a pack's `daemons/`), and read its `daemon.toml` and
+   `skill/SKILL.md`.
 2. Ask what to change — schedule, backend/model (offer `daimon models <backend>`),
    capacity-only fallback backend, danger, `stuck_after`, an `[inputs]` value, or
    the prompt itself.

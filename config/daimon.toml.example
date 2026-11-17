@@ -55,4 +55,10 @@ command = ""
 # paths = ["~/work/daimon-team"]
 
 [daemons]
+# The daemons this machine has, from `daimon catalog` (dAImon's catalog/ plus
+# each pack's daemons/). `daimon add <slug>` / `daimon remove <slug>` edit it;
+# installing schedules nothing (register in `daimon tui` → r). Your own daemons
+# in daemons/ are always active and need no entry here.
+installed = []
+# Installed daemons to skip without uninstalling them.
 disabled = []

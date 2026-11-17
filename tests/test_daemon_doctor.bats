@@ -6,12 +6,12 @@ setup() {
   T="$(cd "$BATS_TEST_TMPDIR" && pwd -P)"
   export HOME="$T/home"; mkdir -p "$HOME/Library/LaunchAgents"
   for d in keyed plain; do
-    mkdir -p "$T/install/daemons/$d/skill"
+    mkdir -p "$T/install/catalog/$d/skill"
     printf '[daemon]\ncommand = "/%s"\nschedule = { interval = 600 }\n[inputs]\nitem = "cf-token"\n' "$d" \
-      > "$T/install/daemons/$d/daemon.toml"
-    touch "$T/install/daemons/$d/skill/SKILL.md"
+      > "$T/install/catalog/$d/daemon.toml"
+    touch "$T/install/catalog/$d/skill/SKILL.md"
     printf 'echo "no keychain item $DAIMON_INPUT_ITEM in $(basename "$DAIMON_DAEMON_DIR")"; exit %s\n' "${CODE:-1}" \
-      > "$T/install/daemons/$d/doctor.sh"
+      > "$T/install/catalog/$d/doctor.sh"
   done
   ln -s "$ROOT/lib" "$T/install/lib"; ln -s "$ROOT/profiles" "$T/install/profiles"
   printf '[core]\nstate_dir = "%s/state"\nnamespace = "t"\ninstall_root = "%s/install"\n' "$T" "$T" > "$T/daimon.toml"
@@ -27,7 +27,7 @@ setup() {
 }
 
 @test "exit 2 is a failure" {
-  printf 'echo broken; exit 2\n' > "$T/install/daemons/keyed/doctor.sh"
+  printf 'echo broken; exit 2\n' > "$T/install/catalog/keyed/doctor.sh"
   run bash "$ROOT/lib/doctor.sh"
   [[ "$output" == *"FAIL  keyed: broken"* ]]
   [ "$status" -eq 1 ]

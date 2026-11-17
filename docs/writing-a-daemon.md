@@ -1,7 +1,17 @@
 # Writing a daemon
 
-A daemon is a folder under `daemons/<slug>/` with three files. The framework
-auto-discovers it; `daimon sync` regenerates its plist and renders its skill.
+A daemon is a folder `<slug>/` with three files. Where it lives decides who gets
+it ([catalog](catalog.md)):
+
+- your own `daemons/<slug>/` in the dAImon install: gitignored, just for you,
+  and active as soon as it exists (`daimon scaffold <slug>`);
+- a [pack](packs.md)'s `daemons/<slug>/`: shared with a team, installed by each
+  person with `daimon add <slug>` (`daimon scaffold <slug> --pack`). Team-specific
+  daemons always go here;
+- dAImon's `catalog/<slug>/`: generic, contributed upstream by PR
+  (`daimon scaffold <slug> --catalog`).
+
+`daimon sync` renders its skill and refreshes its plist once it is registered.
 
 ## 1. `daemon.toml`
 
@@ -146,24 +156,18 @@ Each daemon's `README.md` is generated — never hand-edit it; edit `daemon.toml
 
 ## Keeping a daemon out of the repo
 
-A daemon that only makes sense on your machine — one wired to a private tracker,
-epic, or repo — can stay out of git entirely. Name its folder with a `.local`
-suffix:
+Everything in `daemons/` (apart from its README) is gitignored, so a daemon you
+scaffold there never reaches git: it is yours, on this machine. It is active
+without `daimon add`, and takes precedence over a catalog daemon with the same
+slug.
 
-```bash
-mv daemons/<slug> daemons/<slug>.local   # or scaffold it there directly
-```
+A folder named `<slug>.local` works the same way. The suffix is not part of the
+slug: `daemons/<slug>.local` loads as `<slug>`, with the same command, plist,
+skill and state names. Having both `daemons/<slug>` and `daemons/<slug>.local` is
+a validation error.
 
-`.gitignore` already ignores `daemons/*.local/`, so there is nothing per-clone to
-maintain. The suffix is not part of the slug: `daemons/<slug>.local` loads as
-`<slug>`, with the same command, plist, skill and state names. Having both
-`daemons/<slug>` and `daemons/<slug>.local` is a validation error.
-
-`make docs` leaves an ignored daemon out of the committed `daemons/README.md`
-index, so generating docs never dirties a tracked file with a name that isn't in
-the repo. It still writes that daemon's own `README.md`, which lives inside the
-ignored folder and stays local. Everything else — discovery, `daimon sync`,
-scheduling — treats it exactly like any other daemon.
+`make docs` documents `catalog/` only, so your own daemons never reach the
+committed `catalog/README.md` index.
 
 ## Tips
 

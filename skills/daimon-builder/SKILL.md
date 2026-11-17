@@ -11,14 +11,20 @@ is a self-contained folder containing `daemon.toml`, `discover.sh`, and
 
 ## 0. Where it goes
 
-A daemon lives in dAImon's own `daemons/` (generic, shareable with anyone) or in a
-**pack**: a team's own repo of daemons and settings (`docs/packs.md`).
+A new daemon goes in one of three places (`docs/catalog.md`):
+
+- **Your own** `daemons/` in the dAImon install (the default): gitignored, just
+  for this machine, and active as soon as it exists.
+- A **pack**: a team's own repo of daemons and settings (`docs/packs.md`).
+  Team-specific daemons (its systems, channels, IDs, workflow) always go here.
+- dAImon's **`catalog/`**: only a generic daemon, useful to anyone, that the
+  user means to contribute upstream by PR.
 
 - If the arguments include `--pack` (optionally with a directory), it goes in that
-  pack, or the first configured one.
+  pack, or the first configured one; with `--catalog`, in `catalog/`.
 - Otherwise run `daimon packs`. If any pack is configured, ask: is this daemon
-  generic, or specific to the team (its systems, channels, IDs, workflow)? Team
-  daemons go in the pack.
+  just for you, for the team, or generic enough to contribute to dAImon? Team
+  daemons go in the pack, never in `catalog/`.
 
 ## 1. Interview
 
@@ -46,8 +52,9 @@ Ask for whatever isn't already clear. Keep it to a few focused questions:
 Start from the skeleton, which works in either place and starts inert:
 
 ```bash
-daimon scaffold <slug>            # dAImon's daemons/
+daimon scaffold <slug>            # your own daemons/ (gitignored)
 daimon scaffold <slug> --pack     # the first pack (or --pack <dir>)
+daimon scaffold <slug> --catalog  # dAImon's catalog/, to contribute it
 ```
 
 It prints the folder it created; edit the files there (below, `<dir>`). In a pack,
@@ -93,15 +100,17 @@ Record what was handled; summarize briefly.
 ```
 
 Write the gate in `<dir>/discover.sh`: exit 0 to launch, non-zero to skip. Inputs
-arrive as `DAIMON_INPUT_*`. Model it on `daemons/review-prs/discover.sh`, but keep
+arrive as `DAIMON_INPUT_*`. Model it on `catalog/review-prs/discover.sh`, but keep
 the skeleton's `source "$DAIMON_INSTALL_ROOT/..."` lines rather than `../../`
 paths, which break in a pack. Replace the skeleton's final `exit 1`: until then the
 daemon never launches.
 
 ## 3. Validate and offer to activate
 
-Run `daimon config validate`. If clean, tell the user they can `daimon sync` to
-generate the launchd plist and render the skill into `~/.claude/skills/`, then
-`daimon run <slug>` to try it once. Do not enable launchd scheduling without asking.
+A daemon in `daemons/` is active at once. One in a pack or `catalog/` runs here
+only once installed: run `daimon add <slug>` (it scaffolds the personal settings
+file and syncs). Then run `daimon config validate`. If clean, tell the user they
+can `daimon run <slug>` to try it once, and register it in `daimon tui` (`r`) to
+schedule it. Do not enable launchd scheduling without asking.
 For a pack daemon, remind them to commit it in the pack's repo (a PR, if the team
-reviews pack changes) so teammates get it on their next `daimon sync`.
+reviews pack changes); teammates then install it with `daimon add <slug>`.

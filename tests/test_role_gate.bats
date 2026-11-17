@@ -5,7 +5,7 @@
 setup() {
   ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   T="$BATS_TEST_TMPDIR"
-  mkdir -p "$T/install/daemons/watch/skill" "$T/install/daemons/plain/skill" "$T/state" "$T/bin"
+  mkdir -p "$T/install/catalog/watch/skill" "$T/install/catalog/plain/skill" "$T/state" "$T/bin"
   ln -s "$ROOT/lib" "$T/install/lib"
   ln -s "$ROOT/profiles" "$T/install/profiles"
   cat > "$T/bin/holder" <<'STUB'
@@ -18,10 +18,10 @@ STUB
   export ROLE_CALLS="$T/calls" ROLE_ANSWER="$T/answer" PATH="$T/bin:$PATH"
   write_config 'holder {role} {seconds}'
   printf '[daemon]\ncommand = "/watch"\nschedule = { interval = 120 }\nrole = "slack-issues"\n' \
-    > "$T/install/daemons/watch/daemon.toml"
+    > "$T/install/catalog/watch/daemon.toml"
   printf '[daemon]\ncommand = "/plain"\nschedule = { minutes = [5] }\n' \
-    > "$T/install/daemons/plain/daemon.toml"
-  touch "$T/install/daemons/watch/skill/SKILL.md" "$T/install/daemons/plain/skill/SKILL.md"
+    > "$T/install/catalog/plain/daemon.toml"
+  touch "$T/install/catalog/watch/skill/SKILL.md" "$T/install/catalog/plain/skill/SKILL.md"
 }
 
 write_config() {  # [roles].command
@@ -75,7 +75,7 @@ check() {  # slug -> sets ROLE_* via the real lib
 }
 
 @test "role_hold overrides the default hold" {
-  printf 'role_hold = 45\n' >> "$T/install/daemons/watch/daemon.toml"
+  printf 'role_hold = 45\n' >> "$T/install/catalog/watch/daemon.toml"
   echo "0 ok" > "$T/answer"
   check watch
   [ "$(cat "$T/calls")" = "slack-issues 45" ]

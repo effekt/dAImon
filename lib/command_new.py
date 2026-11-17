@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Scaffold a slack-commands plugin: `daimon command new <name> [--shared]`.
 
-Plugins are markdown runbooks under daemons/slack-commands/commands.local
-(per-machine, gitignored) or commands/ (--shared, committed). Naming is
-{domain}-{action}, one hyphenated token."""
+Plugins are markdown runbooks: your own in ~/.config/daimon/commands (beside
+daimon.toml), shared ones in catalog/slack-commands/commands (--shared,
+committed), or a pack's commands/ (--pack). Naming is {domain}-{action}, one
+hyphenated token."""
 
 import re
 import sys
 from pathlib import Path
 
 INSTALL_ROOT = Path(__file__).resolve().parent.parent
-COMMANDS = INSTALL_ROOT / "daemons" / "slack-commands"
+sys.path.insert(0, str(INSTALL_ROOT / "lib"))
+import config  # noqa: E402
+
+SHARED = INSTALL_ROOT / "catalog" / "slack-commands" / "commands"
 NAME_RE = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
 
 TEMPLATE = """---
@@ -41,12 +45,10 @@ def create(name: str, shared: bool, mutating: bool, pack: Path | None = None) ->
         )
         return 1
 
-    if pack is not None:
-        target_dir = pack / "commands"
-    else:
-        target_dir = COMMANDS / ("commands" if shared else "commands.local")
+    local = config.personal_dir() / "commands"
+    target_dir = pack / "commands" if pack is not None else (SHARED if shared else local)
     path = target_dir / f"{name}.md"
-    for existing in (COMMANDS / "commands", COMMANDS / "commands.local", target_dir):
+    for existing in (SHARED, local, target_dir):
         if (existing / f"{name}.md").exists():
             print(f"✗ {name} already exists: {existing / f'{name}.md'}", file=sys.stderr)
             return 1

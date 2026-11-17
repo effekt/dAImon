@@ -144,7 +144,7 @@ check_watch_token() {
   fi
 }
 
-if [ -d "$DAIMON_INSTALL_ROOT/daemons/slack-commands" ]; then
+if cfg daemons | grep -qx slack-commands; then
   echo "slack commands"
   check_slack_mcp
   check_watch_token

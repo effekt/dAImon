@@ -8,8 +8,8 @@ trap 'rm -rf "$TMP"' EXIT
 
 # Sandbox install root with one daemon carrying its own hourly_cap, so the
 # per-daemon budget branch has something to resolve against.
-mkdir -p "$TMP/inst/daemons/capped"
-cat > "$TMP/inst/daemons/capped/daemon.toml" <<EOF
+mkdir -p "$TMP/inst/catalog/capped"
+cat > "$TMP/inst/catalog/capped/daemon.toml" <<EOF
 [daemon]
 schedule = { interval = 60 }
 command = "/capped"

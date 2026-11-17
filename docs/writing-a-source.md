@@ -61,7 +61,7 @@ show the shape; `daimon init` copies it there.
 ## How a daemon uses it
 
 ```toml
-# in daemons/<slug>/daemon.toml
+# in <slug>/daemon.toml
 sources = ["datadog", { name = "shortcut", write = true }]
 ```
 

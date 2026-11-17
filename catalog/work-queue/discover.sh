@@ -11,8 +11,10 @@
 set -uo pipefail
 ready_ids="" stalled_ids=""
 
-source "$(dirname "$0")/../../profiles/shortcut/lib.sh"
-source "$(dirname "$0")/../../profiles/github/lib.sh"
+# dAImon exports this when it runs the gate; fall back to the `daimon` on PATH.
+DAIMON_INSTALL_ROOT="${DAIMON_INSTALL_ROOT:-$(cd "$(dirname "$(readlink -f "$(command -v daimon)")")/.." && pwd)}"
+source "$DAIMON_INSTALL_ROOT/profiles/shortcut/lib.sh"
+source "$DAIMON_INSTALL_ROOT/profiles/github/lib.sh"
 
 if shortcut_marker_mode; then
   # The status field carries the markers: ready = status_ready, a stalled claim

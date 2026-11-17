@@ -11,7 +11,8 @@ setup() {
   SBOX="$BATS_TEST_TMPDIR/home"
   INST="$BATS_TEST_TMPDIR/install"
   mkdir -p "$SBOX/.config/daimon" "$SBOX/Library/LaunchAgents"
-  rsync -a --exclude .git --exclude .venv --exclude '*.local.toml' --exclude 'daemons/*.local' \
+  rsync -a --exclude .git --exclude .venv --exclude '*.local.toml' \
+    --include 'daemons/README.md' --exclude 'daemons/*' \
     "$ROOT/" "$INST/"
   # Seed a valid global config: install_root is the scratch copy, state + plists
   # land under the sandbox, and a test namespace keeps plist labels distinct.
@@ -95,14 +96,40 @@ run_install() {
 }
 
 @test "install: moves legacy in-repo settings to ~/.config/daimon" {
+  # As left by the git merge that moved daemons/ to catalog/: the gitignored
+  # daemon.local.toml stays behind in daemons/<slug>/.
+  mkdir -p "$INST/daemons/review-prs"
   printf '# mine\n[inputs]\nrepos = ["api"]\n' > "$INST/daemons/review-prs/daemon.local.toml"
   printf '[defaults]\nowner = "me"\n' > "$INST/profiles/shortcut/profile.local.toml"
   run_install
   [ "$status" -eq 0 ]
   grep -q '# mine' "$SBOX/.config/daimon/daemons/review-prs.toml"
   grep -q 'owner = "me"' "$SBOX/.config/daimon/profiles/shortcut.toml"
-  grep -q 'by daimon migrate' "$INST/daemons/review-prs/daemon.local.toml"
-  ! grep -q 'repos' "$INST/daemons/review-prs/daemon.local.toml"
+  # the leftover folder held only the migrated file, so it is gone
+  [ ! -e "$INST/daemons/review-prs" ]
+  [ -f "$INST/daemons/README.md" ]
   # the tracked example is never touched
-  diff -q "$ROOT/daemons/review-prs/daemon.local.toml.example" "$INST/daemons/review-prs/daemon.local.toml.example"
+  diff -q "$ROOT/catalog/review-prs/daemon.local.toml.example" "$INST/catalog/review-prs/daemon.local.toml.example"
+}
+
+@test "install: a config from before the catalog gets today's active set as installed" {
+  printf '\n[daemons]\n# skip this one\ndisabled = ["slack-standup"]\n' >> "$SBOX/.config/daimon/daimon.toml"
+  run_install
+  [ "$status" -eq 0 ]
+  conf="$SBOX/.config/daimon/daimon.toml"
+  grep -q '# skip this one' "$conf"
+  installed="$(python3 -c 'import sys,tomllib; print(" ".join(tomllib.load(open(sys.argv[1],"rb"))["daemons"]["installed"]))' "$conf")"
+  expected="$(ls "$INST/catalog" | grep -v -e README.md -e daemon.schema.json | grep -vx slack-standup | tr '\n' ' ' | sed 's/ $//')"
+  [ "$installed" = "$expected" ]
+  cp "$conf" "$BATS_TEST_TMPDIR/after-first"
+  run_install
+  [ "$status" -eq 0 ]
+  diff "$BATS_TEST_TMPDIR/after-first" "$conf"
+}
+
+@test "install: a fresh config installs no daemons" {
+  rm "$SBOX/.config/daimon/daimon.toml"
+  run_install
+  [ "$status" -eq 0 ]
+  grep -q '^installed = \[\]' "$SBOX/.config/daimon/daimon.toml"
 }
