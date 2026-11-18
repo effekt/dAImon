@@ -206,7 +206,13 @@ def remove(config, migrate, slugs: list[str], yes: bool) -> int:
     done, rc = [], 0
     for slug in dict.fromkeys(slugs):
         if slug not in installed and slug not in ejected:
-            print(f"= {slug} (not installed)")
+            # Not installed, but a launchd job left behind (e.g. a disabled
+            # daemon registered before the catalog) still fires: unload it.
+            if _plist(cfg, slug).exists():
+                if not unregister(cfg, slug, yes):
+                    rc = 1
+            else:
+                print(f"= {slug} (not installed)")
         elif unregister(cfg, slug, yes):
             done.append(slug)
         else:

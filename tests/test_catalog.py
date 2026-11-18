@@ -246,6 +246,30 @@ class AddRemoveTest(CatalogBase):
         )
         self.assertEqual(self.daemons_key("installed"), [])
 
+    def test_remove_unloads_a_leftover_job_of_a_daemon_not_installed(self):
+        self.write_config('installed = ["beta"]\ndisabled = ["alpha"]')
+        plist = self.plist("alpha")
+        loaded = catalog.subprocess.CompletedProcess([], 0, "state = waiting", "")
+        with patch.object(catalog, "_launchctl", return_value=loaded) as lc:
+            rc, out = self.run_cmd("remove", "--yes", "alpha")
+        self.assertEqual(rc, 0, out)
+        self.assertFalse(plist.exists())
+        self.assertIn(
+            ("bootout", f"gui/{os.getuid()}/com.daimon.alpha"),
+            [c.args for c in lc.call_args_list],
+        )
+        self.assertEqual(self.daemons_key("installed"), ["beta"])
+        self.assertEqual(self.daemons_key("disabled"), ["alpha"])
+        self.assertNotIn("not installed", out)
+
+    def test_remove_of_a_daemon_neither_installed_nor_registered_is_a_no_op(self):
+        self.write_config('installed = ["beta"]')
+        with patch.object(catalog, "_launchctl") as lc:
+            rc, out = self.run_cmd("remove", "alpha")
+        self.assertEqual(rc, 0)
+        self.assertIn("= alpha (not installed)", out)
+        lc.assert_not_called()
+
     def test_catalog_lists_source_and_state(self):
         self.write_config('installed = ["alpha"]\ndisabled = ["alpha"]')
         make_daemon(self.root / "daemons" / "gamma", "gamma")
