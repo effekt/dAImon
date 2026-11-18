@@ -1,9 +1,11 @@
 import importlib
+import io
 import os
 import sys
 import tempfile
 import textwrap
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -164,6 +166,60 @@ class MaterializeTest(unittest.TestCase):
             self.calls.clear()
             self.sync.materialize(self.config, create_missing=False)  # unchanged now
         self.assertFalse([c for c in self.calls if c[0] in ("bootout", "bootstrap")])
+
+    def _beta_requires_a_missing_cli(self):
+        write(
+            self.root / "catalog" / "beta" / "daemon.toml",
+            """
+            [daemon]
+            schedule = { interval = 1200 }
+            command = "/beta"
+            [daemon.requires]
+            cli = ["no-such-cli-for-daimon-tests"]
+        """,
+        )
+        write(self.root / "catalog" / "beta" / "skill" / "SKILL.md", "Beta.\n")
+
+    def test_register_all_refuses_a_daemon_missing_a_requirement_and_registers_the_rest(self):
+        self._beta_requires_a_missing_cli()
+        agents = self.home / "Library" / "LaunchAgents"
+        with patch.object(self.sync.sys, "platform", "darwin"):
+            self.sync.materialize(self.config, create_missing=True)
+        self.assertTrue((agents / "com.testns.alpha.plist").exists())
+        self.assertFalse((agents / "com.testns.beta.plist").exists())
+        self.assertEqual(list(self.sync.REFUSED), ["beta"])
+        self.assertIn("'no-such-cli-for-daimon-tests' is not on PATH", self.sync.REFUSED["beta"][0])
+        self.assertTrue((self.home / ".claude" / "skills" / "beta" / "SKILL.md").exists())
+
+    def test_a_registered_daemon_that_lost_a_requirement_is_refreshed_not_removed(self):
+        self._beta_requires_a_missing_cli()
+        agents = self.home / "Library" / "LaunchAgents"
+        agents.mkdir(parents=True)
+        plist = agents / "com.testns.beta.plist"
+        plist.write_text("stale")
+        with patch.object(self.sync.sys, "platform", "darwin"):
+            self.sync.materialize(self.config, create_missing=True)
+        self.assertIn("<string>beta</string>", plist.read_text())
+        self.assertEqual(self.sync.REFUSED, {})
+
+    def test_sync_all_names_what_is_missing_and_exits_1(self):
+        self._beta_requires_a_missing_cli()
+        err = io.StringIO()
+        with (
+            patch.object(self.sync.sys, "platform", "darwin"),
+            patch.object(self.sync, "pull_packs", return_value=[]),
+            redirect_stdout(io.StringIO()),
+            redirect_stderr(err),
+        ):
+            rc = self.sync.main(["--all"])
+        self.assertEqual(rc, 1)
+        self.assertEqual(
+            err.getvalue().splitlines(),
+            [
+                "not registered beta: it requires what this machine lacks",
+                "  - command 'no-such-cli-for-daimon-tests' is not on PATH — install it",
+            ],
+        )
 
 
 if __name__ == "__main__":

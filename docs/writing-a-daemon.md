@@ -127,10 +127,28 @@ A daemon that posts comments (it has a `bot_marker` input) additionally gets
 durable-state-via-`daimon state` conventions — so you inherit them instead of
 restating them in each skill.
 
-## 4. `doctor.sh` (optional)
+## 4. `[daemon].requires` (optional)
 
-What only this daemon knows it needs, such as a keychain item, a login, or a
-personal setting, can be checked by `daimon doctor`. Add `doctor.sh`: it runs
+If the skill can't work without an MCP server, a CLI or a secret, declare it.
+Registering the daemon is then refused on a machine that lacks it, with one line
+per missing item saying how to fix it. `daimon add` lists what's missing, and
+`daimon doctor` checks it for every active daemon:
+
+```toml
+[daemon.requires]
+mcp = ["mongodb-mcp-server"]                    # configured for working_dir
+cli = [{ name = "pup", check = "pup auth status --output json", fix = "pup auth login" }]
+commands = ["token_command"]                    # [inputs] whose command must print something
+one_of = [{ mcp = ["datadog-mcp"], cli = ["pup"] }]  # any one of these is enough
+```
+
+See [configuration.md](configuration.md#declare-what-a-daemon-needs) for how each
+kind is checked.
+
+## 5. `doctor.sh` (optional)
+
+What only this daemon knows it needs and `requires` can't say, such as a check
+that needs logic, can be checked by `daimon doctor`. Add `doctor.sh`: it runs
 for registered daemons, with the daemon's inputs as `DAIMON_INPUT_*` and its
 folder as `DAIMON_DAEMON_DIR`. Exit 0 = ok, 1 = warn, 2 = fail. The first line
 of output is the message.

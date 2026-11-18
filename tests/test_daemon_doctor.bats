@@ -48,6 +48,33 @@ setup() {
   [[ "$output" == *"note  plain (local): upstream changed — see: daimon diff plain"* ]]
 }
 
+requires() {  # slug toml-lines
+  printf '[daemon.requires]\n%s\n' "$2" >> "$T/install/catalog/$1/daemon.toml"
+}
+
+@test "missing requirements fail a registered daemon and warn an unregistered one" {
+  requires keyed 'cli = ["no-such-cli-for-daimon-tests"]'
+  requires plain 'mcp = ["datadog"]'
+  run bash "$ROOT/lib/doctor.sh"
+  [[ "$output" == *"requirements"* ]]
+  [[ "$output" == *"FAIL  keyed: command 'no-such-cli-for-daimon-tests' is not on PATH — install it"* ]]
+  [[ "$output" == *"warn  plain (not registered): MCP server 'datadog' is not configured for"* ]]
+  [ "$status" -eq 1 ]
+}
+
+@test "met requirements are ok, found at user scope in ~/.claude.json" {
+  requires keyed 'cli = ["bash"]
+mcp = ["datadog"]'
+  printf '{"mcpServers": {"datadog": {"command": "x"}}}\n' > "$HOME/.claude.json"
+  run bash "$ROOT/lib/doctor.sh"
+  [[ "$output" == *"ok    keyed: requirements met: MCP server 'datadog', command 'bash'"* ]]
+}
+
+@test "no requirements section when no daemon declares any" {
+  run bash "$ROOT/lib/doctor.sh"
+  [[ "$output" != *"requirements"* ]]
+}
+
 @test "no ejected-daemons section when nothing is ejected" {
   run bash "$ROOT/lib/doctor.sh"
   [[ "$output" != *"ejected daemons"* ]]
