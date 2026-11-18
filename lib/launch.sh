@@ -41,8 +41,8 @@ pane_heartbeat() {  # session heartbeat — touch heartbeat whenever the pane ch
 
 run_one_backend() {
   local be="$1"
-  # Optional hook: a fallback backend must not inherit the primary's.
-  unset -f backend_initial_prompt
+  # Optional hooks: a fallback backend must not inherit the primary's.
+  unset -f backend_initial_prompt backend_launch_check
   # shellcheck source=/dev/null
   source "$DAIMON_INSTALL_ROOT/backends/$be.sh"
   local model session model_var
@@ -62,6 +62,15 @@ run_one_backend() {
   if tmux has-session -t "$session" 2>/dev/null; then
     log_event "$SLUG" skip "session $session already running" >> "$OPLOG"
     return 0
+  fi
+
+  # A CLI that would stop at a start-up dialog (claude's folder-trust prompt)
+  # fails here with the reason, rather than its command waiting behind the dialog
+  # until the stuck_after reaper ends the run.
+  local blocked
+  if declare -F backend_launch_check >/dev/null && ! blocked="$(backend_launch_check "$WORKING_DIR")"; then
+    log_event "$SLUG" boot_fail "backend=$be session=$session $blocked" >> "$OPLOG"
+    return 1
   fi
 
   local HBPID="" PROMPTF=""

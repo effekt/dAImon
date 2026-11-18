@@ -29,6 +29,13 @@ for `backend_ready_regex` and typing it, so a change to the CLI's idle-prompt te
 sent. Boot is then checked only by the session still being alive after a short
 grace. `claude` declares it.
 
+Optionally, `backend_launch_check <working_dir>` returns non-zero, with the
+reason on stdout, when the CLI would stop at a start-up dialog in that folder.
+The launcher then logs `boot_fail` with the reason and doesn't start the
+session, so the run fails at once instead of waiting behind the dialog until the
+`stuck_after` reaper. `claude` uses it for its folder-trust prompt
+(`lib/claude_trust.py`: the folder's own record, else its git repository root's).
+
 ## Resuming a session
 
 A gate can ask to continue an earlier agent session instead of starting fresh, so
