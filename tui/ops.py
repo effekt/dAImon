@@ -59,14 +59,37 @@ def kill_run(cfg, slug: str) -> None:
     subprocess.run(["bash", str(INSTALL_ROOT / "lib" / "kill.sh"), slug], check=False)
 
 
-def duplicate(cfg, src: str, new: str) -> None:
-    # exclude daemon.local.toml: the clone targets a different repo, so working_dir starts fresh
+def duplicate(cfg, src: str, new: str) -> str | None:
+    """Copy `src` as a new daemon `new`. A catalog daemon (dAImon's or a pack's)
+    is forked with `daimon eject --as`, like the CLI: renamed throughout, the
+    packs' team overrides folded in, your settings copied, tracked by
+    `daimon outdated`. A daemon of your own (no catalog) is copied in daemons/
+    with its command renamed. Returns an error message, or None on success."""
+    if src in cfg.catalog():
+        return _fork(src, new)
     shutil.copytree(
         cfg.daemon_dir(src),
         cfg.daemons_dir() / new,
-        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "daemon.local.toml"),
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "daemon.local.toml", ".origin.json"),
     )
     cfg.update_daemon_field(new, "command", f"/{new}")
+    return None
+
+
+def _fork(src: str, new: str) -> str | None:
+    """`daimon eject <src> --as <new>` as a child process, so its output and the
+    sync it runs stay off the TUI's screen. The last output line on failure."""
+    res = subprocess.run(
+        [str(INSTALL_ROOT / "bin" / "daimon"), "eject", src, "--as", new],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if res.returncode == 0:
+        return None
+    lines = (res.stderr.strip() or res.stdout.strip()).splitlines()
+    return lines[-1] if lines else f"daimon eject --as failed ({res.returncode})"
 
 
 def builder_argv() -> list[str]:

@@ -185,6 +185,10 @@ a valid slug, is the original's own, or already exists in any catalog, pack or
 `daemons/`. `daimon uneject` refuses a fork, since nothing is linked under its
 name: `daimon remove bug-queue`, then delete its folder.
 
+The TUI's duplicate key (`y`) does the same for a catalog daemon. A daemon of
+your own (one in `daemons/` with no catalog behind it) is copied with only its
+command renamed.
+
 ## Installs from before the catalog
 
 dAImon's daemons used to live in `daemons/`, and every one of them was active
