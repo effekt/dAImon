@@ -100,6 +100,7 @@ Inherited by every daemon; a daemon's `[daemon]` block overrides any field.
 | `role` | string | Run this daemon on one machine at a time across a team: on each run it asks `[roles].command` and skips unless this machine holds the role. Lowercase letters, digits and `-`. Usually set in `daemon.local.toml`. |
 | `role_hold` | int (sec) | How long one run's claim on the role lasts. Defaults to twice the interval plus a minute; required for `minutes`/`daily` schedules. |
 | `schedule` | table | One of: `{ interval = 1200 }` (seconds), `{ minutes = [8, 38] }` (minutes past each hour), or `{ daily = "13:02", tz = "UTC" }`. |
+| `requires` | table | Optional. The MCP servers, CLIs and secrets the daemon can't work without: `mcp`, `cli`, `commands`, and `one_of` for alternatives. Registering the daemon is refused while any is missing. See [Declare what a daemon needs](#declare-what-a-daemon-needs). |
 
 ### `[inputs]` — task variables
 
@@ -168,6 +169,51 @@ files from an older dAImon) is moved aside to `~/.daimon/legacy-<YYYYMMDD>/`, no
 deleted; a dAImon checkout at `~/.daimon/app` (where a team pack's setup may clone
 it) stays where it is. If both folders hold a `daimon.toml`, `~/.daimon` wins and the old folder
 is left alone, with a warning. With `$DAIMON_CONFIG` set nothing moves.
+
+## Declare what a daemon needs
+
+A daemon whose skill needs an MCP server, a CLI or a secret that a teammate may
+not have declares it in `[daemon].requires`. Then that daemon can't be
+registered on a machine that lacks one, so nobody schedules a job that fails on
+every run:
+
+```toml
+[daemon.requires]
+mcp      = ["mongodb-mcp-server"]
+cli      = ["jq", { name = "pup", check = "pup auth status --output json", fix = "pup auth login" }]
+commands = ["token_command"]
+one_of   = [{ mcp = ["datadog-mcp"], cli = ["pup"] }]
+```
+
+Every entry in `mcp`, `cli` and `commands` must be met. Each `one_of` group is
+met when any one of its entries is (a skill with a fallback); it takes the same
+three keys and needs at least two entries.
+
+| Kind | Entry | Met when |
+|------|-------|----------|
+| `mcp` | server name | The server is configured where the daemon's session loads it. For a `claude` daemon that is user scope (`mcpServers` in `~/.claude.json`), local scope (`projects["<working_dir>"].mcpServers` there, or the entry for its git root), or project scope (a `.mcp.json` in `working_dir` or a parent). A server rejected for the project (`disabledMcpjsonServers`) or switched off with `/mcp` (`disabledMcpServers`) doesn't count. `plugin:<plugin>:<server>` (a plugin's server) is met when the plugin is enabled in `~/.claude/settings.json` or the project's `.claude/settings*.json`. A daemon that sets `[daemon].mcp` runs with `--strict-mcp-config`, so only those servers count. For a `codex` daemon, `[mcp_servers.<name>]` in `~/.codex/config.toml` (`$CODEX_HOME`) counts. |
+| `cli` | command name, or `{ name, check, fix }` | `name` is on `PATH` (the `PATH` sync writes into the plist), and `check`, if set, exits 0. `fix` is printed when it isn't met. |
+| `commands` | an `[inputs]` key | The input's value is a shell command (e.g. a `token_command` that reads a keychain item) that exits 0 and prints something. Its output is never shown. |
+
+Nothing is started to check: servers are read from those files (not `claude mcp
+list`, which connects to each one). Only `check` commands and `commands` inputs
+run, with `bash -c` in `working_dir`, the daemon's inputs as `DAIMON_INPUT_*`,
+and a 15-second timeout. Only the daemon's primary backend is checked.
+
+Where it's checked:
+
+- **Registering** (creating the daemon's plist): `daimon sync --all`, `daimon
+  install --load` and the TUI's `r` refuse a daemon with anything missing,
+  printing one line per item with how to fix it. Other daemons register as
+  usual, and `daimon sync --all` exits 1.
+- **`daimon add`** prints what's missing right after installing, so you know
+  before you try to register.
+- **`daimon doctor`** checks every active daemon that declares requirements. A
+  registered one with something missing fails. An unregistered one warns.
+
+A registered daemon that later loses a requirement stays registered: `daimon
+sync` keeps refreshing its plist, and `daimon doctor` flags it until it's fixed.
+To check one daemon by hand: `python3 lib/requires.py <slug>`.
 
 ## Run a daemon on one machine only
 

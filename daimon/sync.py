@@ -22,7 +22,12 @@ def _import_from_path(name: str, path: Path):
     return mod
 
 
+requires = _import_from_path("daimon_requires", INSTALL_ROOT / "lib" / "requires.py")
+
 RELOAD_NOTES: list[str] = []
+# Daemons whose plist was not created because their [daemon].requires isn't met:
+# {slug: one line per missing item}.
+REFUSED: dict[str, list[str]] = {}
 
 
 def _launchctl(*args: str) -> subprocess.CompletedProcess:
@@ -60,8 +65,12 @@ def materialize(cfg_mod, create_missing: bool = True):
     """Render skills for every discovered daemon; write plists. A plist file is
     the registration marker (TUI register/unregister creates/deletes it), so by
     default only existing plists are refreshed — create_missing=True (install)
-    also creates absent ones. Returns (cfg, skipped_slugs)."""
+    also creates absent ones, except for a daemon missing something it requires
+    (REFUSED). An existing plist is refreshed either way: losing a requirement
+    never unregisters a daemon (`daimon doctor` flags it). Returns (cfg,
+    skipped_slugs)."""
     RELOAD_NOTES.clear()
+    REFUSED.clear()
     cfg = cfg_mod.Config.load()
     schema_path = cfg.catalog_dir() / "daemon.schema.json"
     schema_path.write_text(json.dumps(cfg_mod.daemon_schema(), indent=2) + "\n")
@@ -78,10 +87,12 @@ def materialize(cfg_mod, create_missing: bool = True):
         (sd / "SKILL.md").write_text(cfg_mod.render_skill(cfg, slug))
         if agents.is_dir():
             plist = agents / f"com.{ns}.{slug}.plist"
-            if create_missing or plist.exists():
-                _write_plist(plist, cfg_mod.render_plist(cfg, slug), f"com.{ns}.{slug}")
-            else:
+            if not plist.exists() and not create_missing:
                 skipped.append(slug)
+            elif not plist.exists() and (missing := requires.check(cfg, slug)):
+                REFUSED[slug] = missing
+            else:
+                _write_plist(plist, cfg_mod.render_plist(cfg, slug), f"com.{ns}.{slug}")
     if agents.is_dir():
         _write_plist(
             agents / f"com.{ns}.watchdog.plist",
@@ -150,7 +161,11 @@ def main(argv: list[str]) -> int:
         print(
             f"unregistered (no plist, left alone): {', '.join(skipped)} — register via TUI `r` or `daimon sync --all`"
         )
-    return 0
+    for slug, missing in REFUSED.items():
+        print(f"not registered {slug}: it requires what this machine lacks", file=sys.stderr)
+        for line in missing:
+            print(f"  - {line}", file=sys.stderr)
+    return 1 if REFUSED else 0
 
 
 if __name__ == "__main__":

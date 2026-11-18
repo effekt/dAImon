@@ -398,6 +398,10 @@ class Config:
         merged["mcp"] = [mcp] if isinstance(mcp, str) else list(mcp)
         return merged
 
+    def requires(self, slug: str) -> dict:
+        """[daemon].requires, normalized (lib/requires.py checks it)."""
+        return requires_of(self.daemon(slug))
+
     def mcp_config(self, slug: str) -> dict:
         names = self.daemon(slug)["mcp"]
         servers = {n: MCP_SERVERS[n] for n in names if n in MCP_SERVERS}
@@ -596,6 +600,88 @@ def _required_input_errors(cfg: Config, slug: str) -> list[str]:
     ]
 
 
+# [daemon].requires: what must exist on this machine before the daemon may be
+# registered. Each kind lists entries that must all be met; `one_of` lists
+# groups of the same kinds where any single entry is enough (a skill's fallback).
+REQUIRE_KINDS = ("mcp", "cli", "commands")
+REQUIRE_CLI_KEYS = ("name", "check", "fix")
+
+
+def _require_group(table: dict) -> dict:
+    cli = [
+        {"name": c, "check": "", "fix": ""}
+        if isinstance(c, str)
+        else {k: c.get(k, "") for k in REQUIRE_CLI_KEYS}
+        for c in table.get("cli", [])
+    ]
+    return {
+        "mcp": list(table.get("mcp", [])),
+        "cli": cli,
+        "commands": list(table.get("commands", [])),
+    }
+
+
+def requires_of(daemon: dict) -> dict:
+    """{"mcp": [server], "cli": [{"name", "check", "fix"}], "commands": [input
+    key], "one_of": [groups of the same three kinds]}. Expects valid config."""
+    raw = daemon.get("requires") or {}
+    out = _require_group(raw)
+    out["one_of"] = [_require_group(g) for g in raw.get("one_of", [])]
+    return out
+
+
+def _require_group_errors(where: str, table: dict, keys: tuple, inputs: dict) -> list[str]:
+    errors = [
+        f"{where}: unknown key '{k}' (known: {', '.join(keys)})" for k in table if k not in keys
+    ]
+    for kind in REQUIRE_KINDS:
+        entries = table.get(kind, [])
+        if not isinstance(entries, list):
+            errors.append(f"{where}.{kind} must be a list")
+            continue
+        for e in entries:
+            if kind == "cli" and isinstance(e, dict):
+                ok = (
+                    set(e) <= set(REQUIRE_CLI_KEYS)
+                    and not _is_empty(e.get("name"))
+                    and all(isinstance(e.get(k, ""), str) for k in REQUIRE_CLI_KEYS)
+                )
+                if not ok:
+                    errors.append(
+                        f'{where}.cli: {e!r} must be a name or {{ name = "…", check = "…", fix = "…" }}'
+                    )
+            elif not isinstance(e, str) or _is_empty(e):
+                errors.append(f"{where}.{kind}: entries must be non-empty strings, got {e!r}")
+            elif kind == "commands" and e not in inputs:
+                errors.append(f"{where}.commands: '{e}' is not one of the daemon's [inputs]")
+    return errors
+
+
+def _requires_errors(slug: str, merged: dict) -> list[str]:
+    raw = merged.get("requires")
+    if raw is None:
+        return []
+    where = f"{slug}: [daemon].requires"
+    if not isinstance(raw, dict):
+        return [f"{where} must be a table"]
+    inputs = merged["inputs"]
+    errors = _require_group_errors(where, raw, (*REQUIRE_KINDS, "one_of"), inputs)
+    groups = raw.get("one_of", [])
+    if not isinstance(groups, list):
+        return [*errors, f"{where}.one_of must be a list of tables"]
+    for n, group in enumerate(groups):
+        at = f"{where}.one_of[{n}]"
+        if not isinstance(group, dict):
+            errors.append(f"{at} must be a table")
+            continue
+        group_errors = _require_group_errors(at, group, REQUIRE_KINDS, inputs)
+        errors.extend(group_errors)
+        count = sum(len(group.get(k, [])) for k in REQUIRE_KINDS)
+        if not group_errors and count < 2:
+            errors.append(f"{at} needs at least two alternatives")
+    return errors
+
+
 def _mcp_errors(cfg: Config, slug: str) -> list[str]:
     merged = cfg.daemon(slug)
     names = merged["mcp"]
@@ -663,6 +749,7 @@ def validate(cfg: Config) -> list[str]:
         else:
             errors.extend(_required_input_errors(cfg, slug))
             errors.extend(_mcp_errors(cfg, slug))
+            errors.extend(_requires_errors(slug, merged))
         errors.extend(_role_errors(cfg, slug))
     errors.extend(_catalog_errors(cfg))
     return errors
@@ -763,6 +850,42 @@ def daemon_schema() -> dict:
             },
         ],
     }
+    names = {"type": "array", "items": {"type": "string", "minLength": 1}}
+    cli = {
+        "type": "array",
+        "items": {
+            "oneOf": [
+                {"type": "string", "minLength": 1},
+                {
+                    "type": "object",
+                    "required": ["name"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "name": {"type": "string", "minLength": 1},
+                        "check": {"type": "string"},
+                        "fix": {"type": "string"},
+                    },
+                },
+            ]
+        },
+    }
+    require_kinds = {"mcp": names, "cli": cli, "commands": names}
+    requires = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            **require_kinds,
+            "one_of": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "minProperties": 1,
+                    "properties": require_kinds,
+                },
+            },
+        },
+    }
     daemon = {
         "type": "object",
         "required": ["command", "schedule"],
@@ -809,6 +932,7 @@ def daemon_schema() -> dict:
             "required_inputs": {
                 "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]
             },
+            "requires": requires,
         },
     }
     return {

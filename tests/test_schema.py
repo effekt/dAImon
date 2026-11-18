@@ -40,6 +40,38 @@ class SchemaValidationTest(unittest.TestCase):
         doc = {"daemon": {"command": "pr-manager", "schedule": {"interval": 60}}}
         self.assertTrue(list(self.validator.iter_errors(doc)))
 
+    def test_accepts_requires(self):
+        doc = {
+            "daemon": {
+                "command": "/x",
+                "schedule": {"interval": 60},
+                "requires": {
+                    "mcp": ["mongodb"],
+                    "cli": [
+                        "pup",
+                        {"name": "gh", "check": "gh auth status", "fix": "gh auth login"},
+                    ],
+                    "commands": ["token_command"],
+                    "one_of": [{"mcp": ["datadog"], "cli": ["pup"]}],
+                },
+            }
+        }
+        self.assertEqual([e.message for e in self.validator.iter_errors(doc)], [])
+
+    def test_rejects_malformed_requires(self):
+        for requires in (
+            {"mcp": "datadog"},
+            {"clis": ["pup"]},
+            {"cli": [{"nam": "pup"}]},
+            {"commands": [""]},
+            {"one_of": [{}]},
+        ):
+            with self.subTest(requires=requires):
+                doc = {
+                    "daemon": {"command": "/x", "schedule": {"interval": 60}, "requires": requires}
+                }
+                self.assertTrue(list(self.validator.iter_errors(doc)))
+
     def test_rejects_unknown_daemon_field(self):
         doc = {"daemon": {"command": "/x", "schedule": {"interval": 60}, "comand": "typo"}}
         self.assertTrue(list(self.validator.iter_errors(doc)))

@@ -29,6 +29,19 @@ def _modules():
     return config, migrate
 
 
+def _report_requirements(cfg, slugs: list[str]) -> None:
+    """Say now what each daemon still needs on this machine: registering it is
+    refused until then."""
+    import requires
+
+    for slug in slugs:
+        missing = requires.check(cfg, slug)
+        if missing:
+            print(f"  {slug} can't be registered until this machine has:")
+            for line in missing:
+                print(f"    - {line}")
+
+
 def _description(folder: Path) -> str:
     try:
         text = (folder / "skill" / "SKILL.md").read_text()
@@ -165,6 +178,8 @@ def add(config, migrate, slugs: list[str], pack: str | None = None) -> int:
     synced = _sync()
     if not synced:
         print("  sync failed: fill in the settings above, then run `daimon sync`", file=sys.stderr)
+    else:
+        _report_requirements(config.Config.load(), slugs)
     print("registered nothing: register with `daimon tui` → r")
     return 0 if synced else 1
 

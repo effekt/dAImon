@@ -45,9 +45,17 @@ def disable(cfg, slug: str) -> None:
     subprocess.run(["launchctl", "bootout", f"{_gui()}/{label_for(cfg, slug)}"], check=False)
 
 
-def register(cfg, slug: str) -> None:
+def register(cfg, slug: str) -> str | None:
+    """Create the plist and load it. Refused while the daemon's [daemon].requires
+    isn't met: returns what's missing, one line each, and writes nothing."""
+    import requires
+
+    missing = requires.check(cfg, slug)
+    if missing:
+        return "\n".join([f"{slug} not registered — missing:", *missing])
     regen_plist(cfg, slug)
     enable(cfg, slug)
+    return None
 
 
 def unregister(cfg, slug: str) -> None:

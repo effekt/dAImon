@@ -81,8 +81,11 @@ with `daimon eject <slug> --pack` (or `daimon add <slug> --pack` to install it
 too). The pack's copy replaces dAImon's, and `daimon outdated` shows when
 dAImon's changes: see [ejecting into a pack](catalog.md#ejecting-into-a-pack).
 
-A pack daemon can ship `doctor.sh` for its own needs
-([writing a daemon](writing-a-daemon.md#4-doctorsh-optional)). A pack is kept
+A pack daemon should declare the MCP servers, CLIs and secrets it needs in
+`[daemon].requires`, so a teammate who lacks one can't register it
+([declare what a daemon needs](configuration.md#declare-what-a-daemon-needs)),
+and can ship `doctor.sh` for anything else
+([writing a daemon](writing-a-daemon.md#5-doctorsh-optional)). A pack is kept
 current by `daimon sync`, which runs hourly through `daimon update` when
 `[update] auto` is on.
 

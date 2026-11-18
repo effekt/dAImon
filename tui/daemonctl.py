@@ -270,7 +270,14 @@ class DaemonCtl(App):
         self._op(ops.disable)
 
     def action_register(self) -> None:
-        self._op(ops.register)
+        sel = self._load_and_slug()
+        if not sel:
+            return
+        slug, cfg = sel
+        err = ops.register(cfg, slug)
+        if err:
+            self.notify(err, severity="error", timeout=15)
+        self.refresh_table()
 
     def action_unregister(self) -> None:
         self._confirm_op("unregister", ops.unregister)

@@ -94,6 +94,23 @@ for slug in $(cfg daemons); do
   daemon_check "$slug" "$dir"
 done
 
+# [daemon].requires (lib/requires.py), for every active daemon that declares it.
+# Missing on a registered daemon fails: it fires and can't do its job. On an
+# unregistered one it warns: registering it is refused until it's fixed.
+requires_header=0
+for slug in $(cfg daemons); do
+  out="$(python3 "$DAIMON_LIB_DIR/requires.py" "$slug" 2>&1)"; rc=$?
+  [ "$rc" = 0 ] && [ -z "$out" ] && continue
+  [ "$requires_header" = 1 ] || { echo "requirements"; requires_header=1; }
+  if [ "$rc" = 0 ]; then ok "$slug: $out"; continue; fi
+  if [ "$rc" != 1 ]; then bad "$slug: requirements check failed: $(printf '%s' "$out" | tail -1)"; continue; fi
+  if [ -f "$HOME/Library/LaunchAgents/com.${DAIMON_NS}.${slug}.plist" ]; then
+    while IFS= read -r line; do bad "$slug: $line"; done <<<"$out"
+  else
+    while IFS= read -r line; do warn "$slug (not registered): $line"; done <<<"$out"
+  fi
+done
+
 if [ "$needs_codex" = 1 ]; then
   echo "codex"
   codex_bin="${DAIMON_CODEX_BIN:-codex}"
