@@ -105,6 +105,15 @@ export DAIMON_AGENT_SESSION="0f0e0d0c-0000-4000-8000-000000000001"
 case "$(backend_cli_args opus 1 sess)" in *"--session-id $DAIMON_AGENT_SESSION"*) sid=1;; *) sid=0;; esac
 check "$sid" "1" "claude backend pins --session-id when DAIMON_AGENT_SESSION is set"
 unset DAIMON_AGENT_SESSION
+# The command goes in at start-up, not typed once the pane shows a ready banner
+# whose text depends on the user's permission mode.
+if backend_initial_prompt; then ip=1; else ip=0; fi
+check "$ip" "1" "claude backend takes the command as its first prompt"
+# It must reach the CLI as one argv word after tmux's shell, quotes and all.
+for c in "/review-prs" "/pr-manager resume 'PR 12' now"; do
+  w="$(sh -c "printf '%s\n' $(initial_prompt_word "$c")")"
+  check "$w" "$c" "initial prompt survives the launch shell as one word: $c"
+done
 
 # The Stop hook marks done only for the daemon's own session, never for a child
 # `claude -p` that a user hook spawns with the same env.
