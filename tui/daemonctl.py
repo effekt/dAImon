@@ -324,7 +324,10 @@ class DaemonCtl(App):
             if new in cfg.discover() or cfg.daemon_dir(new).exists():
                 self.notify(f"'{new}' already exists", severity="error")
                 return
-            ops.duplicate(cfg, slug, new)
+            err = ops.duplicate(cfg, slug, new)
+            if err:
+                self.notify(err, severity="error")
+                return
             self.refresh_table()
             self.push_screen(ConfigScreen(config.Config.load(), new))
 
